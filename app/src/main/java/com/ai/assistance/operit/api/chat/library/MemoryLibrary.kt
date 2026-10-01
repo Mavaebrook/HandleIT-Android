@@ -95,6 +95,21 @@ object MemoryLibrary {
     }
 
     /**
+     * 强化钩子（echo-guard）：当某条记忆在后续对话中被再次确认时，递增强化次数并提升可信度。
+     *
+     * echo-guard 设计：仅对 `source == "user_input"` 的记忆做强化。
+     * 模型自产（`memory_analysis` / `merged_from_memory`）的记忆属于其自身综合结果，
+     * 再次出现不构成独立确认，因此跳过强化，避免"回声"式的自我膨胀。
+     */
+    private suspend fun reinforceIfUserOriginated(
+        memory: Memory,
+        memoryRepository: MemoryRepository
+    ) {
+        if (memory.source != "user_input") return
+        memoryRepository.reinforceMemory(memory)
+    }
+
+    /**
      * 自动为未分类的记忆分配文件夹路径
      * 在后台异步执行，不阻塞主线程
      */
@@ -432,6 +447,7 @@ object MemoryLibrary {
                         )
                         if (updatedMemory != null) {
                             createdMemories[updatedMemory.title] = updatedMemory
+                            reinforceIfUserOriginated(updatedMemory, memoryRepository)
                         }
                     } else {
                         AppLogger.w(TAG, "想要更新的记忆未找到: '${update.titleToUpdate}'")
@@ -455,6 +471,7 @@ object MemoryLibrary {
                         AppLogger.d(TAG, "1. 发现同名核心记忆，更新内容: '${mainProblem.title}'")
                         existingMemory.content = mainProblem.content
                         memoryRepository.saveMemory(existingMemory)
+                        reinforceIfUserOriginated(existingMemory, memoryRepository)
                         existingMemory
                     } else {
                         AppLogger.d(TAG, "1. 创建主要问题记忆节点: '${mainProblem.title}'")
@@ -528,8 +545,14 @@ object MemoryLibrary {
                         ?: memoryRepository.findMemoryByTitle(link.targetTitle)
                     
                     if (source != null && target != null) {
-                        AppLogger.d(TAG, "   -> 正在链接: '${link.sourceTitle}' --(${link.type}, weight=${link.weight})--> '${link.targetTitle}'")
-                        memoryRepository.linkMemories(source, target, link.type, weight = link.weight, description = link.description)
+                        if (link.type == "SUPERSEDES") {
+                            // 矛盾/纠正：新记忆取代被推翻的旧记忆，同时降权旧记忆可信度
+                            AppLogger.d(TAG, "   -> 纠正链接: '${link.sourceTitle}' SUPERSEDES '${link.targetTitle}'")
+                            memoryRepository.contradictMemory(source, target, link.description)
+                        } else {
+                            AppLogger.d(TAG, "   -> 正在链接: '${link.sourceTitle}' --(${link.type}, weight=${link.weight})--> '${link.targetTitle}'")
+                            memoryRepository.linkMemories(source, target, link.type, weight = link.weight, description = link.description)
+                        }
                     } else {
                         AppLogger.w(TAG, "   -> 无法创建链接，源或目标实体未找到: ${link.sourceTitle} -> ${link.targetTitle}")
                         if (source == null) AppLogger.w(TAG, "      源节点 '${link.sourceTitle}' 未找到")

@@ -102,4 +102,37 @@ class MemoryAnalysisProtocolTest {
             )
         }
     }
+
+    @Test
+    fun parseAnalysisResult_acceptsSupersedesContradictionLink() {
+        val analysis =
+            MemoryLibrary.parseAnalysisResult(
+                """
+                {
+                  "main": null,
+                  "new": [{
+                    "title": "Corrected fact",
+                    "content": "The corrected statement.",
+                    "tags": [],
+                    "folder_path": "Facts",
+                    "alias_for": null
+                  }],
+                  "update": [],
+                  "merge": [],
+                  "links": [{
+                    "source": "Corrected fact",
+                    "target": "Outdated fact",
+                    "type": "SUPERSEDES",
+                    "description": "The old fact was wrong.",
+                    "weight": 1.0
+                  }]
+                }
+                """.trimIndent()
+            )
+
+        assertEquals("Corrected fact", analysis.extractedEntities.single().title)
+        assertEquals("SUPERSEDES", analysis.links.single().type)
+        assertEquals("Corrected fact", analysis.links.single().sourceTitle)
+        assertEquals("Outdated fact", analysis.links.single().targetTitle)
+    }
 }

@@ -1162,6 +1162,7 @@ $memoryExtractionCustomRulesInstruction
   - Event flow: `FOLLOWS`, `CORRECTS`, `UPDATES`
   - Participation/context: `INVOLVES`, `HAPPENS_AT`
   - Worldbuilding structure: `PART_OF`, `ALLIED_WITH`, `OPPOSES`
+  - Contradiction/correction: `SUPERSEDES` (a new statement replaces a superseded/incorrect one)
 - Do not create links from weak co-occurrence alone.
 - If uncertain, do not create the link.
 - Do not limit linking to newly created memories. If a provided existing memory has explicit relation with current-turn memory/event, add the link.
@@ -1182,6 +1183,7 @@ $memoryExtractionCustomRulesInstruction
 - Current turn is a restatement of an already stored event: prefer `update`/`merge` and avoid `new`.
 - Event mentions a concrete actor/tool/package and relation is explicit: add `INVOLVES` link.
 - Current turn confirms relation between an existing memory and a new/existing event: add a link even if `new` is empty.
+- User states a fact that contradicts a previously-stored memory: create `new` for the correction and link `SUPERSEDES` from the new memory to the superseded one.
 
 [Output schema - strict JSON only]
 - Except for `{}`, always include `main`, `new`, `update`, `merge`, and `links`${if (profileUpdateEnabled) ", `profile_markdown`" else ""}. Every array item must be a named object; positional arrays are forbidden.
@@ -1245,6 +1247,7 @@ $memoryExtractionCustomRulesInstruction
   - 事件流程：`FOLLOWS`、`CORRECTS`、`UPDATES`
   - 参与与上下文：`INVOLVES`、`HAPPENS_AT`
   - 世界观结构：`PART_OF`、`ALLIED_WITH`、`OPPOSES`
+  - 矛盾/纠正：`SUPERSEDES`（新陈述取代被推翻/不正确的旧陈述）
 - 不能仅凭"同段提到过"就连边。
 - 拿不准就不连。
 - 建边范围不应只限于本轮新输出；如果"已有样本记忆"与本轮事件/实体关系明确，也应主动建边。
@@ -1265,6 +1268,7 @@ $memoryExtractionCustomRulesInstruction
 - 本轮只是重述已存在事件：优先 `update`/`merge`，不要 `new`。
 - 事件里明确出现参与者/工具包且关系清晰：补充 `INVOLVES` 链接。
 - 本轮确认了"已有样本记忆"和其他记忆的明确关系：即使没有 `new`，也应在 `links` 中体现。
+- 用户陈述与已存记忆矛盾的新事实：为修正内容建 `new`，并从新记忆向被推翻的旧记忆连 `SUPERSEDES`。
 
 【输出格式（严格JSON）】
 - 除返回 `{}` 外，必须包含 `main`、`new`、`update`、`merge`、`links`${if (profileUpdateEnabled) "、`profile_markdown`" else ""}；数组中的每一项必须是具名对象，禁止位置数组。

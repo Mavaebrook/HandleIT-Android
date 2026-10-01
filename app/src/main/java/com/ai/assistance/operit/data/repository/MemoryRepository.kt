@@ -5,6 +5,9 @@ import androidx.compose.ui.graphics.Color
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.db.ObjectBoxManager
 import com.ai.assistance.operit.data.model.Memory
+import com.ai.assistance.operit.data.model.MemoryLedger
+import com.ai.assistance.operit.data.model.MemoryLedger_
+import com.ai.assistance.operit.data.model.SelfLearningConfig
 import com.ai.assistance.operit.data.model.MemoryLink
 import com.ai.assistance.operit.data.model.MemoryTag
 import com.ai.assistance.operit.data.model.MemoryTag_
@@ -30,6 +33,7 @@ import kotlinx.coroutines.withContext
 import io.objectbox.query.QueryCondition
 import java.util.UUID
 import java.util.Date
+import java.security.MessageDigest
 import java.util.Locale
 import com.ai.assistance.operit.data.model.MemoryExportData
 import com.ai.assistance.operit.data.model.SerializableMemory
@@ -92,6 +96,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
     private val tagBox = store.boxFor<MemoryTag>()
     private val linkBox = store.boxFor<MemoryLink>()
     private val chunkBox = store.boxFor<DocumentChunk>()
+    private val ledgerBox = store.boxFor<MemoryLedger>()
 
     private val searchSettingsPreferences = MemorySearchSettingsPreferences(context, profileId)
     private val cloudEmbeddingService = CloudEmbeddingService(context)
@@ -1021,6 +1026,142 @@ class MemoryRepository(private val context: Context, profileId: String) {
         }
         tag
     }
+
+    // --- Self-Learning Memory (Ledger / Reinforcement / Decay / Dedup) ---
+
+    /** 计算来源内容的稳定 SHA-256 哈希（用于去重）。 */
+    private fun computeSourceHash(raw: String): String {
+        val normalized = raw.trim().lowercase(Locale.ROOT)
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(normalized.toByteArray(Charsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it.toInt() and 0xff) }
+    }
+
+    /** 查询指定记忆对应的账本，不存在则返回 null。 */
+    suspend fun findLedgerByMemoryId(memoryId: Long): MemoryLedger? = withContext(Dispatchers.IO) {
+        ledgerBox.query(MemoryLedger_.memoryId.equal(memoryId)).build().findFirst()
+    }
+
+    /** 按来源哈希查找账本（去重：同一陈述的重复确认）。 */
+    suspend fun findLedgerBySourceHash(sourceHash: String): MemoryLedger? = withContext(Dispatchers.IO) {
+        ledgerBox.query(MemoryLedger_.sourceHash.equal(sourceHash)).build().findFirst()
+    }
+
+    /** 获取或创建记忆对应的账本记录。 */
+    suspend fun getOrCreateLedger(memory: Memory, sourceHash: String? = null): MemoryLedger =
+        withContext(Dispatchers.IO) {
+            findLedgerByMemoryId(memory.id)
+                ?: MemoryLedger(
+                    memoryId = memory.id,
+                    sourceHash = sourceHash ?: computeSourceHash(memory.content.ifBlank { memory.title })
+                ).also { ledgerBox.put(it) }
+        }
+
+    /**
+     * 强化记忆：再次确认同一事实时调用。
+     *  - 递增强化次数、刷新 lastReinforcedAt；
+     *  - 可信度按 REINFORCE_RATE 向 1.0 收敛（credibility = 1 - (1 - c) * rate）；
+     *  - 达到 PROMOTE_COUNT 后从 VOLATILE 晋升为 STABLE。
+     */
+    suspend fun reinforceMemory(
+        memory: Memory,
+        sourceHash: String? = null
+    ): Memory = withContext(Dispatchers.IO) {
+        val ledger = getOrCreateLedger(memory, sourceHash)
+        ledger.count += 1
+        ledger.lastReinforcedAt = Date()
+        if (ledger.status == MemoryLedger.Status.INACTIVE.value) {
+            ledger.status = MemoryLedger.Status.ACTIVE.value
+        }
+        if (ledger.stability == MemoryLedger.Stability.VOLATILE.value &&
+            ledger.count >= SelfLearningConfig.PROMOTE_COUNT
+        ) {
+            ledger.stability = MemoryLedger.Stability.STABLE.value
+        }
+        ledgerBox.put(ledger)
+
+        memory.credibility =
+            (1.0f - (1.0f - memory.credibility) * SelfLearningConfig.REINFORCE_RATE)
+                .coerceIn(0.0f, 1.0f)
+        memory.importance =
+            (1.0f - (1.0f - memory.importance) * SelfLearningConfig.IMPORTANCE_REINFORCE_RATE)
+                .coerceIn(0.0f, 1.0f)
+        memory.updatedAt = Date()
+        memoryBox.put(memory)
+        memory
+    }
+
+    /**
+     * 标记矛盾：新的 [newMemory] 取代（SUPERSEDES）旧的 [oldMemory]。
+     *  - 建立 SUPERSEDES 链接；
+     *  - 降低被取代记忆的可信度（demote），避免其继续与真相竞争检索。
+     */
+    suspend fun contradictMemory(
+        newMemory: Memory,
+        oldMemory: Memory,
+        description: String = ""
+    ): Unit = withContext(Dispatchers.IO) {
+        linkMemories(newMemory, oldMemory, type = "SUPERSEDES", weight = STRONG_LINK, description = description)
+        oldMemory.credibility = (oldMemory.credibility * 0.5f).coerceIn(0.0f, 1.0f)
+        oldMemory.updatedAt = Date()
+        memoryBox.put(oldMemory)
+    }
+
+    /** 衰减扫描结果统计。 */
+    data class DecaySweepResult(
+        val examined: Int = 0,
+        val decayed: Int = 0,
+        val inactivated: Int = 0
+    )
+
+    /**
+     * 执行一次衰减扫描：对每个非 IMMUTABLE 且 ACTIVE 的记忆，按稳定性半衰期
+     * 衰减可信度；低于 [SelfLearningConfig.INACTIVE_THRESHOLD] 时进入 INACTIVE 冷存储。
+     * @return 扫描统计信息。
+     */
+    suspend fun runDecaySweep(nowMs: Long = System.currentTimeMillis()): DecaySweepResult =
+        withContext(Dispatchers.IO) {
+            val memories = memoryBox.all
+            var examined = 0
+            var decayed = 0
+            var inactivated = 0
+            for (memory in memories) {
+                val ledger = findLedgerByMemoryId(memory.id)
+                val stability = ledger?.stability ?: MemoryLedger.Stability.VOLATILE.value
+                val status = ledger?.status ?: MemoryLedger.Status.ACTIVE.value
+                // IMMUTABLE 或已 INACTIVE 的跳过
+                if (stability == MemoryLedger.Stability.IMMUTABLE.value ||
+                    status == MemoryLedger.Status.INACTIVE.value
+                ) {
+                    continue
+                }
+                examined++
+                val lastReinforcedMs = ledger?.lastReinforcedAt?.time ?: memory.createdAt.time
+                val elapsedDays =
+                    ((nowMs - lastReinforcedMs).coerceAtLeast(0L) / (24L * 60L * 60L * 1000L)).toDouble()
+                val halfLifeDays = when (stability) {
+                    MemoryLedger.Stability.STABLE.value -> SelfLearningConfig.STABLE_HALF_LIFE_DAYS
+                    else -> SelfLearningConfig.VOLATILE_HALF_LIFE_DAYS
+                }.toDouble()
+                if (elapsedDays <= 0.0 || halfLifeDays <= 0.0) continue
+                val decayFactor = Math.pow(0.5, elapsedDays / halfLifeDays)
+                val newCredibility =
+                    (memory.credibility * decayFactor).toFloat().coerceIn(0.0f, 1.0f)
+                if (newCredibility < memory.credibility) {
+                    memory.credibility = newCredibility
+                    memory.updatedAt = Date()
+                    memoryBox.put(memory)
+                    decayed++
+                }
+                if (newCredibility < SelfLearningConfig.INACTIVE_THRESHOLD) {
+                    val l = ledger ?: getOrCreateLedger(memory)
+                    l.status = MemoryLedger.Status.INACTIVE.value
+                    ledgerBox.put(l)
+                    inactivated++
+                }
+            }
+            DecaySweepResult(examined = examined, decayed = decayed, inactivated = inactivated)
+        }
 
     // --- Linking Operations ---
 
