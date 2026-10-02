@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Operit AI</string>
+    <string name="app_name">HandleIT</string>
     <string name="accessibility_service_description">用于获取UI层次结构，为AI助手提供更快速的界面分析能力，不会收集或存储任何个人信息。</string>
     
     <!-- 模型选择器相关 -->
@@ -583,13 +583,13 @@
     <string name="termux_setup_guide">Termux 设置向导</string>
     
     <!-- About Screen -->
-    <string name="about_title">关于 Operit AI</string>
+    <string name="about_title">关于 HandleIT</string>
     <string name="about_version">版本: %1$s</string>
-    <string name="about_description">Operit AI是一个智能助手应用，能够帮助用户更高效地使用设备，提供界面分析、聊天对话等功能。</string>
+    <string name="about_description">HandleIT 是一个智能助手应用，能够帮助用户更高效地使用设备，提供界面分析、聊天对话等功能。Powered by Operit。</string>
     <string name="about_developer">开发者: &lt;a href="https://github.com/AAswordman"&gt;AAswordman&lt;/a&gt;</string>
     <string name="about_contact">联系我们: aaswordsman@foxmail.com</string>
-    <string name="about_website">&lt;a href="https://github.com/AAswordman/Operit"&gt;GitHub: https://github.com/AAswordman/Operit&lt;/a&gt;</string>
-    <string name="about_copyright">© 2025 - 2026 Operit. 保留所有权利。</string>
+    <string name="about_website">&lt;a href="https://handleit.online"&gt;https://handleit.online&lt;/a&gt;</string>
+    <string name="about_copyright">© 2025 - 2026 HandleIT. Powered by Operit. 保留所有权利。</string>
     <string name="star_on_github">在 GitHub 点个 Star</string>
     <string name="update_log">更新日志</string>
     <string name="app_logo_description">应用图标</string>
@@ -608,7 +608,7 @@
     <string name="network_status_label">网络状态</string>
 
     <!-- Configuration Screen -->
-    <string name="config_title">Operit AI 助手</string>
+    <string name="config_title">HandleIT</string>
     <string name="config_description">使用 DeepSeek API Key，或配置其他模型服务</string>
     <string name="config_api_key_label">API密钥</string>
     <string name="config_api_key_placeholder">DeepSeek API密钥</string>
@@ -667,7 +667,7 @@
     
     <!-- Plugin Loading Screen -->
     <string name="plugin_skip">跳过</string>
-    <string name="plugin_app_name">OPERIT</string>
+    <string name="plugin_app_name">HANDLEIT</string>
     <string name="plugin_status">已启动: %1$d / %2$d</string>
     <string name="plugin_loading_status_title">插件加载状态</string>
     <string name="plugin_loading_success">加载成功</string>
@@ -1420,7 +1420,7 @@
     <string name="overlay_permission">悬浮窗权限</string>
     <string name="battery_optimization">电池优化豁免</string>
     <string name="location_permission">位置权限</string>
-    <string name="operit_terminal">Operit终端</string>
+    <string name="operit_terminal">HandleIT 终端</string>
     
     <!-- 权限级别描述 -->
     <string name="permission_level_standard">标准权限</string>
@@ -5557,7 +5557,7 @@
     <string name="default_assistant_guide_troubleshooting_content">如果在列表中找不到Operit，请确保：\n\n• 应用已正确安装且未被禁用\n• 已授予必要的权限（麦克风、悬浮窗等）\n• 尝试重启设备后再次设置\n\n部分定制系统可能限制第三方应用作为默认助手，如遇此情况，您仍可通过应用内的悬浮窗功能使用Operit。</string>
     
     <!-- Voice Interaction Service -->
-    <string name="voice_interaction_service_name">Operit AI 助手</string>
+    <string name="voice_interaction_service_name">HandleIT 助手</string>
     <string name="voice_interaction_service_summary">智能语音助手服务</string>
 
     <!-- Tool Permission Settings -->
@@ -5848,7 +5848,7 @@
     <string name="start_with_new_chat_description">开启后，每次启动应用都会进入一个新的空白聊天界面，不再自动打开上一次聊天。</string>
     <string name="software_identity_title">软件标识</string>
     <string name="software_identity_description">更改侧边栏顶部显示的软件标识。</string>
-    <string name="software_identity_option_operit">Operit AI</string>
+    <string name="software_identity_option_operit">HandleIT</string>
     <string name="software_identity_option_lingshu">灵枢 AI</string>
     <string name="reset_all_display_settings">重置所有显示设置</string>
     <string name="ui_accessibility_mode">无障碍适配模式</string>
