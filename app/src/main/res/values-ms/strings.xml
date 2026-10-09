@@ -514,7 +514,7 @@
     <string name="danger_zone">Zon Bahaya</string>
     <string name="chat_statistics">Statistik Rekod Perbualan</string>
     <string name="current_chats">Kini terdapat %1$d rekod perbualan</string>
-    <string name="backup_location">Fail sandaran disimpan dalam folder "Muat turun/Operit/backup"</string>
+    <string name="backup_location">Fail sandaran disimpan dalam folder "Muat turun/HandleIT/backup"</string>
     <string name="faq_backup">Soalan Lazim</string>
     <string name="history_filter_role_card">Klasifikasi Mengikut Kad Watak</string>
     <string name="history_filter_role_card_desc">Klasifikasi tiga peringkat: Kad Watak - Folder - Perbualan</string>
@@ -1330,7 +1330,7 @@
     <string name="resume_reading">Sambung Bacaan</string>
     <string name="stop_reading">Hentikan Bacaan</string>
 
-    <string name="operit_terminal">Terminal Operit</string>
+    <string name="operit_terminal">Terminal HandleIT</string>
     <string name="permission_level_standard">Kebenaran Standard</string>
     <string name="permission_level_accessibility">Kebenaran Aksesibiliti</string>
     <string name="permission_level_admin">Kebenaran Pentadbir</string>
@@ -3744,9 +3744,9 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="import_color_qr">Import Kod QR Berwarna</string>
     <string name="scan_color_qr">Imbas Kod QR Berwarna</string>
     <string name="tavern_json">JSON Tavern</string>
-    <string name="export_tavern_json_desc">Eksport sebagai .json dan simpan ke Download/Operit/exports</string>
+    <string name="export_tavern_json_desc">Eksport sebagai .json dan simpan ke Download/HandleIT/exports</string>
     <string name="tavern_png">PNG Tavern</string>
-    <string name="export_tavern_png_desc">Eksport sebagai imej yang boleh diimport ke Tavern, dan simpan ke Download/Operit/exports</string>
+    <string name="export_tavern_png_desc">Eksport sebagai imej yang boleh diimport ke Tavern, dan simpan ke Download/HandleIT/exports</string>
     <string name="image_read_error">Tidak dapat membaca imej</string>
     <string name="image_parse_error">Tidak dapat menghuraikan imej</string>
     <string name="color_qr_not_recognized">Tidak dapat mengenal pasti kod QR berwarna</string>
@@ -4738,7 +4738,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
 
     <string name="backup_character_cards_title">Kad Karakter</string>
     <string name="backup_character_cards_subtitle">Sandarkan dan pulihkan konfigurasi kad karakter</string>
-    <string name="backup_character_cards_current_count">Kini terdapat %1$d kad karakter. Fail yang dieksport akan disimpan dalam folder "Muat turun/Operit".</string>
+    <string name="backup_character_cards_current_count">Kini terdapat %1$d kad karakter. Fail yang dieksport akan disimpan dalam folder "Muat turun/HandleIT".</string>
     <string name="backup_character_card_count">Kad Karakter</string>
     <string name="backup_character_card_files">Kad Karakter</string>
     <string name="backup_character_cards_export_result_success">Berjaya mengeksport %1$d kad karakter ke:\n%2$s</string>
@@ -4869,13 +4869,13 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="backup_faq_why">Mengapa perlu menyandarkan data?</string>
     <string name="backup_faq_why_answer">Menyandarkan rekod sembang boleh mencegah kehilangan kandungan penting anda apabila aplikasi dipasang semula atau data hilang. Menyandarkan secara berkala adalah amalan yang baik!</string>
     <string name="backup_faq_where">Di manakah fail yang dieksport disimpan?</string>
-    <string name="backup_faq_where_answer">Fail sandaran yang dieksport akan disimpan dalam folder "Muat Turun/Operit" telefon anda, nama fail mengandungi jenis data, tarikh dan masa eksport.</string>
+    <string name="backup_faq_where_answer">Fail sandaran yang dieksport akan disimpan dalam folder "Muat Turun/HandleIT" telefon anda, nama fail mengandungi jenis data, tarikh dan masa eksport.</string>
     <string name="backup_faq_duplicate">Adakah data akan berulang selepas import?</string>
     <string name="backup_faq_duplicate_answer">Sistem akan menilai berdasarkan ID rekod, rekod dengan ID yang sama akan dikemas kini dan bukannya diimport semula. Rekod dengan ID berbeza akan ditambah sebagai rekod baharu.</string>
     <string name="backup_select_export_format">Pilih format eksport</string>
     <string name="backup_select_format_hint">Sila pilih format rekod sembang yang ingin dieksport:</string>
     <string name="backup_format_json">JSON (disyorkan)</string>
-    <string name="backup_format_json_desc">Format asli Operit, mengekalkan semua data dengan lengkap</string>
+    <string name="backup_format_json_desc">Format asli HandleIT, mengekalkan semua data dengan lengkap</string>
     <string name="backup_format_markdown">Markdown</string>
     <string name="backup_format_markdown_desc">Format penanda ringan, mudah dibaca dan disunting</string>
     <string name="backup_format_html">HTML</string>
@@ -4884,7 +4884,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="backup_format_txt_desc">Format teks ringkas, mudah dikongsi</string>
     <string name="backup_select_import_format">Pilih format import</string>
     <string name="backup_import_format_hint">Sila pilih format rekod sembang yang ingin diimport:</string>
-    <string name="backup_format_operit">Operit JSON (disyorkan)</string>
+    <string name="backup_format_operit">HandleIT JSON (disyorkan)</string>
     <string name="backup_format_operit_desc">Format asli aplikasi ini, mengekalkan semua data dengan lengkap</string>
     <string name="backup_format_chatgpt">ChatGPT</string>
     <string name="backup_format_chatgpt_desc">Format eksport conversations.json OpenAI ChatGPT</string>
@@ -4902,7 +4902,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="backup_memory_count">Entri ingatan</string>
     <string name="backup_memory_link_count">Pautan ingatan</string>
     <string name="backup_files_statistics">Statistik fail sandaran</string>
-    <string name="backup_files_statistics_subtitle">Fail sandaran dalam direktori eksport Operit</string>
+    <string name="backup_files_statistics_subtitle">Fail sandaran dalam direktori eksport HandleIT</string>
     <string name="backup_refresh">Segar semula</string>
     <string name="backup_scanning">Sedang mengimbas</string>
     <string name="backup_chat_files">Rekod sembang</string>
@@ -4936,7 +4936,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="backup_room_db_restart_later">Nanti</string>
     <string name="backup_room_db_last_success">Sandaran berjaya terakhir: %1$s</string>
     <string name="backup_room_db_last_error">Ralat terakhir: %1$s</string>
-    <string name="backup_files_location_hint">Petunjuk: Fail sandaran disimpan dalam folder Download/Operit</string>
+    <string name="backup_files_location_hint">Petunjuk: Fail sandaran disimpan dalam folder Download/HandleIT</string>
 
     <string name="backup_raw_snapshot_title">Sandaran Snapshot Fail (Eksperimen)</string>
     <string name="backup_raw_snapshot_subtitle">Sandaran dan pemulihan mampatan keseluruhan berdasarkan unit fail/direktori</string>
@@ -7266,11 +7266,11 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="artifact_project_node_selection_hint">Klik untuk memilih nod, klik sekali lagi untuk membatalkan.</string>
     <string name="plugin_creation_fresh_task_line">Sila aktifkan editor operit, dan gunakan kit pasir untuk membangunkan kit pasir baharu dengan kit pembangunan dev.</string>
     <string name="plugin_creation_fresh_package_rule_line">Tentukan id kit pasir baharu terlebih dahulu, jangan tukar nama kemudian.</string>
-    <string name="plugin_creation_fresh_dev_directory_line">Direktori pembangunan ditetapkan sebagai muat turun telefon/Operit/dev_package/id yang anda tentukan. Pembangunan, pemasangan dan ujian hanya dilakukan di sini.</string>
+    <string name="plugin_creation_fresh_dev_directory_line">Direktori pembangunan ditetapkan sebagai muat turun telefon/HandleIT/dev_package/id yang anda tentukan. Pembangunan, pemasangan dan ujian hanya dilakukan di sini.</string>
     <string name="plugin_creation_continue_task_line">Sila aktifkan editor operit, cari lokasi kit pasir %1$s, teruskan pembangunan dan ujian berdasarkan versi ini.</string>
     <string name="plugin_creation_merge_task_line">Sila aktifkan editor operit, cari lokasi kit pasir %1$s, lakukan pembangunan gabungan dan ujian berdasarkan versi ini.</string>
     <string name="plugin_creation_existing_package_rule_line">Id kit pasir semasa ialah %1$s. Id kit dan nama pemalam mesti dikekalkan, jangan tukar nama atau mulakan kit baru.</string>
-    <string name="plugin_creation_existing_dev_directory_line">Direktori pembangunan ditetapkan sebagai muat turun telefon/Operit/dev_package/%1$s. Pembangunan, pemasangan dan ujian hanya dilakukan di sini.</string>
+    <string name="plugin_creation_existing_dev_directory_line">Direktori pembangunan ditetapkan sebagai muat turun telefon/HandleIT/dev_package/%1$s. Pembangunan, pemasangan dan ujian hanya dilakukan di sini.</string>
     <string name="plugin_creation_update_sandbox_package_dev">Kemas kini SandboxPackage_DEV terlebih dahulu.</string>
     <string name="plugin_creation_copy_types_to_dev_dir">Salin types dari skills ke direktori pembangunan dengan menimpa.</string>
     <string name="plugin_creation_use_terminal_ts_js_hint">Gunakan terminal sebanyak mungkin, utamakan menulis ts dan js, kemudian kompil ke js akhir. Rujuk tsconfig pada examples.</string>
@@ -7297,8 +7297,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="market_review_step_scheduled">Menunggu untuk diterbitkan</string>
     <string name="market_review_step_unlisted">Belum diterbitkan</string>
     <string name="artifact_publish_stage_resolving_release_asset">Sedang menyemak aset GitHub Release</string>
-    <string name="operit2_version_warning_title">Pengesahan sokongan Operit 2?</string>
-    <string name="operit2_version_warning_message">Ini akan membenarkan Operit 2 menggunakan pemalam ini. Sila pastikan pemalam menyokong operasi normal pada Operit 2.</string>
+    <string name="operit2_version_warning_title">Pengesahan sokongan HandleIT 2?</string>
+    <string name="operit2_version_warning_message">Ini akan membenarkan HandleIT 2 menggunakan pemalam ini. Sila pastikan pemalam menyokong operasi normal pada HandleIT 2.</string>
     <string name="market_filter_featured_only">Pilihan</string>
     <string name="market_detail_deleting_comment">Sedang memadam ulasan</string>
     <string name="market_detail_deleting_comment_message">Sila tunggu, sedang menyegerak ke pelayan…</string>

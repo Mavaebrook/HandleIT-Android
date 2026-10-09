@@ -6,7 +6,7 @@ import java.io.File
 
 object OperitPaths {
 
-    private const val OPERIT_DIR_NAME = "Operit"
+    private const val OPERIT_DIR_NAME = "HandleIT"
     private const val CLEAN_ON_EXIT_DIR_NAME = "cleanOnExit"
     private const val PLUGINS_DIR_NAME = "plugins"
     private const val MCP_PLUGINS_DIR_NAME = "mcp_plugins"

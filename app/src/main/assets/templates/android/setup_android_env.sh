@@ -498,9 +498,9 @@ EOF
 configure_env_persistence() {
   local bashrc="$HOME/.bashrc"
   touch "$bashrc"
-  if ! grep -q "operit android env" "$bashrc"; then
+  if ! grep -q "handleit android env" "$bashrc"; then
     cat >> "$bashrc" <<EOF
-# >>> operit android env >>>
+# >>> handleit android env >>>
 export JAVA_HOME=$JAVA_HOME
 export ANDROID_HOME=$ANDROID_HOME
 export ANDROID_SDK_ROOT=$ANDROID_HOME
@@ -508,7 +508,7 @@ export PATH=\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tool
 export GRADLE_USER_HOME=$GRADLE_USER_HOME
 export GRADLE_HOME=${GRADLE_HOME:-$HOME/gradle/gradle-9.1.0}
 export PATH=\$GRADLE_HOME/bin:\$PATH
-# <<< operit android env <<<
+# <<< handleit android env <<<
 EOF
     log "Environment variables appended to ~/.bashrc"
   else

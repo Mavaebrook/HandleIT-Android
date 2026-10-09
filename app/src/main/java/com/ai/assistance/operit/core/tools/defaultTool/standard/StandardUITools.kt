@@ -529,7 +529,7 @@ open class StandardUITools(protected val context: Context) : ToolImplementations
     /**
      * Default screenshot implementation for the UI subagent.
      *
-     * It captures the current screen to /sdcard/Download/Operit/cleanOnExit for file-based tools.
+     * It captures the current screen to /sdcard/Download/HandleIT/cleanOnExit for file-based tools.
      * AI screenshot paths can separately consume a raw bitmap and hand compression options to ImagePoolManager.
      *
      * Subclasses can override this method if they have a more specialized screenshot pipeline.

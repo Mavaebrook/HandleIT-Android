@@ -1,31 +1,31 @@
 <h1 align="center">
-  <img src="app/src/main/assets/logo.svg" width="48" height="48" align="absmiddle" alt=""> Operit AI
+  <img src="app/src/main/assets/logo.svg" width="48" height="48" align="absmiddle" alt=""> HandleIT AI
 </h1>
 
 <div align="center">
   <span>中文</span> | <a href="README.md">English</a>
   <br>
-  <img src="https://img.shields.io/github/last-commit/AAswordman/Operit" alt="最近提交">
+  <img src="https://img.shields.io/github/last-commit/Mavaebrook/HandleIT-Android" alt="最近提交">
   <img src="https://img.shields.io/badge/Platform-Android_8.0%2B-brightgreen.svg" alt="平台">
-  <a href="https://github.com/AAswordman/Operit/releases/latest"><img src="https://img.shields.io/github/v/release/AAswordman/Operit" alt="最新版本"></a>
-  <a href="https://github.com/AAswordman/Operit/stargazers"><img src="https://img.shields.io/github/stars/AAswordman/Operit" alt="GitHub Star"></a>
+  <a href="https://github.com/Mavaebrook/HandleIT-Android/releases/latest"><img src="https://img.shields.io/github/v/release/Mavaebrook/HandleIT-Android" alt="最新版本"></a>
+  <a href="https://github.com/Mavaebrook/HandleIT-Android/stargazers"><img src="https://img.shields.io/github/stars/Mavaebrook/HandleIT-Android" alt="GitHub Star"></a>
   <br>
-  <a href="https://operit.app/"><img src="https://img.shields.io/badge/📖-用户指南-blue.svg" alt="用户指南"></a>
+  <a href="https://handleit.online/"><img src="https://img.shields.io/badge/📖-用户指南-blue.svg" alt="用户指南"></a>
   <a href="docs/doc-src/dev-core/CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" alt="欢迎贡献"></a>
 </div>
 
 <div align="center">
-  <a href="https://trendshift.io/repositories/14027?utm_source=repository-badge&utm_medium=badge&utm_campaign=badge-repository-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/14027" alt="AAswordman/Operit | Trendshift" width="250" height="55"/></a>
-  <a href="https://trendshift.io/repositories/14027?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/14027/monthly?language=Kotlin" alt="AAswordman/Operit | Trendshift" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/14027?utm_source=repository-badge&utm_medium=badge&utm_campaign=badge-repository-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/14027" alt="Mavaebrook/HandleIT-Android | Trendshift" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/14027?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/14027/monthly?language=Kotlin" alt="Mavaebrook/HandleIT-Android | Trendshift" width="250" height="55"/></a>
 </div>
 
 <div align="center">
-  <img src="docs/assets/readme/operit-ai-banner-zh-cn.webp" width="100%" alt="Operit AI - Android 史上最强大、功能最完整、持续迭代最久的开源 AI Agent">
+  <img src="docs/assets/readme/operit-ai-banner-zh-cn.webp" width="100%" alt="HandleIT AI - Android 史上最强大、功能最完整、持续迭代最久的开源 AI Agent">
 </div>
 
-## 🚀 Operit 2：Operit 的跨平台后续版本
+## 🚀 Operit 2：HandleIT 的跨平台后续版本
 
-本仓库是 Operit 的 Android 版。Operit 2 是独立的第二代实现，以 Rust 共享运行时、Flutter 客户端和 `operit2` CLI/TUI 为核心，目前包含 Android、iOS、Windows、macOS、Linux 与 Web 的实现或构建路径，并持续推进 OpenHarmony 适配。想关注跨平台版本，请访问 [Operit 2](https://github.com/AAswordman/Operit2)。
+本仓库是 HandleIT 的 Android 版。Operit 2 是独立的第二代实现，以 Rust 共享运行时、Flutter 客户端和 `operit2` CLI/TUI 为核心，目前包含 Android、iOS、Windows、macOS、Linux 与 Web 的实现或构建路径，并持续推进 OpenHarmony 适配。想关注跨平台版本，请访问 [Operit 2](https://github.com/AAswordman/Operit2)。
 
 <a href="https://github.com/AAswordman/Operit2">
   <img src="docs/assets/readme/operit2-matrix-cards-zh-cn.png" width="100%" alt="Operit 2 跨平台开源 AI Agent">
@@ -33,7 +33,7 @@
 
 ## 项目简介
 
-**Operit AI** 是一个运行在 Android 上的开源 AI Agent 平台，支持接入云端或本地模型，并将模型与 Android 系统、终端、浏览器、文件和项目工作区连接起来，通过工具调用、工作流以及 ToolPkg、MCP、Skill 等扩展能力，完成信息检索、文件处理、代码开发和设备自动化等实际任务。
+**HandleIT AI** 是一个运行在 Android 上的开源 AI Agent 平台，支持接入云端或本地模型，并将模型与 Android 系统、终端、浏览器、文件和项目工作区连接起来，通过工具调用、工作流以及 ToolPkg、MCP、Skill 等扩展能力，完成信息检索、文件处理、代码开发和设备自动化等实际任务。
 
 ## 核心特点
 
@@ -137,7 +137,7 @@
 - STT 支持本地中英文识别以及 OpenAI、Deepgram 等云端接口
 - TTS 支持 Android 系统、本地 ONNX VITS、自定义 HTTP 和多种云服务
 - 支持连续语音对话、后台唤醒、自定义唤醒模板、自动朗读和音乐播放队列
-- 可通过悬浮窗、气泡、桌面组件和 Android 默认助理入口调用 Operit
+- 可通过悬浮窗、气泡、桌面组件和 Android 默认助理入口调用 HandleIT
 - 虚拟形象支持 DragonBones、WebP、MP4、MMD、glTF/GLB 和 FBX 等格式
 - 支持主题、字体、聊天气泡、背景、工具栏、Markdown 渲染和布局定制
 - 界面支持中文、英语、韩语、西班牙语、马来语、印尼语、巴西葡萄牙语和罗马尼亚语，可跟随系统或手动切换
@@ -151,14 +151,14 @@
 |------|------|
 | **系统要求** | Android 8.0（API 26）或更高版本，仅支持 ARM64（`arm64-v8a`）设备 |
 | **资源需求** | 内存和存储占用取决于终端环境、已安装工具包及本地模型；下载模型前请按模型说明预留空间 |
-| **下载安装** | 从 [Releases 页面](https://github.com/AAswordman/Operit/releases) 下载最新 APK |
-| **使用指南** | 访问 [Operit 官方网站](https://operit.app/) 查看教程和示例 |
+| **下载安装** | 从 [Releases 页面](https://github.com/Mavaebrook/HandleIT-Android/releases) 下载最新 APK |
+| **使用指南** | 访问 [HandleIT 官方网站](https://handleit.online/) 查看教程和示例 |
 
-> **安全提示：** 请仅从官方 [Releases 页面](https://github.com/AAswordman/Operit/releases) 或 [Operit 官方网站](https://operit.app/) 下载安装包。未知渠道的安装包可能被修改，造成数据和设备安全风险。
+> **安全提示：** 请仅从官方 [Releases 页面](https://github.com/Mavaebrook/HandleIT-Android/releases) 或 [HandleIT 官方网站](https://handleit.online/) 下载安装包。未知渠道的安装包可能被修改，造成数据和设备安全风险。
 
 安装流程：下载 APK → 安装并启动 → 按引导配置模型与权限 → 开始使用
 
-> **数据与网络边界：** 聊天、角色、记忆和模型配置由应用保存在本地；使用云模型时，请求从设备发送到您配置的服务商，Operit 不托管聊天推理。市场、MCP、Skill、语音和绘图等功能可能连接第三方服务；Web Chat/HTTP API 默认关闭，启用前请确认网络暴露与 Bearer Token 设置，Android Intent/广播集成也只应交给受信应用。
+> **数据与网络边界：** 聊天、角色、记忆和模型配置由应用保存在本地；使用云模型时，请求从设备发送到您配置的服务商，HandleIT 不托管聊天推理。市场、MCP、Skill、语音和绘图等功能可能连接第三方服务；Web Chat/HTTP API 默认关闭，启用前请确认网络暴露与 Bearer Token 设置，Android Intent/广播集成也只应交给受信应用。
 
 ## 发展历程
 
@@ -195,11 +195,11 @@
 
 </details>
 
-完整更新内容请查看 [Releases 页面](https://github.com/AAswordman/Operit/releases)。
+完整更新内容请查看 [Releases 页面](https://github.com/Mavaebrook/HandleIT-Android/releases)。
 
 ## 开源共创
 
-欢迎参与 Operit 的脚本、扩展、文档和核心功能开发。
+欢迎参与 HandleIT 的脚本、扩展、文档和核心功能开发。
 
 - [贡献指南](docs/doc-src/dev-core/CONTRIBUTING.md)
 - [构建指南](docs/doc-src/dev-core/BUILDING.md)
@@ -210,13 +210,13 @@
 
 ### 贡献者
 
-<a href="https://github.com/AAswordman/Operit/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=AAswordman/Operit" alt="Operit 贡献者">
+<a href="https://github.com/Mavaebrook/HandleIT-Android/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Mavaebrook/HandleIT-Android" alt="HandleIT 贡献者">
 </a>
 
 ## 支持开发
 
-如果 Operit 对您有帮助，可以自愿支持项目持续开发与基础运营：
+如果 HandleIT 对您有帮助，可以自愿支持项目持续开发与基础运营：
 
 - 海外支持：[Patreon](https://www.patreon.com/c/aaswordsman)
 - 境内支持：[爱发电](https://afdian.com/a/aaswordsman)
@@ -229,15 +229,15 @@
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=AAswordman%2FOperit&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=Mavaebrook%2FHandleIT-Android&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=AAswordman/Operit&type=date&theme=dark&legend=top-left&sealed_token=CtZ-YNyNp2_W0AUVXHyAzBNeMlpGVkDx0RjuJPYdalj2Kvy7HkPBhb-uzKQ8t8jbMDGjRvnjHo7Fi-FtGIv-NaS0gqafGHDjgoGufAgx8yXt3gi8f4vV3aP8KskKramok4_vcKfo8Ii4AohtLRdX13mCJz0ABDqwtmec2SoK0j1kLuPyLz6oH3k4lhY4" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=AAswordman/Operit&type=date&legend=top-left&sealed_token=CtZ-YNyNp2_W0AUVXHyAzBNeMlpGVkDx0RjuJPYdalj2Kvy7HkPBhb-uzKQ8t8jbMDGjRvnjHo7Fi-FtGIv-NaS0gqafGHDjgoGufAgx8yXt3gi8f4vV3aP8KskKramok4_vcKfo8Ii4AohtLRdX13mCJz0ABDqwtmec2SoK0j1kLuPyLz6oH3k4lhY4" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=AAswordman/Operit&type=date&legend=top-left&sealed_token=CtZ-YNyNp2_W0AUVXHyAzBNeMlpGVkDx0RjuJPYdalj2Kvy7HkPBhb-uzKQ8t8jbMDGjRvnjHo7Fi-FtGIv-NaS0gqafGHDjgoGufAgx8yXt3gi8f4vV3aP8KskKramok4_vcKfo8Ii4AohtLRdX13mCJz0ABDqwtmec2SoK0j1kLuPyLz6oH3k4lhY4" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Mavaebrook/HandleIT-Android&type=date&theme=dark&legend=top-left&sealed_token=CtZ-YNyNp2_W0AUVXHyAzBNeMlpGVkDx0RjuJPYdalj2Kvy7HkPBhb-uzKQ8t8jbMDGjRvnjHo7Fi-FtGIv-NaS0gqafGHDjgoGufAgx8yXt3gi8f4vV3aP8KskKramok4_vcKfo8Ii4AohtLRdX13mCJz0ABDqwtmec2SoK0j1kLuPyLz6oH3k4lhY4" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Mavaebrook/HandleIT-Android&type=date&legend=top-left&sealed_token=CtZ-YNyNp2_W0AUVXHyAzBNeMlpGVkDx0RjuJPYdalj2Kvy7HkPBhb-uzKQ8t8jbMDGjRvnjHo7Fi-FtGIv-NaS0gqafGHDjgoGufAgx8yXt3gi8f4vV3aP8KskKramok4_vcKfo8Ii4AohtLRdX13mCJz0ABDqwtmec2SoK0j1kLuPyLz6oH3k4lhY4" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Mavaebrook/HandleIT-Android&type=date&legend=top-left&sealed_token=CtZ-YNyNp2_W0AUVXHyAzBNeMlpGVkDx0RjuJPYdalj2Kvy7HkPBhb-uzKQ8t8jbMDGjRvnjHo7Fi-FtGIv-NaS0gqafGHDjgoGufAgx8yXt3gi8f4vV3aP8KskKramok4_vcKfo8Ii4AohtLRdX13mCJz0ABDqwtmec2SoK0j1kLuPyLz6oH3k4lhY4" />
  </picture>
 </a>
 ---
 
 <div align="center">
-  <sub>Made with ❤️ by the Operit Team</sub>
+  <sub>Made with ❤️ by the HandleIT Team</sub>
 </div>

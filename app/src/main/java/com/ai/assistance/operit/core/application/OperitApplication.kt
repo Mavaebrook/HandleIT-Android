@@ -429,7 +429,7 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
             try {
                 val deletedFiles =
                     cleanDirectory(File(OperitPaths.cleanOnExitPathSdcard()), preserveRootNoMedia = true) +
-                        cleanDirectory(File(cacheDir, "Operit/cleanOnExit"), preserveRootNoMedia = false)
+                        cleanDirectory(File(cacheDir, "HandleIT/cleanOnExit"), preserveRootNoMedia = false)
                 AppLogger.d(
                     TAG,
                     "cleanOnExit 清理完成，总计删除${deletedFiles}个文件，耗时${System.currentTimeMillis() - cleanupStartTime}ms"

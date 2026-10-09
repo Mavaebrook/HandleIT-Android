@@ -1,6 +1,6 @@
-# Operit Node.js 项目
+# HandleIT Node.js 项目
 
-这是一个使用 Operit 创建的 Node.js 项目。
+这是一个使用 HandleIT 创建的 Node.js 项目。
 
 ## 快速开始
 
@@ -12,13 +12,13 @@
 
 - `index.js` - 主程序入口
 - `package.json` - 项目配置文件
-- `.operit/config.json` - Operit 工作区配置
+- `.handleit/config.json` - HandleIT 工作区配置
 
 ## 自定义
 
 您可以：
 - 修改 `index.js` 添加您的业务逻辑
 - 在 `package.json` 中添加依赖包
-- 在 `.operit/config.json` 中自定义命令按钮
+- 在 `.handleit/config.json` 中自定义命令按钮
 
 祝编码愉快！🎉

@@ -554,7 +554,7 @@
     <string name="danger_zone">Zonă periculoasă</string>
     <string name="chat_statistics">Statistici privind istoricul conversațiilor</string>
     <string name="current_chats">În prezent, există în total %1$d Istoric de conversație</string>
-    <string name="backup_location">Fișierele de rezervă sunt salvate în folderul „Descărcări”/Operit/backupîn folderul „”</string>
+    <string name="backup_location">Fișierele de rezervă sunt salvate în folderul „Descărcări”/HandleIT/backupîn folderul „”</string>
     <string name="faq_backup">Întrebări frecvente</string>
     <string name="history_filter_role_card">Clasificare după cărțile de personaj</string>
     <string name="history_filter_role_card_desc">Carte de personaj-Dosar-Clasificarea pe trei niveluri a dialogurilor</string>
@@ -4261,9 +4261,9 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="import_color_qr">Importarea codurilor multidimensionale</string>
     <string name="scan_color_qr">Scanează codul multidimensional</string>
     <string name="tavern_json">Taverna JSON</string>
-    <string name="export_tavern_json_desc">Exportă ca .json și salvați în Download/Operit/exports</string>
+    <string name="export_tavern_json_desc">Exportă ca .json și salvați în Download/HandleIT/exports</string>
     <string name="tavern_png">Taverna PNG</string>
-    <string name="export_tavern_png_desc">Exportă imaginea într-un format compatibil cu Taverna și salveaz-o în Download/Operit/exports</string>
+    <string name="export_tavern_png_desc">Exportă imaginea într-un format compatibil cu Taverna și salveaz-o în Download/HandleIT/exports</string>
     <string name="image_read_error">Nu se poate citi imaginea</string>
     <string name="image_parse_error">Nu se poate interpreta imaginea</string>
     <string name="color_qr_not_recognized">Codul multidimensional color nu poate fi recunoscut</string>
@@ -4642,11 +4642,11 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="artifact_project_node_selection_hint">Faceți clic pe nod pentru a-l selecta; faceți clic din nou pentru a anula selecția.</string>
     <string name="plugin_creation_fresh_task_line">Te rugăm să activezioperit editor, și să folosească pachetul Sandbox pentru dezvoltare dev Dezvoltarea unui nou pachet sandbox în cadrul kitului de instrumente.</string>
     <string name="plugin_creation_fresh_package_rule_line">Mai întâi, stabiliți noul pachet sandbox id, nu schimbați numele ulterior.</string>
-    <string name="plugin_creation_fresh_dev_directory_line">Catalogul de dezvoltare este setat în mod fix la „Descărcări pe telefonul mobil”/Operit/dev_package/Ești sigur?id. Dezvoltarea, instalarea și testarea se realizează exclusiv aici.</string>
+    <string name="plugin_creation_fresh_dev_directory_line">Catalogul de dezvoltare este setat în mod fix la „Descărcări pe telefonul mobil”/HandleIT/dev_package/Ești sigur?id. Dezvoltarea, instalarea și testarea se realizează exclusiv aici.</string>
     <string name="plugin_creation_continue_task_line">Te rugăm să activezioperit editor, căutarea pachetului Sandbox %1$s locația, dezvoltarea și testarea vor continua pe baza acestei versiuni.</string>
     <string name="plugin_creation_merge_task_line">Te rugăm să activezioperit editor, căutarea pachetului Sandbox %1$s locația, pe baza acestei versiuni se va desfășura dezvoltarea comună și testarea.</string>
     <string name="plugin_creation_existing_package_rule_line">Pachetul actual din mediul de testare id Da %1$s. Pachet id Atât numele pluginului, cât și cel al pachetului trebuie păstrate; nu le schimbați și nu creați un pachet nou.</string>
-    <string name="plugin_creation_existing_dev_directory_line">Catalogul de dezvoltare este setat în mod fix la „Descărcări pe telefonul mobil”/Operit/dev_package/%1$s. Dezvoltarea, instalarea și testarea se realizează exclusiv aici.</string>
+    <string name="plugin_creation_existing_dev_directory_line">Catalogul de dezvoltare este setat în mod fix la „Descărcări pe telefonul mobil”/HandleIT/dev_package/%1$s. Dezvoltarea, instalarea și testarea se realizează exclusiv aici.</string>
     <string name="plugin_creation_update_sandbox_package_dev">Mai întâi actualizarea SandboxPackage_DEV.</string>
     <string name="plugin_creation_copy_types_to_dev_dir">Pune skills din types Copiați fișierul „cover” în directorul de dezvoltare.</string>
     <string name="plugin_creation_use_terminal_ts_js_hint">Folosiți pe cât posibil terminalul și acordați prioritate scrierii ts și js, apoi se compilează versiunea finală js.tsconfig Referință examples.</string>
@@ -4666,9 +4666,9 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="min_supported_app_version">Versiunea minimă acceptată a software-ului</string>
     <string name="max_supported_app_version">Versiunea maximă acceptată a software-ului</string>
     <string name="min_supported_version_input_hint">Câmp obligatoriu. Vă rugăm să introduceți `1.10.0` sau `1.10.0+5` Un astfel de număr de versiune</string>
-    <string name="max_supported_version_input_hint">Opțional, dacă se lasă necompletat, se utilizează valoarea implicită 1.99.99. Completați 2.0.0 Și cele de mai sus vor fi permise Operit 2 Utilizare</string>
-    <string name="operit2_version_warning_title">Confirmare acceptare Operit 2?</string>
-    <string name="operit2_version_warning_message">Acest lucru va permite Operit 2 Utilizați acest plugin. Asigurați-vă că pluginul este compatibil cu Operit 2 Funcționează normal.</string>
+    <string name="max_supported_version_input_hint">Opțional, dacă se lasă necompletat, se utilizează valoarea implicită 1.99.99. Completați 2.0.0 Și cele de mai sus vor fi permise HandleIT 2 Utilizare</string>
+    <string name="operit2_version_warning_title">Confirmare acceptare HandleIT 2?</string>
+    <string name="operit2_version_warning_message">Acest lucru va permite HandleIT 2 Utilizați acest plugin. Asigurați-vă că pluginul este compatibil cu HandleIT 2 Funcționează normal.</string>
     <string name="publish_failed_title">Eșec la publicare</string>
     <string name="retry_market_registration">Reîncercarea înregistrării pe piață</string>
     <string name="update_to_market">Actualizare în magazin</string>
@@ -5621,7 +5621,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="backup_memory_count">Intrări de memorie</string>
     <string name="backup_memory_link_count">Asocieri de memorie</string>
     <string name="backup_files_statistics">Statistici privind fișierele de rezervă</string>
-    <string name="backup_files_statistics_subtitle">Operit Exportarea fișierelor de rezervă din director</string>
+    <string name="backup_files_statistics_subtitle">HandleIT Exportarea fișierelor de rezervă din director</string>
     <string name="backup_refresh">Reîmprospătare</string>
     <string name="backup_scanning">Se scanează</string>
     <string name="backup_chat_files">Istoric de conversații</string>
@@ -5655,7 +5655,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="backup_room_db_restart_later">Mai târziu</string>
     <string name="backup_room_db_last_success">Ultima copiere de rezervă reușită:%1$s</string>
     <string name="backup_room_db_last_error">Eroarea anterioară:%1$s</string>
-    <string name="backup_files_location_hint">Notă: Fișierul de rezervă este salvat în Download/Operit Dosar</string>
+    <string name="backup_files_location_hint">Notă: Fișierul de rezervă este salvat în Download/HandleIT Dosar</string>
 
     <string name="backup_raw_snapshot_title">Copie de rezervă a instantaneelor de fișiere (experimental)</string>
     <string name="backup_raw_snapshot_subtitle">pe baza documentului/Copierea de rezervă și restaurarea integrală, pe unități de index</string>
@@ -5717,7 +5717,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="backup_faq_why">De ce este necesar să se facă o copie de rezervă a datelor?</string>
     <string name="backup_faq_why_answer">Realizarea unei copii de siguranță a istoricului conversațiilor vă poate proteja conținutul important în cazul dezinstalării aplicației sau al pierderii datelor. Este o idee bună să faceți copii de siguranță în mod regulat!</string>
     <string name="backup_faq_where">Unde sunt salvate fișierele exportate?</string>
-    <string name="backup_faq_where_answer">Fișierul de rezervă exportat va fi salvat în folderul „Descărcări” de pe telefonul dumneavoastră/OperitÎn folderul „”, numele fișierelor conțin tipul datelor exportate, data și ora.</string>
+    <string name="backup_faq_where_answer">Fișierul de rezervă exportat va fi salvat în folderul „Descărcări” de pe telefonul dumneavoastră/HandleITÎn folderul „”, numele fișierelor conțin tipul datelor exportate, data și ora.</string>
     <string name="backup_faq_duplicate">După import, vor apărea date duplicate?</string>
     <string name="backup_faq_duplicate_answer">Sistemul va lua în considerare înregistrărileIDConcluzie: identicIDÎnregistrările vor fi actualizate, nu importate din nou. DiferitIDÎnregistrarea respectivă va fi adăugată ca o înregistrare nouă.</string>
 
@@ -5725,7 +5725,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="backup_select_export_format">Alegeți formatul de export</string>
     <string name="backup_select_format_hint">Vă rugăm să selectați formatul în care doriți să exportați istoricul conversațiilor:</string>
     <string name="backup_format_json">JSON(Recomandat)</string>
-    <string name="backup_format_json_desc">Operit Format nativ, care păstrează integral toate datele, inclusiv comutarea mesajelor</string>
+    <string name="backup_format_json_desc">HandleIT Format nativ, care păstrează integral toate datele, inclusiv comutarea mesajelor</string>
     <string name="backup_format_markdown">Markdown</string>
     <string name="backup_format_markdown_desc">Un format de marcare ușor, ușor de citit și de editat</string>
     <string name="backup_format_html">HTML</string>
@@ -5736,7 +5736,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <!-- 导入格式选择 -->
     <string name="backup_select_import_format">Alegeți formatul de import</string>
     <string name="backup_import_format_hint">Vă rugăm să selectați formatul în care doriți să importați istoricul conversațiilor:</string>
-    <string name="backup_format_operit">Operit JSON(Recomandat)</string>
+    <string name="backup_format_operit">HandleIT JSON(Recomandat)</string>
     <string name="backup_format_operit_desc">Formatul nativ al acestei aplicații, care păstrează integral toate datele, inclusiv comutarea mesajelor</string>
     <string name="backup_format_chatgpt">ChatGPT</string>
     <string name="backup_format_chatgpt_desc">OpenAI ChatGPT conversations.json Formate de export</string>
@@ -5752,7 +5752,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
 
     <string name="backup_character_cards_title">Carte de personaj</string>
     <string name="backup_character_cards_subtitle">Configurarea rolurilor pentru copierea de rezervă și restaurare</string>
-    <string name="backup_character_cards_current_count">În prezent, există în total %1$d Carte de personaj. Fișierul exportat va fi salvat în „Descărcări”/Operit» din folder.</string>
+    <string name="backup_character_cards_current_count">În prezent, există în total %1$d Carte de personaj. Fișierul exportat va fi salvat în „Descărcări”/HandleIT» din folder.</string>
     <string name="backup_character_card_count">Carte de personaj</string>
     <string name="backup_character_card_files">Carte de personaj</string>
 

@@ -863,8 +863,8 @@ EOF
   fi
 
   # quick compile+link self-check
-  local test_src="/tmp/operit_ndk_test.c"
-  local test_bin="/tmp/operit_ndk_test"
+  local test_src="/tmp/handleit_ndk_test.c"
+  local test_bin="/tmp/handleit_ndk_test"
   echo 'int main(){return 0;}' > "$test_src"
   if ! "$ndk_bin/clang" --target=aarch64-none-linux-android24 --sysroot="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/sysroot" "$test_src" -o "$test_bin" >/dev/null 2>&1; then
     log "ARM64 NDK emulation self-check failed (clang link test)"
@@ -1127,12 +1127,12 @@ configure_env_persistence() {
   local tmp_file
   tmp_file=$(mktemp)
   awk '
-    /^# >>> operit flutter android env >>>$/ { skip = 1; next }
-    /^# <<< operit flutter android env <<<$/ { skip = 0; next }
+    /^# >>> handleit flutter android env >>>$/ { skip = 1; next }
+    /^# <<< handleit flutter android env <<<$/ { skip = 0; next }
     skip != 1 { print }
   ' "$bashrc" > "$tmp_file"
   cat >> "$tmp_file" <<EOF
-# >>> operit flutter android env >>>
+# >>> handleit flutter android env >>>
 export FLUTTER_ROOT=$FLUTTER_SDK
 export FLUTTER_STORAGE_BASE_URL=$FLUTTER_STORAGE_BASE_URL
 export PUB_HOSTED_URL=$PUB_HOSTED_URL
@@ -1144,7 +1144,7 @@ export GRADLE_USER_HOME=$GRADLE_USER_HOME
 export GRADLE_HOME=${GRADLE_HOME:-$HOME/gradle/gradle-8.14}
 export PATH=\$GRADLE_HOME/bin:\$PATH
 export ENABLE_ARM64_NDK_EMULATION=$ENABLE_ARM64_NDK_EMULATION
-# <<< operit flutter android env <<<
+# <<< handleit flutter android env <<<
 EOF
   mv "$tmp_file" "$bashrc"
   log "Environment variables updated in ~/.bashrc"

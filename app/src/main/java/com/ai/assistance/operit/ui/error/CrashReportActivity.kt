@@ -258,7 +258,7 @@ private fun copyToClipboard(context: Context, text: String) {
 private fun exportToFile(context: Context, text: String) {
     try {
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val errorDir = File(downloadsDir, "Operit/error")
+        val errorDir = File(downloadsDir, "HandleIT/error")
         if (!errorDir.exists()) {
             errorDir.mkdirs()
         }

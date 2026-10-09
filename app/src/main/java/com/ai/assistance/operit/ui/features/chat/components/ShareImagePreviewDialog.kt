@@ -223,7 +223,7 @@ suspend fun saveShareImageToGallery(context: android.content.Context, uri: Uri):
                 true
             } else {
                 val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                val outputDir = File(picturesDir, "Operit").apply { mkdirs() }
+                val outputDir = File(picturesDir, "HandleIT").apply { mkdirs() }
                 val outputFile = File(outputDir, fileName)
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     outputFile.outputStream().use { output -> input.copyTo(output) }

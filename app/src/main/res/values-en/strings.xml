@@ -562,7 +562,7 @@
     <string name="danger_zone">Danger Zone</string>
     <string name="chat_statistics">Chat Statistics</string>
     <string name="current_chats">Currently %1$d chat records</string>
-    <string name="backup_location">Backup files are saved in the \"Download/Operit\" folder</string>
+    <string name="backup_location">Backup files are saved in the \"Download/HandleIT\" folder</string>
     <string name="faq_backup">FAQ</string>
     
     <!-- Terminal Screen -->
@@ -1432,7 +1432,7 @@
     <string name="overlay_permission">Overlay Permission</string>
     <string name="battery_optimization">Battery Optimization Exemption</string>
     <string name="location_permission">Location Permission</string>
-    <string name="operit_terminal">Operit Terminal</string>
+    <string name="operit_terminal">HandleIT Terminal</string>
     
     <!-- Permission Level Descriptions -->
     <string name="permission_level_standard">Standard Permission</string>
@@ -1521,7 +1521,7 @@
     <string name="data_recovery_import_snapshot">Import snapshot</string>
     <string name="data_recovery_start_main_app">Launch main app</string>
     <string name="data_recovery_file_management">File management</string>
-    <string name="data_recovery_file_management_description">This page does not open a file manager directly. To inspect or export internal files manually, open MT Manager, add a local storage repository, and select the Operit data repository. provider: %1$s</string>
+    <string name="data_recovery_file_management_description">This page does not open a file manager directly. To inspect or export internal files manually, open MT Manager, add a local storage repository, and select the HandleIT data repository. provider: %1$s</string>
     <string name="data_recovery_sql_executor">SQL executor</string>
     <string name="data_recovery_messages_size">messages size</string>
     <string name="data_recovery_variants_size">variants size</string>
@@ -4602,9 +4602,9 @@
     <string name="import_color_qr">Import Color QR</string>
     <string name="scan_color_qr">Scan Color QR</string>
     <string name="tavern_json">Tavern JSON</string>
-    <string name="export_tavern_json_desc">Export as .json and save to Download/Operit/exports</string>
+    <string name="export_tavern_json_desc">Export as .json and save to Download/HandleIT/exports</string>
     <string name="tavern_png">Tavern PNG</string>
-    <string name="export_tavern_png_desc">Export as image importable to Tavern and save to Download/Operit/exports</string>
+    <string name="export_tavern_png_desc">Export as image importable to Tavern and save to Download/HandleIT/exports</string>
     <string name="image_read_error">Cannot read image</string>
     <string name="image_parse_error">Cannot parse image</string>
     <string name="color_qr_not_recognized">Cannot recognize color QR code</string>
@@ -5453,14 +5453,14 @@
     <string name="backup_memory_link_count">Memory Links</string>
     
     <string name="backup_files_statistics">Backup Files Statistics</string>
-    <string name="backup_files_statistics_subtitle">Backup files in Operit export directory</string>
+    <string name="backup_files_statistics_subtitle">Backup files in HandleIT export directory</string>
     <string name="backup_refresh">Refresh</string>
     <string name="backup_scanning">Scanning</string>
     <string name="backup_chat_files">Chat History</string>
     <string name="backup_memory_files">Memory</string>
     <string name="backup_model_config_files">Model Config</string>
     <string name="backup_room_db_files">Database</string>
-    <string name="backup_files_location_hint">Tip: backup files are saved in Download/Operit folder</string>
+    <string name="backup_files_location_hint">Tip: backup files are saved in Download/HandleIT folder</string>
 
     <string name="backup_room_db_title">Database (Auto + Manual Backup)</string>
     <string name="backup_room_db_subtitle">Daily backup of Room SQLite database, keep up to %1$d backups (older ones will be deleted automatically)</string>
@@ -5551,7 +5551,7 @@
     <string name="backup_faq_why">Why backup data?</string>
     <string name="backup_faq_why_answer">Backing up chat history prevents important content loss when the app is uninstalled or data is lost. Regular backups are a good habit!</string>
     <string name="backup_faq_where">Where are exported files saved?</string>
-    <string name="backup_faq_where_answer">Exported backup files are saved in the \"Download/Operit\" folder on your phone, with filenames containing the data type, date and time.</string>
+    <string name="backup_faq_where_answer">Exported backup files are saved in the \"Download/HandleIT\" folder on your phone, with filenames containing the data type, date and time.</string>
     <string name="backup_faq_duplicate">Will importing create duplicate data?</string>
     <string name="backup_faq_duplicate_answer">The system uses record IDs to determine duplicates. Records with the same ID will be updated rather than duplicated. Records with different IDs will be added as new entries.</string>
     
@@ -5559,7 +5559,7 @@
     <string name="backup_select_export_format">Select Export Format</string>
     <string name="backup_select_format_hint">Please select the chat history format to export:</string>
     <string name="backup_format_json">JSON (Recommended)</string>
-    <string name="backup_format_json_desc">Operit native format, preserves variants and all other data</string>
+    <string name="backup_format_json_desc">HandleIT native format, preserves variants and all other data</string>
     <string name="backup_format_markdown">Markdown</string>
     <string name="backup_format_markdown_desc">Lightweight markup format, easy to read and edit</string>
     <string name="backup_format_html">HTML</string>
@@ -5570,7 +5570,7 @@
     <!-- Import Format Selection -->
     <string name="backup_select_import_format">Select Import Format</string>
     <string name="backup_import_format_hint">Please select the chat history format to import:</string>
-    <string name="backup_format_operit">Operit JSON (Recommended)</string>
+    <string name="backup_format_operit">HandleIT JSON (Recommended)</string>
     <string name="backup_format_operit_desc">Native format of this app, preserves variants and all other data</string>
     <string name="backup_format_chatgpt">ChatGPT</string>
     <string name="backup_format_chatgpt_desc">OpenAI ChatGPT conversations.json export format</string>
@@ -5586,7 +5586,7 @@
 
     <string name="backup_character_cards_title">Character Cards</string>
     <string name="backup_character_cards_subtitle">Backup and restore character card settings</string>
-    <string name="backup_character_cards_current_count">Currently %1$d character card(s). Exported files will be saved in the "Download/Operit" folder.</string>
+    <string name="backup_character_cards_current_count">Currently %1$d character card(s). Exported files will be saved in the "Download/HandleIT" folder.</string>
     <string name="backup_character_card_count">Character Cards</string>
     <string name="backup_character_card_files">Character Cards</string>
 
@@ -7842,9 +7842,9 @@
     <string name="min_supported_app_version">Minimum supported app version</string>
     <string name="max_supported_app_version">Maximum supported app version</string>
     <string name="min_supported_version_input_hint">Required. Enter a version like `1.10.0` or `1.10.0+5`</string>
-    <string name="max_supported_version_input_hint">Optional; blank defaults to 1.99.99. 2.0.0 or above allows Operit 2</string>
-    <string name="operit2_version_warning_title">Confirm Operit 2 support?</string>
-    <string name="operit2_version_warning_message">This will allow Operit 2 to use this plugin. Make sure the plugin works correctly on Operit 2.</string>
+    <string name="max_supported_version_input_hint">Optional; blank defaults to 1.99.99. 2.0.0 or above allows HandleIT 2</string>
+    <string name="operit2_version_warning_title">Confirm HandleIT 2 support?</string>
+    <string name="operit2_version_warning_message">This will allow HandleIT 2 to use this plugin. Make sure the plugin works correctly on HandleIT 2.</string>
     <string name="publish_failed_title">Publish failed</string>
     <string name="retry_market_registration">Retry market registration</string>
     <string name="update_to_market">Update to market</string>
@@ -8002,7 +8002,7 @@
     <string name="market_allow_public_updates_title">Allow anyone to update this plugin</string>
     <string name="market_allow_public_updates_desc">When enabled, other signed-in users can submit new versions for this plugin. Only the original publisher can change this switch.</string>
     <string name="artifact_publish_encrypt_title">Encrypt published asset</string>
-    <string name="artifact_publish_encrypt_desc">When enabled, scripts are AST-minified and package resources upload in Operit protected format. Install and cache stay encrypted, and runtime reads decrypt automatically.</string>
+    <string name="artifact_publish_encrypt_desc">When enabled, scripts are AST-minified and package resources upload in HandleIT protected format. Install and cache stay encrypted, and runtime reads decrypt automatically.</string>
     <string name="artifact_publish_encrypt_confirmation">Encrypted publish: %1$s</string>
     <string name="market_login_required_hint">Log in to GitHub to manage and publish market content</string>
     <string name="available_scripts_market">Available Scripts</string>
@@ -8287,13 +8287,13 @@
     <string name="artifact_project_node_view_title">Node View</string>
     <string name="artifact_project_nodes_loading">Loading project nodes...</string>
     <string name="artifact_project_node_selection_hint">Click to select a node, click again to deselect.</string>
-    <string name="plugin_creation_fresh_task_line">Please activate the Operit Editor and use the sandbox package dev toolkit to develop a new sandbox package.</string>
+    <string name="plugin_creation_fresh_task_line">Please activate the HandleIT Editor and use the sandbox package dev toolkit to develop a new sandbox package.</string>
     <string name="plugin_creation_fresh_package_rule_line">First determine the new sandbox package ID, do not rename it later.</string>
-    <string name="plugin_creation_fresh_dev_directory_line">The development directory is fixed to Downloads/Operit/dev_package/your_determined_id. Development, installation, and testing are all done here.</string>
-    <string name="plugin_creation_continue_task_line">Please activate the Operit Editor, locate the sandbox package %1$s, and continue development and testing based on this version.</string>
-    <string name="plugin_creation_merge_task_line">Please activate the Operit Editor, locate the sandbox package %1$s, and perform merge development and testing based on this version.</string>
+    <string name="plugin_creation_fresh_dev_directory_line">The development directory is fixed to Downloads/HandleIT/dev_package/your_determined_id. Development, installation, and testing are all done here.</string>
+    <string name="plugin_creation_continue_task_line">Please activate the HandleIT Editor, locate the sandbox package %1$s, and continue development and testing based on this version.</string>
+    <string name="plugin_creation_merge_task_line">Please activate the HandleIT Editor, locate the sandbox package %1$s, and perform merge development and testing based on this version.</string>
     <string name="plugin_creation_existing_package_rule_line">Current sandbox package ID is %1$s. The package ID and plugin name must be kept; do not rename or create a new package.</string>
-    <string name="plugin_creation_existing_dev_directory_line">The development directory is fixed to Downloads/Operit/dev_package/%1$s. Development, installation, and testing are all done here.</string>
+    <string name="plugin_creation_existing_dev_directory_line">The development directory is fixed to Downloads/HandleIT/dev_package/%1$s. Development, installation, and testing are all done here.</string>
     <string name="plugin_creation_update_sandbox_package_dev">First update SandboxPackage_DEV.</string>
     <string name="plugin_creation_copy_types_to_dev_dir">Copy the types from skills to the development directory, overwriting existing files.</string>
     <string name="plugin_creation_use_terminal_ts_js_hint">Use the terminal as much as possible, prioritize writing ts and js, then compile to final js. Refer to examples for tsconfig.</string>

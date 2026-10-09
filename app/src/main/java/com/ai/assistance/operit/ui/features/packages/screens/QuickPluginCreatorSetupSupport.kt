@@ -18,9 +18,9 @@ import java.net.URL
 
 private const val OPERIT_EDITOR_PACKAGE_NAME = "operit_editor"
 private const val SANDBOX_PACKAGE_DEV_INSTALL_SCRIPT_URL =
-    "https://cdn.jsdelivr.net/gh/AAswordman/Operit@main/tools/sandboxpackage_dev_install_or_update.js"
+    "https://cdn.jsdelivr.net/gh/Mavaebrook/HandleIT-Android@main/tools/sandboxpackage_dev_install_or_update.js"
 private const val SANDBOX_PACKAGE_DEV_SCRIPT_RELATIVE_PATH =
-    "Download/Operit/skills/SandboxPackage_DEV/scripts/install_or_update.js"
+    "Download/HandleIT/skills/SandboxPackage_DEV/scripts/install_or_update.js"
 
 internal fun runQuickPluginCreatorSetup(
     context: Context,

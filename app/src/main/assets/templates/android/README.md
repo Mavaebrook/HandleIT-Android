@@ -1,4 +1,4 @@
-# Operit Android 项目
+# HandleIT Android 项目
 
 这是一个基于 **Jetpack Compose** 的现代化 Android 应用开发模板。
 
@@ -48,7 +48,7 @@ android-project/
 
 ### 2. 构建项目
 
-#### 使用 Operit 内置命令按钮
+#### 使用 HandleIT 内置命令按钮
 - 🔧 **初始化 Gradle Wrapper** - 首次使用
 - 🔨 **构建项目** - 编译整个项目
 - 🧹 **清理构建** - 清理构建缓存
@@ -154,7 +154,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 ## 📝 注意事项
 
 ⚠️ **关于 Android SDK**  
-- 此模板可以在 Operit 的 Ubuntu 环境中构建
+- 此模板可以在 HandleIT 的 Ubuntu 环境中构建
 - 完整编译需要安装 Android SDK
 - 推荐使用 Android Studio 进行完整开发
 

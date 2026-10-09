@@ -1,4 +1,4 @@
-package com.operit.app;
+package com.handleit.app;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;

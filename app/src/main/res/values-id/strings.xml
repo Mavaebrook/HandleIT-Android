@@ -567,7 +567,7 @@
     <string name="danger_zone">Zona Berbahaya</string>
     <string name="chat_statistics">Statistik Riwayat Obrolan</string>
     <string name="current_chats">Saat ini ada %1$d riwayat obrolan</string>
-    <string name="backup_location">File cadangan disimpan di folder "Download/Operit/backup"</string>
+    <string name="backup_location">File cadangan disimpan di folder "Download/HandleIT/backup"</string>
     <string name="faq_backup">Pertanyaan Umum</string>
     <string name="history_filter_role_card">Kategorikan Berdasarkan Kartu Karakter</string>
     <string name="history_filter_role_card_desc">Klasifikasi tiga tingkat: Kartu Karakter - Folder - Percakapan</string>
@@ -1041,7 +1041,7 @@
     <string name="overlay_permission">Izin Overlay</string>
     <string name="battery_optimization">Pengecualian Optimasi Baterai</string>
     <string name="location_permission">Izin Lokasi</string>
-    <string name="operit_terminal">Terminal Operit</string>
+    <string name="operit_terminal">Terminal HandleIT</string>
     <string name="permission_level_standard">Izin Standar</string>
     <string name="permission_level_accessibility">Izin Aksesibilitas</string>
     <string name="permission_level_admin">Izin Administrator</string>
@@ -3663,9 +3663,9 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="import_color_qr">Impor kode multi-dimensi</string>
     <string name="scan_color_qr">Pindai kode multi-dimensi</string>
     <string name="tavern_json">JSON Tavern</string>
-    <string name="export_tavern_json_desc">Ekspor sebagai .json dan simpan ke Download/Operit/exports</string>
+    <string name="export_tavern_json_desc">Ekspor sebagai .json dan simpan ke Download/HandleIT/exports</string>
     <string name="tavern_png">PNG Tavern</string>
-    <string name="export_tavern_png_desc">Ekspor sebagai gambar yang dapat diimpor ke Tavern, dan simpan ke Download/Operit/exports</string>
+    <string name="export_tavern_png_desc">Ekspor sebagai gambar yang dapat diimpor ke Tavern, dan simpan ke Download/HandleIT/exports</string>
     <string name="image_read_error">Tidak dapat membaca gambar</string>
     <string name="image_parse_error">Tidak dapat mengurai gambar</string>
     <string name="color_qr_not_recognized">Tidak dapat mengenali kode multi-dimensi berwarna</string>
@@ -4738,7 +4738,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="backup_memory_count">Entri Memori</string>
     <string name="backup_memory_link_count">Asosiasi Memori</string>
     <string name="backup_files_statistics">Statistik File Cadangan</string>
-    <string name="backup_files_statistics_subtitle">File cadangan di direktori ekspor Operit</string>
+    <string name="backup_files_statistics_subtitle">File cadangan di direktori ekspor HandleIT</string>
     <string name="backup_refresh">Segarkan</string>
     <string name="backup_scanning">Memindai</string>
     <string name="backup_chat_files">Catatan Percakapan</string>
@@ -4911,13 +4911,13 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="backup_faq_why">Mengapa perlu mencadangkan data?</string>
     <string name="backup_faq_why_answer">Mencadangkan riwayat percakapan dapat mencegah hilangnya konten penting Anda saat aplikasi dihapus atau data hilang. Mencadangkan secara berkala adalah kebiasaan yang baik!</string>
     <string name="backup_faq_where">Di mana file ekspor disimpan?</string>
-    <string name="backup_faq_where_answer">File cadangan yang diekspor akan disimpan di folder "Unduhan/Operit" di ponsel Anda. Nama file mencakup jenis data yang diekspor, tanggal, dan waktu.</string>
+    <string name="backup_faq_where_answer">File cadangan yang diekspor akan disimpan di folder "Unduhan/HandleIT" di ponsel Anda. Nama file mencakup jenis data yang diekspor, tanggal, dan waktu.</string>
     <string name="backup_faq_duplicate">Apakah akan ada data duplikat setelah diimpor?</string>
     <string name="backup_faq_duplicate_answer">Sistem akan menilai berdasarkan ID catatan. Catatan dengan ID yang sama akan diperbarui, bukan diimpor ulang. Catatan dengan ID berbeda akan ditambahkan sebagai catatan baru.</string>
     <string name="backup_select_export_format">Pilih format ekspor</string>
     <string name="backup_select_format_hint">Silakan pilih format riwayat percakapan yang akan diekspor:</string>
     <string name="backup_format_json">JSON (Direkomendasikan)</string>
-    <string name="backup_format_json_desc">Format asli Operit, mempertahankan semua data secara lengkap</string>
+    <string name="backup_format_json_desc">Format asli HandleIT, mempertahankan semua data secara lengkap</string>
     <string name="backup_format_markdown">Markdown</string>
     <string name="backup_format_markdown_desc">Format markup ringan, mudah dibaca dan diedit</string>
     <string name="backup_format_html">HTML</string>
@@ -4926,7 +4926,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="backup_format_txt_desc">Format teks sederhana, mudah dibagikan</string>
     <string name="backup_select_import_format">Pilih format impor</string>
     <string name="backup_import_format_hint">Silakan pilih format riwayat percakapan yang akan diimpor:</string>
-    <string name="backup_format_operit">Operit JSON (Direkomendasikan)</string>
+    <string name="backup_format_operit">HandleIT JSON (Direkomendasikan)</string>
     <string name="backup_format_operit_desc">Format asli aplikasi ini, mempertahankan semua data secara lengkap</string>
     <string name="backup_format_chatgpt">ChatGPT</string>
     <string name="backup_format_chatgpt_desc">Format ekspor conversations.json OpenAI ChatGPT</string>
@@ -4940,7 +4940,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="backup_export_result_success">Berhasil mengekspor ke: %1$s</string>
     <string name="backup_character_cards_title">Kartu Karakter</string>
     <string name="backup_character_cards_subtitle">Cadangkan dan pulihkan konfigurasi kartu karakter</string>
-    <string name="backup_character_cards_current_count">Saat ini ada %1$d kartu karakter. File yang diekspor akan disimpan di folder "Unduhan/Operit".</string>
+    <string name="backup_character_cards_current_count">Saat ini ada %1$d kartu karakter. File yang diekspor akan disimpan di folder "Unduhan/HandleIT".</string>
     <string name="backup_character_card_count">Kartu Karakter</string>
     <string name="backup_character_card_files">Kartu Karakter</string>
     <string name="backup_character_cards_export_result_success">Berhasil mengekspor %1$d kartu karakter ke:\n%2$s</string>
@@ -4978,7 +4978,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="backup_room_db_restart_later">Nanti</string>
     <string name="backup_room_db_last_success">Cadangan berhasil terakhir: %1$s</string>
     <string name="backup_room_db_last_error">Kesalahan terakhir: %1$s</string>
-    <string name="backup_files_location_hint">Petunjuk: File cadangan disimpan di folder Download/Operit</string>
+    <string name="backup_files_location_hint">Petunjuk: File cadangan disimpan di folder Download/HandleIT</string>
     <string name="backup_raw_snapshot_title">Cadangan Snapshot File (Eksperimental)</string>
     <string name="backup_raw_snapshot_subtitle">Cadangan dan pemulihan kompresi keseluruhan berbasis file/direktori</string>
     <string name="backup_raw_snapshot_desc">Akan mengemas direktori data internal aplikasi seperti files/shared_prefs/datastore/databases (lingkungan terminal Linux volumenya sangat besar, tidak dicadangkan secara default). Pemulihan akan menimpa data saat ini dan memerlukan restart aplikasi untuk berlaku. Beberapa data terenkripsi mungkin tidak dapat digunakan setelah pindah perangkat/instal ulang.</string>
@@ -7269,11 +7269,11 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="artifact_project_node_selection_hint">Klik node untuk memilih, klik lagi untuk membatalkan.</string>
     <string name="plugin_creation_fresh_task_line">Silakan aktifkan operit editor, dan gunakan paket sandbox untuk mengembangkan paket sandbox baru dengan dev toolkit.</string>
     <string name="plugin_creation_fresh_package_rule_line">Tentukan id paket sandbox baru terlebih dahulu, jangan ganti nama nanti.</string>
-    <string name="plugin_creation_fresh_dev_directory_line">Direktori pengembangan tetap di Unduhan ponsel/Operit/dev_package/id yang Anda tentukan. Pengembangan, instalasi, dan pengujian hanya dilakukan di sini.</string>
+    <string name="plugin_creation_fresh_dev_directory_line">Direktori pengembangan tetap di Unduhan ponsel/HandleIT/dev_package/id yang Anda tentukan. Pengembangan, instalasi, dan pengujian hanya dilakukan di sini.</string>
     <string name="plugin_creation_continue_task_line">Silakan aktifkan operit editor, cari lokasi paket sandbox %1$s, lanjutkan pengembangan dan pengujian berdasarkan versi ini.</string>
     <string name="plugin_creation_merge_task_line">Silakan aktifkan operit editor, cari lokasi paket sandbox %1$s, lakukan pengembangan gabungan dan pengujian berdasarkan versi ini.</string>
     <string name="plugin_creation_existing_package_rule_line">Id paket sandbox saat ini adalah %1$s. Id paket dan nama plugin harus tetap digunakan, jangan ganti nama atau buat paket baru.</string>
-    <string name="plugin_creation_existing_dev_directory_line">Direktori pengembangan tetap di Unduhan ponsel/Operit/dev_package/%1$s. Pengembangan, instalasi, dan pengujian hanya dilakukan di sini.</string>
+    <string name="plugin_creation_existing_dev_directory_line">Direktori pengembangan tetap di Unduhan ponsel/HandleIT/dev_package/%1$s. Pengembangan, instalasi, dan pengujian hanya dilakukan di sini.</string>
     <string name="plugin_creation_update_sandbox_package_dev">Perbarui SandboxPackage_DEV terlebih dahulu.</string>
     <string name="plugin_creation_copy_types_to_dev_dir">Salin types dari skills ke direktori pengembangan dengan menimpa.</string>
     <string name="plugin_creation_use_terminal_ts_js_hint">Gunakan terminal sebisa mungkin, prioritaskan menulis ts dan js, lalu kompilasi ke js akhir. tsconfig lihat contoh.</string>
@@ -7300,8 +7300,8 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="market_review_step_scheduled">Menunggu rilis</string>
     <string name="market_review_step_unlisted">Tidak terdaftar</string>
     <string name="artifact_publish_stage_resolving_release_asset">Sedang memverifikasi aset rilis GitHub</string>
-    <string name="operit2_version_warning_title">Konfirmasi dukungan Operit 2?</string>
-    <string name="operit2_version_warning_message">Ini akan mengizinkan Operit 2 menggunakan plugin ini. Pastikan plugin berfungsi dengan baik di Operit 2.</string>
+    <string name="operit2_version_warning_title">Konfirmasi dukungan HandleIT 2?</string>
+    <string name="operit2_version_warning_message">Ini akan mengizinkan HandleIT 2 menggunakan plugin ini. Pastikan plugin berfungsi dengan baik di HandleIT 2.</string>
     <string name="market_filter_featured_only">Pilihan</string>
     <string name="market_detail_deleting_comment">Menghapus komentar</string>
     <string name="market_detail_deleting_comment_message">Harap tunggu, sedang menyinkronkan ke server…</string>

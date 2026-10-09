@@ -1,12 +1,12 @@
-package com.operit.app;
+package com.handleit.app;
 
 /**
- * Operit Java 项目
+ * HandleIT Java 项目
  * 使用标准的 Gradle 项目结构
  */
 public class Main {
     public static void main(String[] args) {
-        System.out.println("🚀 欢迎来到 Operit Java 项目！");
+        System.out.println("🚀 欢迎来到 HandleIT Java 项目！");
         System.out.println("=".repeat(50));
         System.out.println("这是一个标准的 Gradle Java 项目，您可以：");
         System.out.println("  ✨ 编写和编译 Java 代码");

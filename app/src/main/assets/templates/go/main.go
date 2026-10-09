@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	fmt.Println("🚀 欢迎来到 Operit Go 项目！")
+	fmt.Println("🚀 欢迎来到 HandleIT Go 项目！")
 	fmt.Println(strings.Repeat("=", 50))
 	fmt.Println("这是一个 Go 项目模板，您可以：")
 	fmt.Println("  ✨ 编写和编译 Go 代码")
@@ -15,7 +15,7 @@ func main() {
 	fmt.Println(strings.Repeat("=", 50))
 
 	// 示例代码
-	greeting := "Hello from Operit!"
+	greeting := "Hello from HandleIT!"
 	fmt.Printf("\n%s\n\n", greeting)
 	
 	// 简单的计算示例

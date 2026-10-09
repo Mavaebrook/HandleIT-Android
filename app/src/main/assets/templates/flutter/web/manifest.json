@@ -1,11 +1,11 @@
 {
-    "name": "operit_flutter_project",
-    "short_name": "operit_flutter_project",
+    "name": "handleit_flutter_project",
+    "short_name": "handleit_flutter_project",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project created with Operit.",
+    "description": "A new Flutter project created with HandleIT.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

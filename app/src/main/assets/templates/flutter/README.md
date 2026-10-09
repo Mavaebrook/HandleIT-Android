@@ -1,6 +1,6 @@
-# Operit Flutter 项目
+# HandleIT Flutter 项目
 
-这是一个基于 Flutter 官方稳定版应用模板整理的 Operit Flutter 项目，已包含 Android、iOS、Web、Windows、macOS、Linux 的基础结构，以及默认的计数器示例和 widget test。
+这是一个基于 Flutter 官方稳定版应用模板整理的 HandleIT Flutter 项目，已包含 Android、iOS、Web、Windows、macOS、Linux 的基础结构，以及默认的计数器示例和 widget test。
 
 ## 快速开始
 

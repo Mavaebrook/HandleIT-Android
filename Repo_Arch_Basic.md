@@ -5,7 +5,7 @@
 ## 目录总览
 
 ```text
-Operit-follow-up/
+HandleIT-follow-up/
 ├── app/             主 Android 应用
 ├── avator/          角色与模型 Android 模块
 │   ├── dragonbones/  DragonBones 动画 Android 库
@@ -29,7 +29,7 @@ Operit-follow-up/
 
 ### [`app`](app/)
 
-这是 Operit 的主 Android 应用模块。应用界面、业务逻辑、Android 资源、工具系统、项目模板和 ObjectBox 模型都集中在这里，同时负责接入各个本地原生能力。最终 APK 的主要应用代码位于此目录。
+这是 HandleIT 的主 Android 应用模块。应用界面、业务逻辑、Android 资源、工具系统、项目模板和 ObjectBox 模型都集中在这里，同时负责接入各个本地原生能力。最终 APK 的主要应用代码位于此目录。
 
 ### [`ci`](ci/)
 

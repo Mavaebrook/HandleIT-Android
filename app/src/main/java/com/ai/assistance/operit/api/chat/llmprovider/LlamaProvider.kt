@@ -34,7 +34,7 @@ class LlamaProvider(
         fun getModelsDir(): File {
             return File(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                "Operit/models/llama"
+                "HandleIT/models/llama"
             )
         }
 

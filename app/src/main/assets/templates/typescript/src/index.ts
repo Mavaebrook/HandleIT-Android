@@ -1,5 +1,5 @@
-// Operit TypeScript 项目
-console.log('🚀 欢迎来到 Operit TypeScript 项目！');
+// HandleIT TypeScript 项目
+console.log('🚀 欢迎来到 HandleIT TypeScript 项目！');
 console.log('='.repeat(50));
 console.log('这是一个 TypeScript 项目模板，您可以：');
 console.log('  ✨ 编写类型安全的 TypeScript 代码');
@@ -14,12 +14,12 @@ interface User {
 }
 
 // 示例代码
-const greeting: string = "Hello from Operit!";
+const greeting: string = "Hello from HandleIT!";
 console.log(`\n${greeting}\n`);
 
 // 类型安全的对象
 const user: User = {
-  name: "Operit User",
+  name: "HandleIT User",
   age: 25
 };
 console.log(`用户信息: ${user.name}, 年龄: ${user.age}`);

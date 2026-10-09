@@ -553,7 +553,7 @@
     <string name="danger_zone">危险区域</string>
     <string name="chat_statistics">聊天记录统计</string>
     <string name="current_chats">当前共有 %1$d 条聊天记录</string>
-    <string name="backup_location">备份文件保存在「下载/Operit/backup」文件夹中</string>
+    <string name="backup_location">备份文件保存在「下载/HandleIT/backup」文件夹中</string>
     <string name="faq_backup">常见问题</string>
     <string name="history_filter_role_card">按角色卡分类</string>
     <string name="history_filter_role_card_desc">角色卡-文件夹-对话三级分类</string>
@@ -4552,9 +4552,9 @@
     <string name="import_color_qr">导入多维码</string>
     <string name="scan_color_qr">扫描多维码</string>
     <string name="tavern_json">酒馆 JSON</string>
-    <string name="export_tavern_json_desc">导出为 .json 并保存到 Download/Operit/exports</string>
+    <string name="export_tavern_json_desc">导出为 .json 并保存到 Download/HandleIT/exports</string>
     <string name="tavern_png">酒馆 PNG</string>
-    <string name="export_tavern_png_desc">导出为可导入酒馆的图片，并保存到 Download/Operit/exports</string>
+    <string name="export_tavern_png_desc">导出为可导入酒馆的图片，并保存到 Download/HandleIT/exports</string>
     <string name="image_read_error">无法读取图片</string>
     <string name="image_parse_error">无法解析图片</string>
     <string name="color_qr_not_recognized">无法识别彩色多维码</string>
@@ -4939,11 +4939,11 @@
     <string name="artifact_project_node_selection_hint">点击节点选中，再次点击可取消。</string>
     <string name="plugin_creation_fresh_task_line">请你激活operit editor，并使用沙盒包开发 dev 工具包开发新的沙盒包。</string>
     <string name="plugin_creation_fresh_package_rule_line">先确定新的沙盒包 id，后续不要改名。</string>
-    <string name="plugin_creation_fresh_dev_directory_line">开发目录固定为 手机下载/Operit/dev_package/你确定的id。开发、安装和测试都只在这里完成。</string>
+    <string name="plugin_creation_fresh_dev_directory_line">开发目录固定为 手机下载/HandleIT/dev_package/你确定的id。开发、安装和测试都只在这里完成。</string>
     <string name="plugin_creation_continue_task_line">请你激活operit editor，查找沙盒包 %1$s 的位置，在此版本基础上继续开发并测试。</string>
     <string name="plugin_creation_merge_task_line">请你激活operit editor，查找沙盒包 %1$s 的位置，在此版本基础上做合并开发并测试。</string>
     <string name="plugin_creation_existing_package_rule_line">当前沙盒包 id 是 %1$s。包 id 和插件名字都必须沿用，不要改名，也不要新起包。</string>
-    <string name="plugin_creation_existing_dev_directory_line">开发目录固定为 手机下载/Operit/dev_package/%1$s。开发、安装和测试都只在这里完成。</string>
+    <string name="plugin_creation_existing_dev_directory_line">开发目录固定为 手机下载/HandleIT/dev_package/%1$s。开发、安装和测试都只在这里完成。</string>
     <string name="plugin_creation_update_sandbox_package_dev">先更新 SandboxPackage_DEV。</string>
     <string name="plugin_creation_copy_types_to_dev_dir">把 skills 里的 types 覆盖复制到开发目录。</string>
     <string name="plugin_creation_use_terminal_ts_js_hint">尽量用终端，优先写 ts 和 js，再编译出最终 js。tsconfig 参考 examples。</string>
@@ -4964,8 +4964,8 @@
     <string name="max_supported_app_version">支持的最高软件版本</string>
     <string name="min_supported_version_input_hint">必填。请输入 `1.10.0` 或 `1.10.0+5` 这样的版本号</string>
     <string name="max_supported_version_input_hint">选填，留空默认 1.99.99。填 2.0.0 及以上会允许 HandleIT 2 使用</string>
-    <string name="operit2_version_warning_title">确认支持 Operit 2？</string>
-    <string name="operit2_version_warning_message">这会允许 HandleIT 2 使用该插件。请确保插件支持在 Operit 2 上正常运行。</string>
+    <string name="operit2_version_warning_title">确认支持 HandleIT 2？</string>
+    <string name="operit2_version_warning_message">这会允许 HandleIT 2 使用该插件。请确保插件支持在 HandleIT 2 上正常运行。</string>
     <string name="publish_failed_title">发布失败</string>
     <string name="retry_market_registration">重试市场登记</string>
     <string name="update_to_market">更新到市场</string>
@@ -5965,7 +5965,7 @@
     <string name="backup_room_db_restart_later">稍后</string>
     <string name="backup_room_db_last_success">上次成功备份：%1$s</string>
     <string name="backup_room_db_last_error">上次错误：%1$s</string>
-    <string name="backup_files_location_hint">提示：备份文件保存在 Download/Operit 文件夹</string>
+    <string name="backup_files_location_hint">提示：备份文件保存在 Download/HandleIT 文件夹</string>
 
     <string name="backup_raw_snapshot_title">文件快照备份（实验）</string>
     <string name="backup_raw_snapshot_subtitle">以文件/目录为单位的整体压缩备份与恢复</string>
@@ -6026,7 +6026,7 @@
     <string name="backup_faq_why">为什么要备份数据？</string>
     <string name="backup_faq_why_answer">备份聊天记录可以防止应用卸载或数据丢失时，您的重要内容丢失。定期备份是个好习惯！</string>
     <string name="backup_faq_where">导出的文件保存在哪里？</string>
-    <string name="backup_faq_where_answer">导出的备份文件会保存在您手机的「下载/Operit」文件夹中，文件名包含导出的数据类型、日期和时间。</string>
+    <string name="backup_faq_where_answer">导出的备份文件会保存在您手机的「下载/HandleIT」文件夹中，文件名包含导出的数据类型、日期和时间。</string>
     <string name="backup_faq_duplicate">导入后会出现重复的数据吗？</string>
     <string name="backup_faq_duplicate_answer">系统会根据记录ID判断，相同ID的记录会被更新而不是重复导入。不同ID的记录会作为新记录添加。</string>
     
@@ -6063,7 +6063,7 @@
 
     <string name="backup_character_cards_title">角色卡</string>
     <string name="backup_character_cards_subtitle">备份与恢复角色卡配置</string>
-    <string name="backup_character_cards_current_count">当前共有 %1$d 个角色卡。导出的文件会保存在「下载/Operit」文件夹中。</string>
+    <string name="backup_character_cards_current_count">当前共有 %1$d 个角色卡。导出的文件会保存在「下载/HandleIT」文件夹中。</string>
     <string name="backup_character_card_count">角色卡</string>
     <string name="backup_character_card_files">角色卡</string>
 

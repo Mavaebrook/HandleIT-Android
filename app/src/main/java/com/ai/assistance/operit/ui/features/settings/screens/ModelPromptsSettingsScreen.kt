@@ -558,7 +558,7 @@ fun ModelPromptsSettingsScreen(
                     mimeType = "application/json"
                 )
                 if (ok) {
-                    exportSavedPath = "${Environment.DIRECTORY_DOWNLOADS}/Operit/exports/$fileName"
+                    exportSavedPath = "${Environment.DIRECTORY_DOWNLOADS}/HandleIT/exports/$fileName"
                     showExportSavedDialog = true
                 } else {
                     Toast.makeText(context, context.getString(R.string.save_failed), Toast.LENGTH_SHORT).show()
@@ -1621,7 +1621,7 @@ fun ModelPromptsSettingsScreen(
                                             mimeType = "application/json"
                                         )
                                         if (ok) {
-                                            exportSavedPath = "${Environment.DIRECTORY_DOWNLOADS}/Operit/exports/$fileName"
+                                            exportSavedPath = "${Environment.DIRECTORY_DOWNLOADS}/HandleIT/exports/$fileName"
                                             showExportSavedDialog = true
                                         } else {
                                             Toast.makeText(context, context.getString(R.string.save_failed), Toast.LENGTH_SHORT).show()
@@ -1693,7 +1693,7 @@ fun ModelPromptsSettingsScreen(
                                             mimeType = "image/png"
                                         )
                                         if (ok) {
-                                            exportSavedPath = "${Environment.DIRECTORY_DOWNLOADS}/Operit/exports/$fileName"
+                                            exportSavedPath = "${Environment.DIRECTORY_DOWNLOADS}/HandleIT/exports/$fileName"
                                             showExportSavedDialog = true
                                         } else {
                                             Toast.makeText(context, context.getString(R.string.save_failed), Toast.LENGTH_SHORT).show()
@@ -3409,7 +3409,7 @@ private suspend fun saveBitmapToGallery(context: Context, bitmap: Bitmap, fileNa
                 return@withContext false
             } else {
                 val imagesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                val targetDir = File(imagesDir, "Operit").apply { if (!exists()) mkdirs() }
+                val targetDir = File(imagesDir, "HandleIT").apply { if (!exists()) mkdirs() }
                 val imageFile = File(targetDir, fileName)
                 FileOutputStream(imageFile).use { outputStream ->
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
@@ -3436,7 +3436,7 @@ private suspend fun saveBytesToDownloads(context: Context, bytes: ByteArray, fil
                     put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
                     put(
                         MediaStore.MediaColumns.RELATIVE_PATH,
-                        "${Environment.DIRECTORY_DOWNLOADS}/Operit/exports"
+                        "${Environment.DIRECTORY_DOWNLOADS}/HandleIT/exports"
                     )
                 }
 
@@ -3455,7 +3455,7 @@ private suspend fun saveBytesToDownloads(context: Context, bytes: ByteArray, fil
                 return@withContext false
             } else {
                 val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                val targetDir = File(downloadsDir, "Operit/exports").apply { if (!exists()) mkdirs() }
+                val targetDir = File(downloadsDir, "HandleIT/exports").apply { if (!exists()) mkdirs() }
                 val outFile = File(targetDir, fileName)
                 FileOutputStream(outFile).use { outputStream ->
                     outputStream.write(bytes)

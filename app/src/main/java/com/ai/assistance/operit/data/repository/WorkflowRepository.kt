@@ -58,7 +58,7 @@ class WorkflowRepository(private val context: Context) {
     
     companion object {
         private const val TAG = "WorkflowRepository"
-        private const val WORKFLOW_DIR = "Operit/workflow"
+        private const val WORKFLOW_DIR = "HandleIT/workflow"
         private const val EXECUTION_LOG_SUB_DIR = "_execution_logs"
         private const val MAX_EXECUTION_LOG_FILES_PER_WORKFLOW = 30
 

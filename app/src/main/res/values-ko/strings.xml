@@ -512,7 +512,7 @@
     <string name="danger_zone">위험지대</string>
     <string name="chat_statistics">채팅 통계</string>
     <string name="current_chats">현재 채팅 기록 %1$d개</string>
-    <string name="backup_location">백업 파일은 "Download/Operit/backup" 폴더에 저장됩니다.</string>
+    <string name="backup_location">백업 파일은 "Download/HandleIT/backup" 폴더에 저장됩니다.</string>
     <string name="faq_backup">FAQ</string>
     <string name="history_filter_role_card">캐릭터 카드로 분류</string>
     <string name="history_filter_role_card_desc">캐릭터카드 - 폴더 - 대화 3단계 분류</string>
@@ -1212,7 +1212,7 @@
     <string name="overlay_permission">오버레이 권한</string>
     <string name="battery_optimization">배터리 최적화 면제</string>
     <string name="location_permission">위치 권한</string>
-    <string name="operit_terminal">Operit 터미널</string>
+    <string name="operit_terminal">HandleIT 터미널</string>
     <string name="permission_level_standard">표준 권한</string>
     <string name="permission_level_accessibility">접근성 권한</string>
     <string name="permission_level_admin">관리자 권한</string>
@@ -3861,9 +3861,9 @@
     <string name="import_color_qr">색상 QR 가져오기</string>
     <string name="scan_color_qr">컬러 QR 스캔</string>
     <string name="tavern_json">Tavern JSON</string>
-    <string name="export_tavern_json_desc">.json으로 내보내고 Download/Operit/exports에 저장합니다.</string>
+    <string name="export_tavern_json_desc">.json으로 내보내고 Download/HandleIT/exports에 저장합니다.</string>
     <string name="tavern_png">Tavern PNG</string>
-    <string name="export_tavern_png_desc">Tavern으로 가져올 수 있는 이미지로 내보내고 Download/Operit/exports에 저장합니다.</string>
+    <string name="export_tavern_png_desc">Tavern으로 가져올 수 있는 이미지로 내보내고 Download/HandleIT/exports에 저장합니다.</string>
     <string name="image_read_error">이미지를 읽을 수 없습니다.</string>
     <string name="image_parse_error">이미지를 구문 분석할 수 없습니다.</string>
     <string name="color_qr_not_recognized">컬러 QR 코드를 인식할 수 없습니다.</string>
@@ -4891,7 +4891,7 @@
     <string name="backup_memory_count">메모리 항목</string>
     <string name="backup_memory_link_count">메모리 링크</string>
     <string name="backup_files_statistics">백업 파일 통계</string>
-    <string name="backup_files_statistics_subtitle">Operit 내보내기 디렉터리의 백업 파일</string>
+    <string name="backup_files_statistics_subtitle">HandleIT 내보내기 디렉터리의 백업 파일</string>
     <string name="backup_refresh">새로 고침</string>
     <string name="backup_scanning">스캔 중</string>
     <string name="backup_chat_files">채팅 기록</string>
@@ -4925,7 +4925,7 @@
     <string name="backup_room_db_restart_later">나중에</string>
     <string name="backup_room_db_last_success">마지막으로 성공한 백업: %1$s</string>
     <string name="backup_room_db_last_error">마지막 오류: %1$s</string>
-    <string name="backup_files_location_hint">팁: 백업 파일은 Download/Operit 폴더에 저장됩니다.</string>
+    <string name="backup_files_location_hint">팁: 백업 파일은 Download/HandleIT 폴더에 저장됩니다.</string>
     <string name="backup_raw_snapshot_title">파일 스냅샷 백업(실험적)</string>
     <string name="backup_raw_snapshot_subtitle">파일 및 디렉터리별로 앱 데이터 보관/복원</string>
     <string name="backup_raw_snapshot_desc">Clear data로 제거되는 앱 데이터인 internal files/shared_prefs/datastore/databases 및 Android/data/package/files를 보관합니다(터미널 Linux 환경은 매우 클 수 있으므로 기본적으로 제외됩니다). 복원하면 현재 데이터를 덮어쓰며 앱을 다시 시작해야 합니다. 일부 암호화된 데이터는 기기 마이그레이션 또는 재설치 후 작동하지 않을 수 있습니다.</string>
@@ -4981,13 +4981,13 @@
     <string name="backup_faq_why">왜 데이터를 백업해야 하나요?</string>
     <string name="backup_faq_why_answer">채팅 기록을 백업하면 앱이 제거되거나 데이터가 손실될 때 중요한 콘텐츠가 손실되는 것을 방지할 수 있습니다. 정기적인 백업은 좋은 습관입니다!</string>
     <string name="backup_faq_where">내보낸 파일은 어디에 저장되나요?</string>
-    <string name="backup_faq_where_answer">내보낸 백업 파일은 휴대폰의 \"Download/Operit\" 폴더에 데이터 유형, 날짜 및 시간이 포함된 파일 이름으로 저장됩니다.</string>
+    <string name="backup_faq_where_answer">내보낸 백업 파일은 휴대폰의 \"Download/HandleIT\" 폴더에 데이터 유형, 날짜 및 시간이 포함된 파일 이름으로 저장됩니다.</string>
     <string name="backup_faq_duplicate">가져오면 중복 데이터가 생성되나요?</string>
     <string name="backup_faq_duplicate_answer">시스템은 레코드 ID를 사용하여 중복을 확인합니다. 동일한 ID를 가진 기록은 중복되지 않고 업데이트됩니다. 다른 ID를 가진 레코드가 새 항목으로 추가됩니다.</string>
     <string name="backup_select_export_format">내보내기 형식 선택</string>
     <string name="backup_select_format_hint">내보낼 채팅 기록 형식을 선택하세요:</string>
     <string name="backup_format_json">JSON(권장)</string>
-    <string name="backup_format_json_desc">Operit 기본 형식이며 변형과 기타 모든 데이터를 보존합니다.</string>
+    <string name="backup_format_json_desc">HandleIT 기본 형식이며 변형과 기타 모든 데이터를 보존합니다.</string>
     <string name="backup_format_markdown">마크다운</string>
     <string name="backup_format_markdown_desc">읽고 편집하기 쉬운 가벼운 마크업 형식</string>
     <string name="backup_format_html">HTML</string>
@@ -4996,7 +4996,7 @@
     <string name="backup_format_txt_desc">간단한 텍스트 형식, 공유가 용이함</string>
     <string name="backup_select_import_format">가져오기 형식 선택</string>
     <string name="backup_import_format_hint">가져올 채팅 기록 형식을 선택하세요.</string>
-    <string name="backup_format_operit">Operit JSON(권장)</string>
+    <string name="backup_format_operit">HandleIT JSON(권장)</string>
     <string name="backup_format_operit_desc">이 앱의 기본 형식으로 변형 및 기타 모든 데이터가 보존됩니다.</string>
     <string name="backup_format_chatgpt">ChatGPT</string>
     <string name="backup_format_chatgpt_desc">OpenAI ChatGPT conversations.json 내보내기 형식</string>
@@ -5010,7 +5010,7 @@
     <string name="backup_export_result_success">다음으로 성공적으로 내보냈습니다: %1$s</string>
     <string name="backup_character_cards_title">캐릭터 카드</string>
     <string name="backup_character_cards_subtitle">캐릭터 카드 설정 백업 및 복원</string>
-    <string name="backup_character_cards_current_count">현재 %1$d 캐릭터 카드입니다. 내보낸 파일은 "Download/Operit" 폴더에 저장됩니다.</string>
+    <string name="backup_character_cards_current_count">현재 %1$d 캐릭터 카드입니다. 내보낸 파일은 "Download/HandleIT" 폴더에 저장됩니다.</string>
     <string name="backup_character_card_count">캐릭터 카드</string>
     <string name="backup_character_card_files">캐릭터 카드</string>
     <string name="backup_character_cards_export_result_success">%1$d개의 캐릭터 카드를 다음 위치로 성공적으로 내보냈습니다:
@@ -7109,11 +7109,11 @@
     <string name="artifact_project_node_selection_hint">노드를 클릭하여 선택하고, 다시 클릭하면 선택이 해제됩니다.</string>
     <string name="plugin_creation_fresh_task_line">operit editor를 활성화하고, 샌드박스 패키지 개발 dev 툴킷을 사용하여 새로운 샌드박스 패키지를 개발하세요.</string>
     <string name="plugin_creation_fresh_package_rule_line">먼저 새 샌드박스 패키지 ID를 결정하고, 이후에는 이름을 변경하지 마세요.</string>
-    <string name="plugin_creation_fresh_dev_directory_line">개발 디렉터리는 휴대폰 다운로드/Operit/dev_package/결정한 ID로 고정됩니다. 개발, 설치 및 테스트는 모두 여기서만 수행됩니다.</string>
+    <string name="plugin_creation_fresh_dev_directory_line">개발 디렉터리는 휴대폰 다운로드/HandleIT/dev_package/결정한 ID로 고정됩니다. 개발, 설치 및 테스트는 모두 여기서만 수행됩니다.</string>
     <string name="plugin_creation_continue_task_line">operit editor를 활성화하고, 샌드박스 패키지 %1$s의 위치를 찾아 이 버전을 기반으로 계속 개발 및 테스트하세요.</string>
     <string name="plugin_creation_merge_task_line">operit editor를 활성화하고, 샌드박스 패키지 %1$s의 위치를 찾아 이 버전을 기반으로 병합 개발 및 테스트하세요.</string>
     <string name="plugin_creation_existing_package_rule_line">현재 샌드박스 패키지 ID는 %1$s입니다. 패키지 ID와 플러그인 이름은 그대로 사용해야 하며, 이름을 변경하거나 새 패키지를 만들지 마세요.</string>
-    <string name="plugin_creation_existing_dev_directory_line">개발 디렉터리는 휴대폰 다운로드/Operit/dev_package/%1$s로 고정됩니다. 개발, 설치 및 테스트는 모두 여기서만 수행됩니다.</string>
+    <string name="plugin_creation_existing_dev_directory_line">개발 디렉터리는 휴대폰 다운로드/HandleIT/dev_package/%1$s로 고정됩니다. 개발, 설치 및 테스트는 모두 여기서만 수행됩니다.</string>
     <string name="plugin_creation_update_sandbox_package_dev">먼저 SandboxPackage_DEV를 업데이트하세요.</string>
     <string name="plugin_creation_copy_types_to_dev_dir">skills의 types를 개발 디렉터리에 덮어쓰기 복사하세요.</string>
     <string name="plugin_creation_use_terminal_ts_js_hint">가능하면 터미널을 사용하고, 우선 ts와 js를 작성한 후 최종 js로 컴파일하세요. tsconfig는 examples를 참조하세요.</string>
@@ -7140,8 +7140,8 @@
     <string name="market_review_step_scheduled">출시 예정</string>
     <string name="market_review_step_unlisted">미등록</string>
     <string name="artifact_publish_stage_resolving_release_asset">GitHub 릴리스 자산 확인 중</string>
-    <string name="operit2_version_warning_title">Operit 2 지원을 확인하시겠습니까?</string>
-    <string name="operit2_version_warning_message">이렇게 하면 Operit 2에서 이 플러그인을 사용할 수 있습니다. 플러그인이 Operit 2에서 정상적으로 작동하는지 확인하세요.</string>
+    <string name="operit2_version_warning_title">HandleIT 2 지원을 확인하시겠습니까?</string>
+    <string name="operit2_version_warning_message">이렇게 하면 HandleIT 2에서 이 플러그인을 사용할 수 있습니다. 플러그인이 HandleIT 2에서 정상적으로 작동하는지 확인하세요.</string>
     <string name="market_filter_featured_only">추천</string>
     <string name="market_detail_deleting_comment">댓글 삭제 중</string>
     <string name="market_detail_deleting_comment_message">잠시만 기다려 주세요. 서버에 동기화 중입니다…</string>

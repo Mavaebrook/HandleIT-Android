@@ -1,1 +1,1 @@
-rootProject.name = "operit-java-project"
+rootProject.name = "handleit-java-project"

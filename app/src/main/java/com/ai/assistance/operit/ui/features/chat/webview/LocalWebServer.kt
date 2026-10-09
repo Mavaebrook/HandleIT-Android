@@ -83,7 +83,7 @@ private constructor(
                     ServerType.WORKSPACE -> {
                         val workspaceRoot = File(
                             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                            "Operit/workspace"
+                            "HandleIT/workspace"
                         )
                         LocalWebServer(
                             context.applicationContext,
