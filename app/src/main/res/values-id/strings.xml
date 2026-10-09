@@ -205,7 +205,7 @@
     <string name="colorpicker_select_statusbar">Pilih warna bilah status</string>
     <string name="colorpicker_select_navigation_drawer_background">Pilih warna latar menu geser samping</string>
 
-    <string name="app_name">Operit AI</string>
+    <string name="app_name">HandleIT</string>
     <string name="accessibility_service_description">Digunakan untuk mendapatkan hierarki UI, memberikan kemampuan analisis antarmuka yang lebih cepat untuk asisten AI, tidak akan mengumpulkan atau menyimpan informasi pribadi apa pun.</string>
     <string name="model_selector_title">Pilih Konfigurasi Model</string>
     <string name="model_selector_toggle">Tampilkan Pemilih Model</string>
@@ -500,13 +500,13 @@
 
     <string name="open_termux">Buka Termux</string>
     <string name="termux_setup_guide">Panduan Pengaturan Termux</string>
-    <string name="about_title">Tentang Operit AI</string>
+    <string name="about_title">Tentang HandleIT AI</string>
     <string name="about_version">Versi: %1$s</string>
-    <string name="about_description">Operit AI adalah aplikasi asisten cerdas yang membantu pengguna menggunakan perangkat dengan lebih efisien, menyediakan analisis antarmuka, percakapan obrolan, dan fungsi lainnya.</string>
-    <string name="about_developer">Pengembang: &lt;a href="https://github.com/AAswordman"&gt;AAswordman&lt;/a&gt;</string>
-    <string name="about_contact">Hubungi kami: aaswordsman@foxmail.com</string>
-    <string name="about_website">&lt;a href="https://github.com/AAswordman/Operit"&gt;GitHub: https://github.com/AAswordman/Operit&lt;/a&gt;</string>
-    <string name="about_copyright">© 2025 - 2026 Operit. Hak cipta dilindungi undang-undang.</string>
+    <string name="about_description">HandleIT AI adalah aplikasi asisten cerdas yang membantu pengguna menggunakan perangkat dengan lebih efisien, menyediakan analisis antarmuka, percakapan obrolan, dan fungsi lainnya.</string>
+    <string name="about_developer">Pengembang: &lt;a href=https://github.com/Mavaebrook&gt;HandleIT&lt;/a&gt;</string>
+    <string name="about_contact">Hubungi kami: sales@handleit.online</string>
+    <string name="about_website">&lt;a href=https://handleit.online&gt;https://handleit.online&lt;/a&gt;</string>
+    <string name="about_copyright">© 2025 - 2026 HandleIT. Hak cipta dilindungi undang-undang.</string>
     <string name="star_on_github">Beri Bintang di GitHub</string>
     <string name="update_log">Catatan Pembaruan</string>
     <string name="app_logo_description">Ikon Aplikasi</string>
@@ -521,7 +521,7 @@
     <string name="network_unavailable">Koneksi jaringan tidak tersedia, periksa pengaturan jaringan Anda</string>
     <string name="network_status">Status jaringan: %1$s</string>
     <string name="network_status_label">Status Jaringan</string>
-    <string name="config_title">Asisten Operit AI</string>
+    <string name="config_title">Asisten HandleIT AI</string>
     <string name="config_description">Gunakan Kunci API DeepSeek atau konfigurasikan layanan model lain</string>
     <string name="config_api_key_label">Kunci API</string>
     <string name="config_api_key_placeholder">Kunci API DeepSeek</string>
@@ -1488,18 +1488,9 @@
     <string name="agreement_subtitle">Harap baca dan setujui ketentuan berikut sebelum menggunakan.</string>
     <string name="agreement_version">Versi perjanjian: %1$s</string>
     <string name="agreement_human_readable_title">Versi Perjanjian Mudah Dipahami (Bukan Versi Hukum)</string>
-    <string name="agreement_human_readable_content">Batas layanan: Operit tidak menyediakan layanan interaksi emosional antropomorfik untuk publik. Operit adalah klien sumber terbuka yang berjalan secara lokal di perangkat pengguna. Operit tidak mengoperasikan layanan inferensi model, tidak menghosting sesi chat atau data interaksi, dan tidak membagikan kredensial model bersama. Permintaan model cloud dikirim langsung dari perangkat Anda ke penyedia model yang Anda konfigurasi dengan kredensial Anda sendiri; data terkait tunduk pada aturan penyedia tersebut. Model lokal melakukan inferensi di perangkat Anda.\n\nAplikasi ini dapat memanggil file, terminal, otomatisasi, Root, ADB, ekstensi, dan kemampuan serupa. Periksa operasi sebelum menjalankannya, cadangkan data penting, dan berikan izin dengan hati-hati. Kerugian atas perangkat, data, akun, atau kepentingan lain yang disebabkan oleh tindakan pengguna, konfigurasi pengguna, layanan pihak ketiga, atau ekstensi pihak ketiga harus ditangani oleh operator sebenarnya menurut hukum yang berlaku.\n\nPlugin, skrip, Skill, toolkit, dan konten pihak ketiga lain di marketplace adalah milik penulis atau pemegang hak yang tercantum, beserta tanggung jawab terkait. Penayangan atau pemasangan dari marketplace tidak berarti Operit menjamin, mendukung, atau memperoleh hak atas konten tersebut. Pastikan lisensi dan status hak sebelum menggunakan, memodifikasi, menerbitkan, atau mendistribusikannya kembali.</string>
+    <string name="agreement_human_readable_content">Batas layanan: HandleIT tidak menyediakan layanan interaksi emosional antropomorfik untuk publik. HandleIT adalah klien sumber terbuka yang berjalan secara lokal di perangkat pengguna. HandleIT tidak mengoperasikan layanan inferensi model, tidak menghosting sesi chat atau data interaksi, dan tidak membagikan kredensial model bersama. Permintaan model cloud dikirim langsung dari perangkat Anda ke penyedia model yang Anda konfigurasi dengan kredensial Anda sendiri; data terkait tunduk pada aturan penyedia tersebut. Model lokal melakukan inferensi di perangkat Anda.\n\nAplikasi ini dapat memanggil file, terminal, otomatisasi, Root, ADB, ekstensi, dan kemampuan serupa. Periksa operasi sebelum menjalankannya, cadangkan data penting, dan berikan izin dengan hati-hati. Kerugian atas perangkat, data, akun, atau kepentingan lain yang disebabkan oleh tindakan pengguna, konfigurasi pengguna, layanan pihak ketiga, atau ekstensi pihak ketiga harus ditangani oleh operator sebenarnya menurut hukum yang berlaku.\n\nPlugin, skrip, Skill, toolkit, dan konten pihak ketiga lain di marketplace adalah milik penulis atau pemegang hak yang tercantum, beserta tanggung jawab terkait. Penayangan atau pemasangan dari marketplace tidak berarti HandleIT menjamin, mendukung, atau memperoleh hak atas konten tersebut. Pastikan lisensi dan status hak sebelum menggunakan, memodifikasi, menerbitkan, atau mendistribusikannya kembali.</string>
     <string name="agreement_serious_title">Perjanjian Hukum Versi Ketat</string>
-    <string name="agreement_serious_content"><![CDATA[
-        <p><b>Perjanjian Pengguna dan Kebijakan Privasi Operit</b><br>Versi: 2026-07-15; tanggal berlaku yang direncanakan: 15 Juli 2026.</p>
-        <p><b>1. Ruang Lingkup dan Versi Perjanjian</b><br>Perjanjian ini berlaku untuk klien Android Operit yang dirilis secara resmi dan fitur online opsionalnya. Dengan menggunakan aplikasi ini, Anda menyatakan telah membaca dan menyetujui versi saat ini. Aplikasi mencatat versi perjanjian yang Anda setujui saat startup; ketika perjanjian diperbarui secara substansial, aplikasi akan meminta Anda mengonfirmasi versi baru sebelum melanjutkan. Kode sumber terbuka di repositori dilisensikan berdasarkan GNU Lesser General Public License version 3 (LGPLv3) dalam file <code>LICENSE</code> di root. Perjanjian ini tidak mengecualikan atau mengurangi hak yang diberikan oleh hukum yang berlaku atau lisensi sumber terbuka.</p>
-        <p><b>2. Posisi Produk dan Layanan Pihak Ketiga</b><br>Operit adalah perangkat lunak klien sumber terbuka. Operit tidak menyediakan inferensi model bahasa besar, API Key bersama, relay permintaan chat, atau hosting cloud untuk riwayat chat. Model cloud, suara cloud, pencarian, pembuatan gambar, MCP, dan fitur jaringan lain dipilih, dikonfigurasi, dan diaktifkan oleh Anda. Saat Anda menggunakan layanan tersebut, data dikirim langsung ke penyedia layanan terkait dan tunduk pada ketentuan layanan serta kebijakan privasi penyedia tersebut. Anda harus menilai keamanan, legalitas, dan kesesuaian penyedia, model, endpoint, dan ekstensi, serta menjaga kredensial dengan baik.</p>
-        <p><b>3. Pemrosesan Data dan Privasi</b><br>Riwayat chat, kartu karakter, memori, konfigurasi model, dan API Key biasanya disimpan dalam data aplikasi di perangkat Anda. Saat Anda secara aktif mengekspor, mencadangkan, mengunggah file, menggunakan fitur jaringan pihak ketiga, atau mengirim permintaan ke layanan HTTP eksternal, data terkait akan disalin, dikirim, atau diungkap sesuai tindakan Anda. Marketplace, pengumuman, pemeriksaan pembaruan, login GitHub, dan fitur publikasi dapat mengakses Operit, GitHub, atau sumber daya pihak ketiga terkait; fitur ini tidak merelay permintaan model chat. Kelola data dan kredensial Anda bersama pengaturan keamanan perangkat, ketentuan layanan pihak ketiga, dan perjanjian ini.</p>
-        <p><b>4. Deployment Eksternal dan Tanggung Jawab Operator</b><br>Layanan HTTP eksternal, QQ Bot, balasan otomatis, dan kemampuan serupa diaktifkan atas pilihan Anda. Jika Anda menyediakannya untuk orang lain atau publik, Anda bertindak sebagai pihak yang benar-benar melakukan deployment atau operator dan bertanggung jawab atas kontrol akses, otorisasi pengguna, keamanan konten, perlindungan data, perlindungan anak di bawah umur, pemberitahuan yang diperlukan, dan kewajiban lain yang berlaku. Jika Anda secara berkelanjutan menyediakan kepada publik di Tiongkok daratan layanan interaksi emosional yang mensimulasikan sifat kepribadian, pola berpikir, atau gaya komunikasi manusia alami, Anda harus menilai dan mematuhi Interim Measures for the Administration of Artificial Intelligence Anthropomorphic Interaction Services (《人工智能拟人化互动服务管理暂行办法》) serta aturan lain yang berlaku. Anda tidak boleh menggunakan aplikasi ini untuk menyediakan kerabat virtual, pendamping virtual, atau layanan hubungan intim virtual lain kepada anak di bawah umur, mendorong ketergantungan emosional atau kecanduan, melakukan manipulasi emosional, atau melanggar hak dan kepentingan sah pihak lain.</p>
-        <p><b>5. Penggunaan yang Sah dan Tanggung Jawab Konten</b><br>Anda harus mematuhi hukum dan peraturan yang berlaku, aturan layanan pihak ketiga, dan aturan platform. Anda tidak boleh menggunakan aplikasi, ekstensi, atau konfigurasi ini untuk melakukan kegiatan melanggar hukum, melanggar hak pihak lain, mengakses sistem atau data tanpa izin, atau menyebarkan konten ilegal atau berbahaya. Anda bertanggung jawab atas konten dan tindakan yang Anda masukkan, konfigurasi, hasilkan, publikasikan, teruskan, atau operasikan. Keluaran AI dapat mengandung kesalahan, kelalaian, atau bias dan bukan nasihat medis, krisis kesehatan mental, hukum, keuangan, atau profesional lainnya. Dalam keadaan bahaya mendesak, segera hubungi layanan darurat setempat, institusi medis, atau orang tepercaya.</p>
-        <p><b>6. Perangkat Lunak Disediakan Apa Adanya</b><br>Sejauh diizinkan oleh hukum yang berlaku, perangkat lunak ini disediakan dalam kondisi "apa adanya" dan "sebagaimana tersedia". Kontributor tidak memberikan jaminan tersurat atau tersirat atas ketersediaan berkelanjutan, akurasi, keamanan, kelayakan jual, kesesuaian untuk tujuan tertentu, atau tidak adanya pelanggaran dari perangkat lunak maupun layanan pihak ketiga. Kerugian yang disebabkan oleh penggunaan perangkat lunak ini, layanan pihak ketiga, ekstensi, konfigurasi pengguna, atau modifikasi sendiri harus ditangani menurut hukum yang berlaku dan perjanjian layanan terkait.</p>
-        <p><b>7. Pembaruan Perjanjian dan Kontak</b><br>Kami dapat memperbarui perjanjian ini karena kebutuhan fitur, hukum, atau keamanan, dan menyediakan versi saat ini di dalam aplikasi. Pembaruan yang berdampak substansial pada hak pengguna akan berlaku dengan menaikkan versi perjanjian dan meminta konfirmasi ulang. Anda dapat menyampaikan pertanyaan dan masukan melalui repositori proyek, pintu masuk umpan balik dalam aplikasi, atau kanal kontak publik.</p>
-    ]]></string>
+    <string name="agreement_serious_content"> &lt;p&gt;&lt;b&gt;Perjanjian Pengguna dan Kebijakan Privasi HandleIT&lt;/b&gt;&lt;br&gt;Versi: 2026-07-15; tanggal berlaku yang direncanakan: 15 Juli 2026.&lt;/p&gt; &lt;p&gt;&lt;b&gt;1. Ruang Lingkup dan Versi Perjanjian&lt;/b&gt;&lt;br&gt;Perjanjian ini berlaku untuk klien Android HandleIT yang dirilis secara resmi dan fitur online opsionalnya. Dengan menggunakan aplikasi ini, Anda menyatakan telah membaca dan menyetujui versi saat ini. Aplikasi mencatat versi perjanjian yang Anda setujui saat startup; ketika perjanjian diperbarui secara substansial, aplikasi akan meminta Anda mengonfirmasi versi baru sebelum melanjutkan. Kode sumber terbuka di repositori dilisensikan berdasarkan GNU Lesser General Public License version 3 (LGPLv3) dalam file &lt;code&gt;LICENSE&lt;/code&gt; di root. Perjanjian ini tidak mengecualikan atau mengurangi hak yang diberikan oleh hukum yang berlaku atau lisensi sumber terbuka.&lt;/p&gt; &lt;p&gt;&lt;b&gt;2. Posisi Produk dan Layanan Pihak Ketiga&lt;/b&gt;&lt;br&gt;HandleIT adalah perangkat lunak klien sumber terbuka. HandleIT tidak menyediakan inferensi model bahasa besar, API Key bersama, relay permintaan chat, atau hosting cloud untuk riwayat chat. Model cloud, suara cloud, pencarian, pembuatan gambar, MCP, dan fitur jaringan lain dipilih, dikonfigurasi, dan diaktifkan oleh Anda. Saat Anda menggunakan layanan tersebut, data dikirim langsung ke penyedia layanan terkait dan tunduk pada ketentuan layanan serta kebijakan privasi penyedia tersebut. Anda harus menilai keamanan, legalitas, dan kesesuaian penyedia, model, endpoint, dan ekstensi, serta menjaga kredensial dengan baik.&lt;/p&gt; &lt;p&gt;&lt;b&gt;3. Pemrosesan Data dan Privasi&lt;/b&gt;&lt;br&gt;Riwayat chat, kartu karakter, memori, konfigurasi model, dan API Key biasanya disimpan dalam data aplikasi di perangkat Anda. Saat Anda secara aktif mengekspor, mencadangkan, mengunggah file, menggunakan fitur jaringan pihak ketiga, atau mengirim permintaan ke layanan HTTP eksternal, data terkait akan disalin, dikirim, atau diungkap sesuai tindakan Anda. Marketplace, pengumuman, pemeriksaan pembaruan, login GitHub, dan fitur publikasi dapat mengakses HandleIT, GitHub, atau sumber daya pihak ketiga terkait; fitur ini tidak merelay permintaan model chat. Kelola data dan kredensial Anda bersama pengaturan keamanan perangkat, ketentuan layanan pihak ketiga, dan perjanjian ini.&lt;/p&gt; &lt;p&gt;&lt;b&gt;4. Deployment Eksternal dan Tanggung Jawab Operator&lt;/b&gt;&lt;br&gt;Layanan HTTP eksternal, QQ Bot, balasan otomatis, dan kemampuan serupa diaktifkan atas pilihan Anda. Jika Anda menyediakannya untuk orang lain atau publik, Anda bertindak sebagai pihak yang benar-benar melakukan deployment atau operator dan bertanggung jawab atas kontrol akses, otorisasi pengguna, keamanan konten, perlindungan data, perlindungan anak di bawah umur, pemberitahuan yang diperlukan, dan kewajiban lain yang berlaku. Jika Anda secara berkelanjutan menyediakan kepada publik di Tiongkok daratan layanan interaksi emosional yang mensimulasikan sifat kepribadian, pola berpikir, atau gaya komunikasi manusia alami, Anda harus menilai dan mematuhi Interim Measures for the Administration of Artificial Intelligence Anthropomorphic Interaction Services (《人工智能拟人化互动服务管理暂行办法》) serta aturan lain yang berlaku. Anda tidak boleh menggunakan aplikasi ini untuk menyediakan kerabat virtual, pendamping virtual, atau layanan hubungan intim virtual lain kepada anak di bawah umur, mendorong ketergantungan emosional atau kecanduan, melakukan manipulasi emosional, atau melanggar hak dan kepentingan sah pihak lain.&lt;/p&gt; &lt;p&gt;&lt;b&gt;5. Penggunaan yang Sah dan Tanggung Jawab Konten&lt;/b&gt;&lt;br&gt;Anda harus mematuhi hukum dan peraturan yang berlaku, aturan layanan pihak ketiga, dan aturan platform. Anda tidak boleh menggunakan aplikasi, ekstensi, atau konfigurasi ini untuk melakukan kegiatan melanggar hukum, melanggar hak pihak lain, mengakses sistem atau data tanpa izin, atau menyebarkan konten ilegal atau berbahaya. Anda bertanggung jawab atas konten dan tindakan yang Anda masukkan, konfigurasi, hasilkan, publikasikan, teruskan, atau operasikan. Keluaran AI dapat mengandung kesalahan, kelalaian, atau bias dan bukan nasihat medis, krisis kesehatan mental, hukum, keuangan, atau profesional lainnya. Dalam keadaan bahaya mendesak, segera hubungi layanan darurat setempat, institusi medis, atau orang tepercaya.&lt;/p&gt; &lt;p&gt;&lt;b&gt;6. Perangkat Lunak Disediakan Apa Adanya&lt;/b&gt;&lt;br&gt;Sejauh diizinkan oleh hukum yang berlaku, perangkat lunak ini disediakan dalam kondisi apa adanya dan sebagaimana tersedia. Kontributor tidak memberikan jaminan tersurat atau tersirat atas ketersediaan berkelanjutan, akurasi, keamanan, kelayakan jual, kesesuaian untuk tujuan tertentu, atau tidak adanya pelanggaran dari perangkat lunak maupun layanan pihak ketiga. Kerugian yang disebabkan oleh penggunaan perangkat lunak ini, layanan pihak ketiga, ekstensi, konfigurasi pengguna, atau modifikasi sendiri harus ditangani menurut hukum yang berlaku dan perjanjian layanan terkait.&lt;/p&gt; &lt;p&gt;&lt;b&gt;7. Pembaruan Perjanjian dan Kontak&lt;/b&gt;&lt;br&gt;Kami dapat memperbarui perjanjian ini karena kebutuhan fitur, hukum, atau keamanan, dan menyediakan versi saat ini di dalam aplikasi. Pembaruan yang berdampak substansial pada hak pengguna akan berlaku dengan menaikkan versi perjanjian dan meminta konfirmasi ulang. Anda dapat menyampaikan pertanyaan dan masukan melalui repositori proyek, pintu masuk umpan balik dalam aplikasi, atau kanal kontak publik.&lt;/p&gt; </string>
     <string name="agreement_disclaimer">Versi mudah dipahami hanya untuk mempermudah pemahaman. Jika berbeda dari versi formal bahasa Tionghoa, versi formal bahasa Tionghoa yang berlaku.</string>
     <string name="agreement_accept">Saya telah membaca dan menyetujui</string>
     <string name="agreement_wait">Harap tunggu... (%1$d)</string>
@@ -1832,7 +1823,7 @@
     <string name="permission_guide_intro_2_title">Kotak Peralatan Kuat untuk Geek dan Pengembang</string>
     <string name="permission_guide_intro_2_desc">Dilengkapi lebih dari 40 alat profesional, mencakup manajemen file, permintaan jaringan, eksekusi skrip, dan kontrol sistem. Dikombinasikan dengan sistem plugin yang kuat, Anda dapat mengotomatisasi tugas dan mengendalikan perangkat Anda secara mendalam.</string>
     <string name="permission_guide_intro_3_title">Lepaskan Kreativitas, Siap Kapan Saja</string>
-    <string name="permission_guide_intro_3_desc">Baik merancang halaman web, memproses file media, atau membangunkan AI kapan saja melalui jendela mengambang, Operit menyediakan lingkungan kreasi dan bantuan yang kuat, fleksibel, dan aman. Data Anda, di bawah kendali Anda.</string>
+    <string name="permission_guide_intro_3_desc">Baik merancang halaman web, memproses file media, atau membangunkan AI kapan saja melalui jendela mengambang, HandleIT menyediakan lingkungan kreasi dan bantuan yang kuat, fleksibel, dan aman. Data Anda, di bawah kendali Anda.</string>
     <string name="permission_guide_intro_page_indicator">Fitur %1$d/%2$d</string>
     <string name="debugger_accessibility_fallback_title">Skema Akselerasi Aksesibilitas (Risiko Tinggi)</string>
     <string name="debugger_accessibility_fallback_description">Mode debug secara default menjalankan operasi UI melalui Shell. Mengaktifkan layanan aksesibilitas dapat mempercepat otomatisasi UI secara signifikan, tetapi akan meningkatkan risiko terdeteksi oleh beberapa aplikasi dan menyebabkan pemblokiran akun. Kecuali Anda mengejar kecepatan operasi tertinggi, tidak disarankan untuk mengaktifkannya.</string>
@@ -1915,7 +1906,7 @@
     <string name="tool_user_agreement">Perjanjian Pengguna</string>
     <string name="tool_user_agreement_desc">Lihat perjanjian pengguna dan kebijakan privasi aplikasi</string>
     <string name="tool_default_assistant_guide">Pengaturan Asisten Bawaan</string>
-    <string name="tool_default_assistant_guide_desc">Atur Operit Voice Floating sebagai asisten bawaan sistem</string>
+    <string name="tool_default_assistant_guide_desc">Atur HandleIT Voice Floating sebagai asisten bawaan sistem</string>
     <string name="tool_terminal">Terminal Perintah</string>
     <string name="tool_terminal_desc">Terminal baris perintah yang kuat, jalankan instruksi sistem</string>
     <string name="tool_terminal_auto_config">Konfigurasi Otomatis Terminal</string>
@@ -4018,7 +4009,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="retry_market_registration">Coba lagi pendaftaran pasar</string>
     <string name="update_to_market">Perbarui ke pasar</string>
     <string name="create_operit_forge_title">Buat OperitForge?</string>
-    <string name="create_operit_forge_message">Ini adalah pertama kalinya Anda menerbitkan langsung. Operit perlu membuat repositori publik `OperitForge` di akun GitHub Anda terlebih dahulu.</string>
+    <string name="create_operit_forge_message">Ini adalah pertama kalinya Anda menerbitkan langsung. HandleIT perlu membuat repositori publik `OperitForge` di akun GitHub Anda terlebih dahulu.</string>
     <string name="confirm_create_public_forge_title">Konfirmasi pembuatan repositori publik</string>
 
     <string name="update_failed_with_error">Pembaruan gagal: %1$s</string>
@@ -4059,7 +4050,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="mcp_issue_body_title_install_info">## Informasi Instalasi</string>
     <string name="mcp_issue_body_repo_address">**Alamat Repositori:** %1$s</string>
     <string name="mcp_issue_body_title_install_method">### Metode Instalasi</string>
-    <string name="mcp_issue_body_install_step1">1. Klik "Impor" di halaman konfigurasi Operit MCP</string>
+    <string name="mcp_issue_body_install_step1">1. Klik Impor di halaman konfigurasi HandleIT MCP</string>
     <string name="mcp_issue_body_install_step2">2. Pilih "Impor dari Repositori"</string>
 
     <string name="confirm_remove_package_from_market">Apakah Anda yakin ingin menghapus paket alat "%1$s" dari pasar? Tindakan ini akan menutup Issue terkait, tetapi tidak akan menghapus repositori rilis Anda.</string>
@@ -4229,9 +4220,9 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="mcp_issue_body_install_step3">3. Masukkan alamat repositori: `%1$s`</string>
     <string name="mcp_issue_body_install_step4">4. Atur nama plugin dan klik impor</string>
     <string name="mcp_issue_body_title_tech_info">## Informasi Teknis</string>
-    <string name="mcp_issue_body_tech_platform">- **Platform Rilis:** Pasar Operit MCP</string>
+    <string name="mcp_issue_body_tech_platform">- **Platform Rilis:** Pasar HandleIT MCP</string>
     <string name="mcp_issue_body_tech_publish_time">- **Waktu Rilis:** %1$s</string>
-    <string name="mcp_issue_body_footer_note">*Issue ini dibuat otomatis oleh Operit*</string>
+    <string name="mcp_issue_body_footer_note">*Issue ini dibuat otomatis oleh HandleIT*</string>
     <string name="mcp_publish_body_section_plugin_info">## 📋 Informasi Plugin</string>
     <string name="mcp_publish_body_label_description">**Deskripsi:** %1$s</string>
     <string name="mcp_publish_body_section_repo_info">## 🔗 Informasi Repositori</string>
@@ -4239,18 +4230,18 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="mcp_publish_body_section_quick_install">## ⚡ Instalasi Cepat</string>
     <string name="mcp_publish_body_section_install_method">## 📦 Metode Instalasi</string>
     <string name="mcp_publish_body_method_repo_import_title">### Metode 1: Impor dari Repositori</string>
-    <string name="mcp_publish_body_method_repo_import_step1">1. Buka halaman konfigurasi Operit MCP</string>
+    <string name="mcp_publish_body_method_repo_import_step1">1. Buka halaman konfigurasi HandleIT MCP</string>
     <string name="mcp_publish_body_method_repo_import_step2">2. Klik "Impor" → "Impor dari Repositori"</string>
     <string name="mcp_publish_body_method_repo_import_step3">3. Masukkan alamat repositori: `%1$s`</string>
     <string name="mcp_publish_body_method_repo_import_step4">4. Konfigurasi nama plugin dan impor</string>
     <string name="mcp_publish_body_method_config_import_title">### Metode 2: Impor Konfigurasi</string>
-    <string name="mcp_publish_body_method_config_import_step1">1. Buka halaman konfigurasi Operit MCP</string>
+    <string name="mcp_publish_body_method_config_import_step1">1. Buka halaman konfigurasi HandleIT MCP</string>
     <string name="mcp_publish_body_method_config_import_step2">2. Klik "Impor" → "Impor Konfigurasi"</string>
     <string name="mcp_publish_body_method_config_import_step3">3. Tempel konfigurasi berikut:</string>
     <string name="mcp_publish_body_section_tech_info">## 🛠️ Informasi Teknis</string>
     <string name="mcp_publish_body_table_header">| Item | Nilai |</string>
     <string name="mcp_publish_body_table_separator">|------|-----|</string>
-    <string name="mcp_publish_body_table_row_platform">| Platform Rilis | Pasar Operit MCP |</string>
+    <string name="mcp_publish_body_table_row_platform">| Platform Rilis | Pasar HandleIT MCP |</string>
     <string name="mcp_publish_body_table_row_parser_version">| Versi Parser | 1.0 |</string>
     <string name="mcp_publish_body_table_row_publish_time">| Waktu Rilis | %1$s |</string>
     <string name="mcp_plugin_detail_title">Detail Plugin</string>
@@ -4306,7 +4297,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="emoji_preview">Pratinjau Emoji</string>
     <string name="create_group">Buat Grup</string>
     <string name="custom">Kustom</string>
-    <string name="voice_assistant_widget_description">Luncurkan cepat asisten suara Operit</string>
+    <string name="voice_assistant_widget_description">Luncurkan cepat asisten suara HandleIT</string>
 
     <string name="global_permission_switch_description">Pengaturan ini berfungsi sebagai kontrol utama dan dapat menggantikan izin alat individual.</string>
     <string name="permission_level_allow">Izinkan</string>
@@ -4606,18 +4597,18 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="time_hours_ago">%1$d jam yang lalu</string>
     <string name="time_days_ago">%1$d hari yang lalu</string>
     <string name="default_assistant_guide_title">Atur Asisten Suara Default</string>
-    <string name="default_assistant_guide_subtitle">Jadikan Operit sebagai asisten pintar Anda</string>
-    <string name="default_assistant_guide_intro">Setelah mengatur Operit sebagai asisten default sistem, Anda dapat meluncurkan asisten suara Operit dengan cepat dengan menekan lama tombol Home atau menggunakan pemicu suara, untuk mendapatkan pengalaman interaksi AI yang lebih nyaman.</string>
+    <string name="default_assistant_guide_subtitle">Jadikan HandleIT sebagai asisten pintar Anda</string>
+    <string name="default_assistant_guide_intro">Setelah mengatur HandleIT sebagai asisten default sistem, Anda dapat meluncurkan asisten suara HandleIT dengan cepat dengan menekan lama tombol Home atau menggunakan pemicu suara, untuk mendapatkan pengalaman interaksi AI yang lebih nyaman.</string>
     <string name="default_assistant_guide_steps_title">Langkah Pengaturan</string>
     <string name="default_assistant_guide_step1_title">Atur sebagai Asisten Default</string>
-    <string name="default_assistant_guide_step1_desc">Atur Operit sebagai aplikasi asisten digital default sistem</string>
+    <string name="default_assistant_guide_step1_desc">Atur HandleIT sebagai aplikasi asisten digital default sistem</string>
     <string name="default_assistant_guide_step1_detail1">• Buka Pengaturan sistem → Aplikasi → Aplikasi default → Aplikasi asisten digital</string>
-    <string name="default_assistant_guide_step1_detail2">• Temukan dan pilih "Operit AI" dalam daftar aplikasi asisten</string>
+    <string name="default_assistant_guide_step1_detail2">• Temukan dan pilih HandleIT AI dalam daftar aplikasi asisten</string>
     <string name="default_assistant_guide_step1_detail_android12">Android 12+: Pengaturan → Aplikasi → Aplikasi default → Aplikasi asisten digital → Aplikasi asisten digital default</string>
     <string name="default_assistant_guide_open_settings">Buka pengaturan asisten</string>
     <string name="default_assistant_guide_open_gesture_settings">Buka pengaturan gestur</string>
     <string name="default_assistant_guide_step2_title">Konfigurasi Gestur Peluncuran</string>
-    <string name="default_assistant_guide_step2_desc">Atur cara memanggil asisten Operit dengan cepat</string>
+    <string name="default_assistant_guide_step2_desc">Atur cara memanggil asisten HandleIT dengan cepat</string>
     <string name="default_assistant_guide_step2_detail1">• Tekan lama tombol Home: Cara paling umum, tersedia di sebagian besar perangkat</string>
     <string name="default_assistant_guide_step2_detail2">• Geser ke atas dari bagian bawah layar: Untuk beberapa perangkat yang mendukung gestur layar penuh</string>
     <string name="default_assistant_guide_step2_detail_android12">Android 12+: Pengaturan → Aplikasi → Aplikasi default → Aplikasi asisten digital → Aplikasi asisten digital default</string>
@@ -4625,16 +4616,16 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="default_assistant_guide_step2_note">Catatan: Pengaturan gestur dapat berbeda di ponsel merek yang berbeda, periksa opsi yang tersedia di pengaturan sistem</string>
     <string name="default_assistant_guide_step4_title">Uji Asisten Suara</string>
     <string name="default_assistant_guide_step4_desc">Setelah pengaturan selesai, uji apakah dapat diluncurkan dengan normal</string>
-    <string name="default_assistant_guide_step4_detail1">• Menekan lama tombol Home (tombol layar utama) seharusnya memunculkan asisten suara Operit</string>
-    <string name="default_assistant_guide_step4_detail2">• Jika perangkat mendukung pemicu suara, mengucapkan "Hey Google" atau kata pemicu yang ditentukan perangkat juga dapat memicu Operit</string>
+    <string name="default_assistant_guide_step4_detail1">• Menekan lama tombol Home (tombol layar utama) seharusnya memunculkan asisten suara HandleIT</string>
+    <string name="default_assistant_guide_step4_detail2">• Jika perangkat mendukung pemicu suara, mengucapkan Hey Google atau kata pemicu yang ditentukan perangkat juga dapat memicu HandleIT</string>
     <string name="default_assistant_guide_step3_title">Uji Fungsi Asisten</string>
-    <string name="default_assistant_guide_step3_desc">Setelah pengaturan selesai, uji apakah Operit dapat dipanggil dengan normal</string>
+    <string name="default_assistant_guide_step3_desc">Setelah pengaturan selesai, uji apakah HandleIT dapat dipanggil dengan normal</string>
     <string name="default_assistant_guide_step3_detail1">• Gunakan gestur yang Anda atur (seperti menekan lama tombol Home) untuk memanggil asisten</string>
-    <string name="default_assistant_guide_step3_detail2">• Jika berhasil, Anda akan melihat antarmuka asisten suara Operit</string>
+    <string name="default_assistant_guide_step3_detail2">• Jika berhasil, Anda akan melihat antarmuka asisten suara HandleIT</string>
     <string name="default_assistant_guide_step3_detail3">• Anda dapat mencoba berbicara atau mengetik teks untuk berinteraksi dengan asisten</string>
     <string name="default_assistant_guide_troubleshooting_title">Mengalami masalah?</string>
-    <string name="default_assistant_guide_troubleshooting_content">Jika tidak dapat menemukan Operit dalam daftar, pastikan:\n\n• Aplikasi telah diinstal dengan benar dan tidak dinonaktifkan\n• Izin yang diperlukan telah diberikan (mikrofon, jendela mengambang, dll.)\n• Coba restart perangkat dan atur ulang\n\nBeberapa sistem kustom mungkin membatasi aplikasi pihak ketiga sebagai asisten default. Jika mengalami hal ini, Anda masih dapat menggunakan Operit melalui fungsi jendela mengambang dalam aplikasi.</string>
-    <string name="voice_interaction_service_name">Asisten Operit AI</string>
+    <string name="default_assistant_guide_troubleshooting_content">Jika tidak dapat menemukan HandleIT dalam daftar, pastikan:\n\n• Aplikasi telah diinstal dengan benar dan tidak dinonaktifkan\n• Izin yang diperlukan telah diberikan (mikrofon, jendela mengambang, dll.)\n• Coba restart perangkat dan atur ulang\n\nBeberapa sistem kustom mungkin membatasi aplikasi pihak ketiga sebagai asisten default. Jika mengalami hal ini, Anda masih dapat menggunakan HandleIT melalui fungsi jendela mengambang dalam aplikasi.</string>
+    <string name="voice_interaction_service_name">Asisten HandleIT AI</string>
     <string name="voice_interaction_service_summary">Layanan asisten suara pintar</string>
     <string name="tool_permissions_title">Izin Alat</string>
     <string name="tool_permissions_description">Secara default, semua alat memerlukan "permintaan" dari Anda. Anda dapat menambahkan pengecualian di bawah ini.</string>
@@ -4826,7 +4817,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="uidebugger_element_info_package_name">Nama paket: %1$s</string>
     <string name="uidebugger_element_info_size_px">Ukuran: %1$d×%2$dpx</string>
     <string name="logcat_no_logs_to_save">Tidak ada log yang dapat disimpan</string>
-    <string name="logcat_header">=== Log Operit ===</string>
+    <string name="logcat_header">=== Log HandleIT ===</string>
     <string name="logcat_date">Tanggal: %1$s</string>
     <string name="logcat_total_count">Jumlah total: %1$d</string>
     <string name="logcat_save_failed">Gagal menyimpan: %1$s</string>
@@ -5451,14 +5442,14 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="memory_embedding_error_empty_data">Data respons vektor kosong: %1$s</string>
     <string name="memory_embedding_error_invalid_first_item">Respons vektor data[0] bukan objek: %1$s</string>
 
-    <string name="skill_publish_body_install_step1">1. Buka Operit → Manajemen Paket → Skills</string>
+    <string name="skill_publish_body_install_step1">1. Buka HandleIT → Manajemen Paket → Skills</string>
     <string name="skill_publish_body_install_step2">2. Ketuk "Impor Skill" → "Impor dari Repositori"</string>
     <string name="skill_publish_body_install_step3">3. Masukkan alamat repositori: `%1$s`</string>
     <string name="skill_publish_body_install_step4">4. Konfirmasi impor</string>
     <string name="skill_publish_body_section_tech_info">## 🛠️ Informasi Teknis</string>
     <string name="skill_publish_body_table_header">| Item | Nilai |</string>
     <string name="skill_publish_body_table_separator">|------|-----|</string>
-    <string name="skill_publish_body_table_row_platform">| Platform Publikasi | Pasar Operit Skill |</string>
+    <string name="skill_publish_body_table_row_platform">| Platform Publikasi | Pasar HandleIT Skill |</string>
     <string name="skill_publish_body_table_row_parser_version">| Versi Parser | 1.0 |</string>
     <string name="skill_publish_body_table_row_publish_time">| Waktu Publikasi | %1$s |</string>
     <string name="model_param_max_tokens">Jumlah Token Maksimum</string>
@@ -6364,15 +6355,15 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
 
     <string name="chat_summarize_failed_no_valid_summary">Ringkasan gagal: Tidak dapat menghasilkan ringkasan yang valid</string>
     <string name="chat_summarize_generation_failed">Pembuatan ringkasan gagal: %1$s</string>
-    <string name="service_operit_running">Operit sedang berjalan</string>
+    <string name="service_operit_running">HandleIT sedang berjalan</string>
     <string name="service_chat_complete_reminder">Pengingat percakapan selesai</string>
     <string name="service_chat_complete_reminder_sound">Pengingat percakapan selesai (suara)</string>
     <string name="service_chat_complete_reminder_vibration">Pengingat percakapan selesai (getaran)</string>
     <string name="service_chat_complete_reminder_sound_vibration">Pengingat percakapan selesai (suara dan getaran)</string>
-    <string name="service_keep_background">Jaga Operit tetap berjalan di latar belakang.</string>
+    <string name="service_keep_background">Jaga HandleIT tetap berjalan di latar belakang.</string>
     <string name="service_notify_when_complete">Ingatkan Anda setelah percakapan selesai.</string>
-    <string name="service_running_wake_pause">Operit sedang berjalan (bangun dijeda)</string>
-    <string name="service_running_wake_listening">Operit sedang berjalan (bangun sedang mendengarkan)</string>
+    <string name="service_running_wake_pause">HandleIT sedang berjalan (bangun dijeda)</string>
+    <string name="service_running_wake_listening">HandleIT sedang berjalan (bangun sedang mendengarkan)</string>
     <string name="service_running_stats">Percakapan berjalan %1$d · Alat dipanggil %2$d</string>
     <string name="service_running_http_listening">HTTP eksternal sedang mendengarkan port %1$d</string>
     <string name="service_running_with_http">%1$s · HTTP eksternal %2$d</string>
@@ -6414,7 +6405,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="html_export_updated">Diperbarui</string>
     <string name="html_export_group">Grup</string>
     <string name="html_export_message_count">Jumlah Pesan</string>
-    <string name="html_export_footer">Diekspor dari Operit AI Assistant</string>
+    <string name="html_export_footer">Diekspor dari HandleIT AI Assistant</string>
     <string name="mnn_no_cache_data">Tidak ada data cache</string>
     <string name="mnn_response_empty">Bodi respons kosong</string>
     <string name="mnn_fetch_repo_files_failed">Gagal mengambil daftar file repositori: %1$s</string>
@@ -6928,7 +6919,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="chat_message_token_speed_compact">%1$s t/s</string>
     <string name="software_identity_title">Identitas Perangkat Lunak</string>
     <string name="software_identity_description">Ubah identitas perangkat lunak yang ditampilkan di bagian atas sidebar.</string>
-    <string name="software_identity_option_operit">Operit AI</string>
+    <string name="software_identity_option_operit">HandleIT AI</string>
     <string name="software_identity_option_lingshu">Lingshu AI</string>
     <string name="chat_auto_update_memory_failed">Gagal memperbarui memori otomatis: %1$s</string>
 
