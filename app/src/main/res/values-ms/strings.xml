@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Operit AI</string>
+    <string name="app_name">HandleIT</string>
     <string name="accessibility_service_description">Digunakan untuk mendapatkan hierarki UI, menyediakan keupayaan analisis antara muka yang lebih pantas untuk pembantu AI, tidak akan mengumpul atau menyimpan sebarang maklumat peribadi.</string>
     <string name="model_selector_title">Pilih Konfigurasi Model</string>
     <string name="model_selector_toggle">Tunjukkan Pemilih Model</string>
@@ -539,13 +539,13 @@
     <string name="install_termux_failed">Pemasangan Termux gagal</string>
     <string name="open_termux">Buka Termux</string>
     <string name="termux_setup_guide">Panduan penyediaan Termux</string>
-    <string name="about_title">Perihal Operit AI</string>
+    <string name="about_title">Perihal HandleIT AI</string>
     <string name="about_version">Versi: %1$s</string>
-    <string name="about_description">Operit AI ialah aplikasi pembantu pintar yang membantu pengguna menggunakan peranti dengan lebih cekap, menyediakan analisis antara muka, perbualan sembang dan fungsi lain.</string>
-    <string name="about_developer">Pembangun: &lt;a href="https://github.com/AAswordman"&gt;AAswordman&lt;/a&gt;</string>
-    <string name="about_contact">Hubungi kami: aaswordsman@foxmail.com</string>
-    <string name="about_website">&lt;a href="https://github.com/AAswordman/Operit"&gt;GitHub: https://github.com/AAswordman/Operit&lt;/a&gt;</string>
-    <string name="about_copyright">© 2025 - 2026 Operit. Hak cipta terpelihara.</string>
+    <string name="about_description">HandleIT AI ialah aplikasi pembantu pintar yang membantu pengguna menggunakan peranti dengan lebih cekap, menyediakan analisis antara muka, perbualan sembang dan fungsi lain.</string>
+    <string name="about_developer">Pembangun: &lt;a href=https://github.com/Mavaebrook&gt;HandleIT&lt;/a&gt;</string>
+    <string name="about_contact">Hubungi kami: sales@handleit.online</string>
+    <string name="about_website">&lt;a href=https://handleit.online&gt;https://handleit.online&lt;/a&gt;</string>
+    <string name="about_copyright">© 2025 - 2026 HandleIT. Hak cipta terpelihara.</string>
     <string name="star_on_github">Beri Bintang di GitHub</string>
     <string name="update_log">Log kemas kini</string>
     <string name="app_logo_description">Ikon aplikasi</string>
@@ -560,7 +560,7 @@
     <string name="network_unavailable">Sambungan rangkaian tidak tersedia, sila semak tetapan rangkaian anda</string>
     <string name="network_status">Status rangkaian: %1$s</string>
     <string name="network_status_label">Status rangkaian</string>
-    <string name="config_title">Pembantu Operit AI</string>
+    <string name="config_title">Pembantu HandleIT AI</string>
     <string name="config_description">Gunakan Kunci API DeepSeek atau konfigurasikan perkhidmatan model lain</string>
     <string name="config_api_key_label">Kunci API</string>
     <string name="config_api_key_placeholder">Kunci API DeepSeek</string>
@@ -1242,7 +1242,7 @@
     <string name="permission_guide_intro_2_title">Kotak alat berkuasa untuk geek dan pembangun</string>
     <string name="permission_guide_intro_2_desc">Dilengkapi lebih 40 alat profesional merangkumi pengurusan fail, permintaan rangkaian, pelaksanaan skrip dan kawalan sistem. Digabungkan dengan sistem pemalam berkuasa, anda boleh mengautomasikan tugas, mengawal peranti anda secara mendalam.</string>
     <string name="permission_guide_intro_3_title">Lepaskan kreativiti, sentiasa bersedia</string>
-    <string name="permission_guide_intro_3_desc">Sama ada mereka bentuk laman web, memproses fail media, atau membangunkan AI melalui tetingkap terapung bila-bila masa, Operit menyediakan persekitaran penciptaan dan bantuan yang berkuasa, fleksibel dan selamat. Data anda, di bawah kawalan anda.</string>
+    <string name="permission_guide_intro_3_desc">Sama ada mereka bentuk laman web, memproses fail media, atau membangunkan AI melalui tetingkap terapung bila-bila masa, HandleIT menyediakan persekitaran penciptaan dan bantuan yang berkuasa, fleksibel dan selamat. Data anda, di bawah kawalan anda.</string>
     <string name="permission_guide_intro_page_indicator">Pengenalan fungsi %1$d/%2$d</string>
 
     <string name="no_mirrors_found">Tiada sumber cermin tersedia</string>
@@ -1814,18 +1814,9 @@
     <string name="agreement_subtitle">Sila baca dan setujui terma-terma berikut sebelum menggunakan.</string>
     <string name="agreement_version">Versi perjanjian: %1$s</string>
     <string name="agreement_human_readable_title">Versi Perjanjian Mudah Faham (Bukan versi undang-undang)</string>
-    <string name="agreement_human_readable_content">Sempadan perkhidmatan: Operit tidak menyediakan perkhidmatan interaksi emosi antropomorfik kepada orang awam. Operit ialah klien sumber terbuka yang berjalan secara setempat pada peranti pengguna. Operit tidak mengendalikan perkhidmatan inferens model, tidak mengehos sesi sembang atau data interaksi, dan tidak mengedarkan kelayakan model berkongsi. Permintaan model awan dihantar terus daripada peranti anda kepada penyedia model yang anda konfigurasikan dengan kelayakan anda sendiri; data berkaitan tertakluk kepada peraturan penyedia tersebut. Model tempatan menjalankan inferens pada peranti anda.\n\nAplikasi ini boleh memanggil fail, terminal, automasi, Root, ADB, sambungan dan keupayaan serupa. Semak operasi sebelum menjalankannya, sandarkan data penting, dan berikan kebenaran dengan berhati-hati. Kerugian pada peranti, data, akaun atau kepentingan lain yang disebabkan oleh tindakan pengguna, konfigurasi pengguna, perkhidmatan pihak ketiga atau sambungan pihak ketiga hendaklah dikendalikan oleh operator sebenar menurut undang-undang yang terpakai.\n\nPlugin, skrip, Skill, kit alat dan kandungan pihak ketiga lain dalam marketplace adalah milik pengarang atau pemegang hak yang dilabelkan, bersama tanggungjawab berkaitan. Paparan atau pemasangan melalui marketplace tidak bermaksud Operit menjamin, menyokong atau memperoleh hak terhadap kandungan tersebut. Sahkan lesen dan status hak sebelum menggunakan, mengubah suai, menerbitkan atau mengedarkannya semula.</string>
+    <string name="agreement_human_readable_content">Sempadan perkhidmatan: HandleIT tidak menyediakan perkhidmatan interaksi emosi antropomorfik kepada orang awam. HandleIT ialah klien sumber terbuka yang berjalan secara setempat pada peranti pengguna. HandleIT tidak mengendalikan perkhidmatan inferens model, tidak mengehos sesi sembang atau data interaksi, dan tidak mengedarkan kelayakan model berkongsi. Permintaan model awan dihantar terus daripada peranti anda kepada penyedia model yang anda konfigurasikan dengan kelayakan anda sendiri; data berkaitan tertakluk kepada peraturan penyedia tersebut. Model tempatan menjalankan inferens pada peranti anda.\n\nAplikasi ini boleh memanggil fail, terminal, automasi, Root, ADB, sambungan dan keupayaan serupa. Semak operasi sebelum menjalankannya, sandarkan data penting, dan berikan kebenaran dengan berhati-hati. Kerugian pada peranti, data, akaun atau kepentingan lain yang disebabkan oleh tindakan pengguna, konfigurasi pengguna, perkhidmatan pihak ketiga atau sambungan pihak ketiga hendaklah dikendalikan oleh operator sebenar menurut undang-undang yang terpakai.\n\nPlugin, skrip, Skill, kit alat dan kandungan pihak ketiga lain dalam marketplace adalah milik pengarang atau pemegang hak yang dilabelkan, bersama tanggungjawab berkaitan. Paparan atau pemasangan melalui marketplace tidak bermaksud HandleIT menjamin, menyokong atau memperoleh hak terhadap kandungan tersebut. Sahkan lesen dan status hak sebelum menggunakan, mengubah suai, menerbitkan atau mengedarkannya semula.</string>
     <string name="agreement_serious_title">Perjanjian Undang-Undang Versi Ketat</string>
-    <string name="agreement_serious_content"><![CDATA[
-        <p><b>Perjanjian Pengguna dan Dasar Privasi Operit</b><br>Versi: 2026-07-15; tarikh kuat kuasa yang dirancang: 15 Julai 2026.</p>
-        <p><b>1. Skop dan Versi Perjanjian</b><br>Perjanjian ini terpakai kepada klien Android Operit yang dikeluarkan secara rasmi dan fungsi dalam talian pilihannya. Dengan menggunakan aplikasi ini, anda mengesahkan bahawa anda telah membaca dan menerima versi semasa. Aplikasi merekodkan versi perjanjian yang anda sahkan semasa permulaan; apabila perjanjian dikemas kini secara material, aplikasi akan meminta anda mengesahkan versi baharu sebelum meneruskan. Kod sumber terbuka dalam repositori dilesenkan di bawah GNU Lesser General Public License version 3 (LGPLv3) dalam fail <code>LICENSE</code> di root. Perjanjian ini tidak mengecualikan atau mengurangkan hak yang diberikan oleh undang-undang terpakai atau lesen sumber terbuka.</p>
-        <p><b>2. Kedudukan Produk dan Perkhidmatan Pihak Ketiga</b><br>Operit ialah perisian klien sumber terbuka. Operit tidak menyediakan inferens model bahasa besar, API Key berkongsi, perantaraan permintaan sembang, atau pengehosan awan rekod sembang. Model awan, suara awan, carian, penjanaan imej, MCP, dan fungsi rangkaian lain dipilih, dikonfigurasikan, dan diaktifkan oleh anda. Apabila anda menggunakan perkhidmatan tersebut, data dihantar terus kepada penyedia perkhidmatan yang berkaitan dan tertakluk kepada terma perkhidmatan serta dasar privasi penyedia tersebut. Anda hendaklah menilai keselamatan, kesahan dan kesesuaian penyedia, model, endpoint dan sambungan, serta menjaga kelayakan dengan baik.</p>
-        <p><b>3. Pemprosesan Data dan Privasi</b><br>Rekod sembang, kad watak, memori, konfigurasi model dan API Key biasanya disimpan dalam data aplikasi pada peranti anda. Apabila anda secara aktif mengeksport, menyandarkan, memuat naik fail, menggunakan fungsi rangkaian pihak ketiga atau menghantar permintaan kepada perkhidmatan HTTP luaran, data berkaitan akan disalin, dihantar atau didedahkan menurut tindakan anda. Marketplace, pengumuman, semakan kemas kini, log masuk GitHub dan fungsi penerbitan boleh mengakses Operit, GitHub atau sumber pihak ketiga yang berkaitan; fungsi ini tidak menjadi perantara permintaan model sembang. Urus data dan kelayakan anda bersama tetapan keselamatan peranti, terma perkhidmatan pihak ketiga dan perjanjian ini.</p>
-        <p><b>4. Deployment Luaran dan Tanggungjawab Operator</b><br>Perkhidmatan HTTP luaran, QQ Bot, balasan automatik dan keupayaan serupa diaktifkan atas pilihan anda. Jika anda menyediakannya kepada orang lain atau orang awam, anda bertindak sebagai pihak deployment atau operator sebenar dan bertanggungjawab terhadap kawalan akses, kebenaran pengguna, keselamatan kandungan, perlindungan data, perlindungan kanak-kanak, notis yang diperlukan dan kewajipan lain yang terpakai. Jika anda secara berterusan menyediakan kepada orang awam di Tanah Besar China perkhidmatan interaksi emosi yang mensimulasikan ciri personaliti, corak pemikiran atau gaya komunikasi manusia semula jadi, anda hendaklah menilai dan mematuhi Interim Measures for the Administration of Artificial Intelligence Anthropomorphic Interaction Services (《人工智能拟人化互动服务管理暂行办法》) serta peraturan lain yang terpakai. Anda tidak boleh menggunakan aplikasi ini untuk menyediakan saudara maya, teman maya atau perkhidmatan hubungan intim maya lain kepada kanak-kanak, mendorong kebergantungan emosi atau ketagihan, melakukan manipulasi emosi, atau melanggar hak dan kepentingan sah pihak lain.</p>
-        <p><b>5. Penggunaan Sah dan Tanggungjawab Kandungan</b><br>Anda mesti mematuhi undang-undang dan peraturan yang terpakai, peraturan perkhidmatan pihak ketiga dan peraturan platform. Anda tidak boleh menggunakan aplikasi, sambungan atau konfigurasi ini untuk menjalankan aktiviti melanggar undang-undang, melanggar hak pihak lain, mengakses sistem atau data tanpa kebenaran, atau menyebarkan kandungan haram atau berbahaya. Anda bertanggungjawab terhadap kandungan dan tindakan yang anda masukkan, konfigurasikan, jana, terbitkan, majukan atau operasikan. Output AI mungkin mengandungi ralat, peninggalan atau bias dan bukan nasihat perubatan, krisis kesihatan mental, undang-undang, kewangan atau profesional lain. Dalam keadaan bahaya mendesak, segera hubungi perkhidmatan kecemasan setempat, institusi perubatan atau orang yang dipercayai.</p>
-        <p><b>6. Perisian Disediakan Seadanya</b><br>Setakat yang dibenarkan oleh undang-undang terpakai, perisian ini disediakan dalam keadaan "seadanya" dan "seperti tersedia". Penyumbang tidak memberi jaminan tersurat atau tersirat mengenai ketersediaan berterusan, ketepatan, keselamatan, kebolehdagangan, kesesuaian untuk tujuan tertentu atau tidak melanggar hak bagi perisian atau perkhidmatan pihak ketiga. Kerugian yang disebabkan oleh penggunaan perisian ini, perkhidmatan pihak ketiga, sambungan, konfigurasi pengguna atau pengubahsuaian sendiri hendaklah dikendalikan menurut undang-undang terpakai dan perjanjian perkhidmatan berkaitan.</p>
-        <p><b>7. Kemas Kini Perjanjian dan Hubungan</b><br>Kami mungkin mengemas kini perjanjian ini kerana keperluan fungsi, undang-undang atau keselamatan, dan menyediakan versi semasa dalam aplikasi. Kemas kini yang memberi kesan material kepada hak pengguna akan berkuat kuasa dengan menaikkan versi perjanjian dan meminta pengesahan semula. Anda boleh mengemukakan soalan dan maklum balas melalui repositori projek, pintu masuk maklum balas dalam aplikasi atau saluran hubungan awam.</p>
-    ]]></string>
+    <string name="agreement_serious_content"> &lt;p&gt;&lt;b&gt;Perjanjian Pengguna dan Dasar Privasi HandleIT&lt;/b&gt;&lt;br&gt;Versi: 2026-07-15; tarikh kuat kuasa yang dirancang: 15 Julai 2026.&lt;/p&gt; &lt;p&gt;&lt;b&gt;1. Skop dan Versi Perjanjian&lt;/b&gt;&lt;br&gt;Perjanjian ini terpakai kepada klien Android HandleIT yang dikeluarkan secara rasmi dan fungsi dalam talian pilihannya. Dengan menggunakan aplikasi ini, anda mengesahkan bahawa anda telah membaca dan menerima versi semasa. Aplikasi merekodkan versi perjanjian yang anda sahkan semasa permulaan; apabila perjanjian dikemas kini secara material, aplikasi akan meminta anda mengesahkan versi baharu sebelum meneruskan. Kod sumber terbuka dalam repositori dilesenkan di bawah GNU Lesser General Public License version 3 (LGPLv3) dalam fail &lt;code&gt;LICENSE&lt;/code&gt; di root. Perjanjian ini tidak mengecualikan atau mengurangkan hak yang diberikan oleh undang-undang terpakai atau lesen sumber terbuka.&lt;/p&gt; &lt;p&gt;&lt;b&gt;2. Kedudukan Produk dan Perkhidmatan Pihak Ketiga&lt;/b&gt;&lt;br&gt;HandleIT ialah perisian klien sumber terbuka. HandleIT tidak menyediakan inferens model bahasa besar, API Key berkongsi, perantaraan permintaan sembang, atau pengehosan awan rekod sembang. Model awan, suara awan, carian, penjanaan imej, MCP, dan fungsi rangkaian lain dipilih, dikonfigurasikan, dan diaktifkan oleh anda. Apabila anda menggunakan perkhidmatan tersebut, data dihantar terus kepada penyedia perkhidmatan yang berkaitan dan tertakluk kepada terma perkhidmatan serta dasar privasi penyedia tersebut. Anda hendaklah menilai keselamatan, kesahan dan kesesuaian penyedia, model, endpoint dan sambungan, serta menjaga kelayakan dengan baik.&lt;/p&gt; &lt;p&gt;&lt;b&gt;3. Pemprosesan Data dan Privasi&lt;/b&gt;&lt;br&gt;Rekod sembang, kad watak, memori, konfigurasi model dan API Key biasanya disimpan dalam data aplikasi pada peranti anda. Apabila anda secara aktif mengeksport, menyandarkan, memuat naik fail, menggunakan fungsi rangkaian pihak ketiga atau menghantar permintaan kepada perkhidmatan HTTP luaran, data berkaitan akan disalin, dihantar atau didedahkan menurut tindakan anda. Marketplace, pengumuman, semakan kemas kini, log masuk GitHub dan fungsi penerbitan boleh mengakses HandleIT, GitHub atau sumber pihak ketiga yang berkaitan; fungsi ini tidak menjadi perantara permintaan model sembang. Urus data dan kelayakan anda bersama tetapan keselamatan peranti, terma perkhidmatan pihak ketiga dan perjanjian ini.&lt;/p&gt; &lt;p&gt;&lt;b&gt;4. Deployment Luaran dan Tanggungjawab Operator&lt;/b&gt;&lt;br&gt;Perkhidmatan HTTP luaran, QQ Bot, balasan automatik dan keupayaan serupa diaktifkan atas pilihan anda. Jika anda menyediakannya kepada orang lain atau orang awam, anda bertindak sebagai pihak deployment atau operator sebenar dan bertanggungjawab terhadap kawalan akses, kebenaran pengguna, keselamatan kandungan, perlindungan data, perlindungan kanak-kanak, notis yang diperlukan dan kewajipan lain yang terpakai. Jika anda secara berterusan menyediakan kepada orang awam di Tanah Besar China perkhidmatan interaksi emosi yang mensimulasikan ciri personaliti, corak pemikiran atau gaya komunikasi manusia semula jadi, anda hendaklah menilai dan mematuhi Interim Measures for the Administration of Artificial Intelligence Anthropomorphic Interaction Services (《人工智能拟人化互动服务管理暂行办法》) serta peraturan lain yang terpakai. Anda tidak boleh menggunakan aplikasi ini untuk menyediakan saudara maya, teman maya atau perkhidmatan hubungan intim maya lain kepada kanak-kanak, mendorong kebergantungan emosi atau ketagihan, melakukan manipulasi emosi, atau melanggar hak dan kepentingan sah pihak lain.&lt;/p&gt; &lt;p&gt;&lt;b&gt;5. Penggunaan Sah dan Tanggungjawab Kandungan&lt;/b&gt;&lt;br&gt;Anda mesti mematuhi undang-undang dan peraturan yang terpakai, peraturan perkhidmatan pihak ketiga dan peraturan platform. Anda tidak boleh menggunakan aplikasi, sambungan atau konfigurasi ini untuk menjalankan aktiviti melanggar undang-undang, melanggar hak pihak lain, mengakses sistem atau data tanpa kebenaran, atau menyebarkan kandungan haram atau berbahaya. Anda bertanggungjawab terhadap kandungan dan tindakan yang anda masukkan, konfigurasikan, jana, terbitkan, majukan atau operasikan. Output AI mungkin mengandungi ralat, peninggalan atau bias dan bukan nasihat perubatan, krisis kesihatan mental, undang-undang, kewangan atau profesional lain. Dalam keadaan bahaya mendesak, segera hubungi perkhidmatan kecemasan setempat, institusi perubatan atau orang yang dipercayai.&lt;/p&gt; &lt;p&gt;&lt;b&gt;6. Perisian Disediakan Seadanya&lt;/b&gt;&lt;br&gt;Setakat yang dibenarkan oleh undang-undang terpakai, perisian ini disediakan dalam keadaan seadanya dan seperti tersedia. Penyumbang tidak memberi jaminan tersurat atau tersirat mengenai ketersediaan berterusan, ketepatan, keselamatan, kebolehdagangan, kesesuaian untuk tujuan tertentu atau tidak melanggar hak bagi perisian atau perkhidmatan pihak ketiga. Kerugian yang disebabkan oleh penggunaan perisian ini, perkhidmatan pihak ketiga, sambungan, konfigurasi pengguna atau pengubahsuaian sendiri hendaklah dikendalikan menurut undang-undang terpakai dan perjanjian perkhidmatan berkaitan.&lt;/p&gt; &lt;p&gt;&lt;b&gt;7. Kemas Kini Perjanjian dan Hubungan&lt;/b&gt;&lt;br&gt;Kami mungkin mengemas kini perjanjian ini kerana keperluan fungsi, undang-undang atau keselamatan, dan menyediakan versi semasa dalam aplikasi. Kemas kini yang memberi kesan material kepada hak pengguna akan berkuat kuasa dengan menaikkan versi perjanjian dan meminta pengesahan semula. Anda boleh mengemukakan soalan dan maklum balas melalui repositori projek, pintu masuk maklum balas dalam aplikasi atau saluran hubungan awam.&lt;/p&gt; </string>
     <string name="agreement_disclaimer">Versi mudah faham hanya untuk memudahkan pemahaman. Jika berbeza daripada versi formal bahasa Cina, versi formal bahasa Cina akan digunakan.</string>
     <string name="agreement_accept">Saya telah membaca dan bersetuju</string>
     <string name="agreement_wait">Sila tunggu sebentar... (%1$d)</string>
@@ -1955,7 +1946,7 @@
     <string name="tool_user_agreement">Perjanjian Pengguna</string>
     <string name="tool_user_agreement_desc">Lihat perjanjian pengguna dan dasar privasi aplikasi</string>
     <string name="tool_default_assistant_guide">Tetapan Pembantu Lalai</string>
-    <string name="tool_default_assistant_guide_desc">Tetapkan Operit Voice Float sebagai pembantu sistem lalai</string>
+    <string name="tool_default_assistant_guide_desc">Tetapkan HandleIT Voice Float sebagai pembantu sistem lalai</string>
 
     <string name="host_address">Alamat Hos</string>
     <string name="port">Port</string>
@@ -3977,7 +3968,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="retry_market_registration">Cuba semula pendaftaran pasaran</string>
     <string name="update_to_market">Kemas kini ke pasaran</string>
     <string name="create_operit_forge_title">Cipta OperitForge?</string>
-    <string name="create_operit_forge_message">Ini adalah kali pertama anda menerbitkan secara langsung. Operit perlu mencipta repositori awam `OperitForge` di bawah akaun GitHub anda terlebih dahulu.</string>
+    <string name="create_operit_forge_message">Ini adalah kali pertama anda menerbitkan secara langsung. HandleIT perlu mencipta repositori awam `OperitForge` di bawah akaun GitHub anda terlebih dahulu.</string>
     <string name="confirm_create_public_forge_title">Sahkan penciptaan repositori awam</string>
     <string name="confirm_create_public_forge_message">Sila sahkan sekali lagi, sekarang akan mencipta repositori awam `OperitForge`. Penerbitan seterusnya akan menggunakan semula repositori ini.</string>
     <string name="create_and_publish">Cipta dan terbitkan</string>
@@ -4141,14 +4132,14 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="mcp_issue_body_title_install_info">## Maklumat Pemasangan</string>
     <string name="mcp_issue_body_repo_address">**Alamat Repositori:** %1$s</string>
     <string name="mcp_issue_body_title_install_method">### Kaedah Pemasangan</string>
-    <string name="mcp_issue_body_install_step1">1. Klik "Import" pada halaman konfigurasi Operit MCP</string>
+    <string name="mcp_issue_body_install_step1">1. Klik Import pada halaman konfigurasi HandleIT MCP</string>
     <string name="mcp_issue_body_install_step2">2. Pilih "Import dari Repositori"</string>
     <string name="mcp_issue_body_install_step3">3. Masukkan alamat repositori: `%1$s`</string>
     <string name="mcp_issue_body_install_step4">4. Tetapkan nama plugin dan klik import</string>
     <string name="mcp_issue_body_title_tech_info">## Maklumat Teknikal</string>
-    <string name="mcp_issue_body_tech_platform">- **Platform Terbitan:** Pasaran Operit MCP</string>
+    <string name="mcp_issue_body_tech_platform">- **Platform Terbitan:** Pasaran HandleIT MCP</string>
     <string name="mcp_issue_body_tech_publish_time">- **Masa Terbitan:** %1$s</string>
-    <string name="mcp_issue_body_footer_note">*Isu ini dijana secara automatik oleh Operit*</string>
+    <string name="mcp_issue_body_footer_note">*Isu ini dijana secara automatik oleh HandleIT*</string>
     <string name="mcp_publish_body_section_plugin_info">## 📋 Maklumat Plugin</string>
     <string name="mcp_publish_body_label_description">**Penerangan:** %1$s</string>
     <string name="mcp_publish_body_section_repo_info">## 🔗 Maklumat Repositori</string>
@@ -4156,18 +4147,18 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="mcp_publish_body_section_quick_install">## ⚡ Pemasangan Pantas</string>
     <string name="mcp_publish_body_section_install_method">## 📦 Kaedah Pemasangan</string>
     <string name="mcp_publish_body_method_repo_import_title">### Kaedah 1: Import dari Repositori</string>
-    <string name="mcp_publish_body_method_repo_import_step1">1. Buka halaman konfigurasi Operit MCP</string>
+    <string name="mcp_publish_body_method_repo_import_step1">1. Buka halaman konfigurasi HandleIT MCP</string>
     <string name="mcp_publish_body_method_repo_import_step2">2. Klik "Import" → "Import dari Repositori"</string>
     <string name="mcp_publish_body_method_repo_import_step3">3. Masukkan alamat repositori: `%1$s`</string>
     <string name="mcp_publish_body_method_repo_import_step4">4. Konfigurasikan nama plugin dan import</string>
     <string name="mcp_publish_body_method_config_import_title">### Kaedah 2: Import Konfigurasi</string>
-    <string name="mcp_publish_body_method_config_import_step1">1. Buka halaman konfigurasi Operit MCP</string>
+    <string name="mcp_publish_body_method_config_import_step1">1. Buka halaman konfigurasi HandleIT MCP</string>
     <string name="mcp_publish_body_method_config_import_step2">2. Klik "Import" → "Import Konfigurasi"</string>
     <string name="mcp_publish_body_method_config_import_step3">3. Tampal konfigurasi berikut:</string>
     <string name="mcp_publish_body_section_tech_info">## 🛠️ Maklumat Teknikal</string>
     <string name="mcp_publish_body_table_header">| Item | Nilai |</string>
     <string name="mcp_publish_body_table_separator">|------|-----|</string>
-    <string name="mcp_publish_body_table_row_platform">| Platform Terbitan | Pasaran Operit MCP |</string>
+    <string name="mcp_publish_body_table_row_platform">| Platform Terbitan | Pasaran HandleIT MCP |</string>
     <string name="mcp_publish_body_table_row_parser_version">| Versi Pengecaman | 1.0 |</string>
     <string name="mcp_publish_body_table_row_publish_time">| Masa Terbitan | %1$s |</string>
     <string name="mcp_plugin_detail_title">Butiran Plugin</string>
@@ -4183,7 +4174,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="emoji_preview">Pratonton emoji</string>
     <string name="create_group">Buat kumpulan</string>
     <string name="custom">Tersuai</string>
-    <string name="voice_assistant_widget_description">Lancarkan pembantu suara Operit dengan pantas</string>
+    <string name="voice_assistant_widget_description">Lancarkan pembantu suara HandleIT dengan pantas</string>
     <string name="voice_assistant_widget_title">Pembantu Suara</string>
     <string name="screen_title_mnn_model_download">Muat turun model MNN</string>
     <string name="mnn_model_download">Muat turun model MNN</string>
@@ -4462,11 +4453,11 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="exporting">Sedang mengeksport</string>
 
     <string name="default_assistant_guide_step3_detail1">• Gunakan isyarat yang anda tetapkan (seperti menekan lama kekunci Utama) untuk membangkitkan pembantu</string>
-    <string name="default_assistant_guide_step3_detail2">• Jika berjaya, anda sepatutnya melihat antara muka pembantu suara Operit</string>
+    <string name="default_assistant_guide_step3_detail2">• Jika berjaya, anda sepatutnya melihat antara muka pembantu suara HandleIT</string>
     <string name="default_assistant_guide_step3_detail3">• Anda boleh cuba bercakap atau menaip teks untuk berinteraksi dengan pembantu</string>
     <string name="default_assistant_guide_troubleshooting_title">Menghadapi masalah?</string>
-    <string name="default_assistant_guide_troubleshooting_content">Jika Operit tidak ditemui dalam senarai, pastikan:\n\n• Aplikasi telah dipasang dengan betul dan tidak dilumpuhkan\n• Keizinan yang diperlukan telah diberikan (mikrofon, tetingkap terapung, dll.)\n• Cuba tetapkan semula selepas menghidupkan semula peranti\n\nSesetengah sistem tersuai mungkin menghadkan aplikasi pihak ketiga sebagai pembantu lalai. Jika berlaku, anda masih boleh menggunakan Operit melalui fungsi tetingkap terapung dalam aplikasi.</string>
-    <string name="voice_interaction_service_name">Pembantu AI Operit</string>
+    <string name="default_assistant_guide_troubleshooting_content">Jika HandleIT tidak ditemui dalam senarai, pastikan:\n\n• Aplikasi telah dipasang dengan betul dan tidak dilumpuhkan\n• Keizinan yang diperlukan telah diberikan (mikrofon, tetingkap terapung, dll.)\n• Cuba tetapkan semula selepas menghidupkan semula peranti\n\nSesetengah sistem tersuai mungkin menghadkan aplikasi pihak ketiga sebagai pembantu lalai. Jika berlaku, anda masih boleh menggunakan HandleIT melalui fungsi tetingkap terapung dalam aplikasi.</string>
+    <string name="voice_interaction_service_name">Pembantu AI HandleIT</string>
     <string name="voice_interaction_service_summary">Perkhidmatan pembantu suara pintar</string>
     <string name="tool_permissions_title">Keizinan Alat</string>
     <string name="tool_permissions_description">Secara lalai, semua alat memerlukan anda "bertanya". Anda boleh menambah pengecualian di bawah.</string>
@@ -4524,18 +4515,18 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="time_hours_ago">%1$d jam yang lalu</string>
     <string name="time_days_ago">%1$d hari yang lalu</string>
     <string name="default_assistant_guide_title">Tetapkan Pembantu Suara Lalai</string>
-    <string name="default_assistant_guide_subtitle">Jadikan Operit sebagai pembantu pintar anda</string>
-    <string name="default_assistant_guide_intro">Selepas menetapkan Operit sebagai pembantu lalai sistem, anda boleh melancarkan pembantu suara Operit dengan cepat melalui menekan lama kekunci Home atau menggunakan bangunkan suara, untuk mendapatkan pengalaman interaksi AI yang lebih mudah.</string>
+    <string name="default_assistant_guide_subtitle">Jadikan HandleIT sebagai pembantu pintar anda</string>
+    <string name="default_assistant_guide_intro">Selepas menetapkan HandleIT sebagai pembantu lalai sistem, anda boleh melancarkan pembantu suara HandleIT dengan cepat melalui menekan lama kekunci Home atau menggunakan bangunkan suara, untuk mendapatkan pengalaman interaksi AI yang lebih mudah.</string>
     <string name="default_assistant_guide_steps_title">Langkah-langkah Penetapan</string>
     <string name="default_assistant_guide_step1_title">Tetapkan sebagai Pembantu Lalai</string>
-    <string name="default_assistant_guide_step1_desc">Tetapkan Operit sebagai aplikasi pembantu digital lalai sistem</string>
+    <string name="default_assistant_guide_step1_desc">Tetapkan HandleIT sebagai aplikasi pembantu digital lalai sistem</string>
     <string name="default_assistant_guide_step1_detail1">• Buka Tetapan Sistem → Aplikasi → Aplikasi Lalai → Aplikasi Pembantu Digital</string>
-    <string name="default_assistant_guide_step1_detail2">• Cari dan pilih "Operit AI" dalam senarai aplikasi pembantu</string>
+    <string name="default_assistant_guide_step1_detail2">• Cari dan pilih HandleIT AI dalam senarai aplikasi pembantu</string>
     <string name="default_assistant_guide_step1_detail_android12">Android 12+: Tetapan → Aplikasi → Aplikasi Lalai → Aplikasi Pembantu Digital → Aplikasi Pembantu Digital Lalai</string>
     <string name="default_assistant_guide_open_settings">Buka Tetapan Pembantu</string>
     <string name="default_assistant_guide_open_gesture_settings">Buka Tetapan Isyarat</string>
     <string name="default_assistant_guide_step2_title">Konfigurasi Isyarat Pelancaran</string>
-    <string name="default_assistant_guide_step2_desc">Tetapkan cara untuk membangkitkan pembantu Operit dengan cepat</string>
+    <string name="default_assistant_guide_step2_desc">Tetapkan cara untuk membangkitkan pembantu HandleIT dengan cepat</string>
     <string name="default_assistant_guide_step2_detail1">• Tekan lama kekunci Home: Kaedah paling biasa digunakan, tersedia pada kebanyakan peranti</string>
     <string name="default_assistant_guide_step2_detail2">• Geser ke atas dari bahagian bawah skrin: Sesetengah peranti yang menyokong isyarat skrin penuh</string>
     <string name="default_assistant_guide_step2_detail_android12">Android 12+: Tetapan → Aplikasi → Aplikasi Lalai → Aplikasi Pembantu Digital → Aplikasi Pembantu Digital Lalai</string>
@@ -4543,10 +4534,10 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="default_assistant_guide_step2_note">Perhatian: Tetapan isyarat mungkin berbeza mengikut jenama telefon, sila semak pilihan yang tersedia dalam tetapan sistem</string>
     <string name="default_assistant_guide_step4_title">Uji Pembantu Suara</string>
     <string name="default_assistant_guide_step4_desc">Selepas selesai penetapan, uji sama ada boleh dilancarkan dengan normal</string>
-    <string name="default_assistant_guide_step4_detail1">• Menekan lama kekunci Home (butang skrin utama) sepatutnya melancarkan pembantu suara Operit</string>
-    <string name="default_assistant_guide_step4_detail2">• Jika peranti menyokong bangunkan suara, menyebut "Hey Google" atau kata bangunkan yang ditetapkan peranti juga mungkin mencetuskan Operit</string>
+    <string name="default_assistant_guide_step4_detail1">• Menekan lama kekunci Home (butang skrin utama) sepatutnya melancarkan pembantu suara HandleIT</string>
+    <string name="default_assistant_guide_step4_detail2">• Jika peranti menyokong bangunkan suara, menyebut Hey Google atau kata bangunkan yang ditetapkan peranti juga mungkin mencetuskan HandleIT</string>
     <string name="default_assistant_guide_step3_title">Uji Fungsi Pembantu</string>
-    <string name="default_assistant_guide_step3_desc">Selepas selesai penetapan, uji sama ada Operit boleh dibangkitkan dengan normal</string>
+    <string name="default_assistant_guide_step3_desc">Selepas selesai penetapan, uji sama ada HandleIT boleh dibangkitkan dengan normal</string>
 
     <string name="export_failed">Eksport gagal</string>
     <string name="file_saved_to">Fail telah disimpan ke:</string>
@@ -4989,7 +4980,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
 
     <string name="uidebugger_element_info_size_px">Saiz: %1$d×%2$dpx</string>
     <string name="logcat_no_logs_to_save">Tiada log untuk disimpan</string>
-    <string name="logcat_header">=== Log Operit ===</string>
+    <string name="logcat_header">=== Log HandleIT ===</string>
     <string name="logcat_date">Tarikh: %1$s</string>
     <string name="logcat_total_count">Jumlah: %1$d</string>
     <string name="logcat_save_failed">Gagal menyimpan: %1$s</string>
@@ -5449,14 +5440,14 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="skill_publish_body_section_repo_info">## 🔗 Maklumat Repositori</string>
     <string name="skill_publish_body_label_repo_url">**Alamat Repositori:** %1$s</string>
     <string name="skill_publish_body_section_install_method">## 📦 Kaedah Pemasangan</string>
-    <string name="skill_publish_body_install_step1">1. Buka Operit → Pengurusan Pakej → Skills</string>
+    <string name="skill_publish_body_install_step1">1. Buka HandleIT → Pengurusan Pakej → Skills</string>
     <string name="skill_publish_body_install_step2">2. Klik "Import Skill" → "Import dari Repositori"</string>
     <string name="skill_publish_body_install_step3">3. Masukkan alamat repositori: `%1$s`</string>
     <string name="skill_publish_body_install_step4">4. Sahkan import</string>
     <string name="skill_publish_body_section_tech_info">## 🛠️ Maklumat Teknikal</string>
     <string name="skill_publish_body_table_header">| Item | Nilai |</string>
     <string name="skill_publish_body_table_separator">|------|-----|</string>
-    <string name="skill_publish_body_table_row_platform">| Platform Terbitan | Pasaran Skill Operit |</string>
+    <string name="skill_publish_body_table_row_platform">| Platform Terbitan | Pasaran Skill HandleIT |</string>
     <string name="skill_publish_body_table_row_parser_version">| Versi Pengecam | 1.0 |</string>
     <string name="skill_publish_body_table_row_publish_time">| Masa Terbitan | %1$s |</string>
     <string name="model_param_max_tokens">Bilangan Token Maksimum</string>
@@ -6160,7 +6151,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="html_export_updated">Dikemas kini</string>
     <string name="html_export_group">Kumpulan</string>
     <string name="html_export_message_count">Bilangan Mesej</string>
-    <string name="html_export_footer">Dieksport dari Operit AI Assistant</string>
+    <string name="html_export_footer">Dieksport dari HandleIT AI Assistant</string>
     <string name="mnn_no_cache_data">Tiada data cache</string>
     <string name="mnn_response_empty">Badan respons kosong</string>
     <string name="mnn_fetch_repo_files_failed">Gagal mendapatkan senarai fail repositori: %1$s</string>
@@ -6275,15 +6266,15 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="chat_ai_service_unavailable_summarize">Perkhidmatan AI tidak tersedia, tidak dapat membuat ringkasan</string>
     <string name="chat_summarize_failed_no_valid_summary">Gagal membuat ringkasan: Tidak dapat menghasilkan ringkasan yang sah</string>
     <string name="chat_summarize_generation_failed">Gagal menghasilkan ringkasan: %1$s</string>
-    <string name="service_operit_running">Operit sedang berjalan</string>
+    <string name="service_operit_running">HandleIT sedang berjalan</string>
     <string name="service_chat_complete_reminder">Peringatan selesai perbualan</string>
     <string name="service_chat_complete_reminder_sound">Peringatan selesai perbualan (bunyi)</string>
     <string name="service_chat_complete_reminder_vibration">Peringatan selesai perbualan (getaran)</string>
     <string name="service_chat_complete_reminder_sound_vibration">Peringatan selesai perbualan (bunyi dan getaran)</string>
-    <string name="service_keep_background">Kekalkan Operit berjalan di latar belakang.</string>
+    <string name="service_keep_background">Kekalkan HandleIT berjalan di latar belakang.</string>
     <string name="service_notify_when_complete">Beritahu anda apabila perbualan selesai.</string>
-    <string name="service_running_wake_pause">Operit sedang berjalan (bangun dijeda)</string>
-    <string name="service_running_wake_listening">Operit sedang berjalan (bangun sedang mendengar)</string>
+    <string name="service_running_wake_pause">HandleIT sedang berjalan (bangun dijeda)</string>
+    <string name="service_running_wake_listening">HandleIT sedang berjalan (bangun sedang mendengar)</string>
     <string name="service_running_stats">Berjalan perbualan %1$d · Panggilan alat %2$d</string>
     <string name="service_running_http_listening">HTTP luaran sedang mendengar port %1$d</string>
     <string name="service_running_with_http">%1$s · HTTP luaran %2$d</string>
@@ -6926,7 +6917,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="chat_message_token_speed_compact">%1$s t/s</string>
     <string name="software_identity_title">Identiti Perisian</string>
     <string name="software_identity_description">Tukar identiti perisian yang dipaparkan di bahagian atas bar sisi.</string>
-    <string name="software_identity_option_operit">Operit AI</string>
+    <string name="software_identity_option_operit">HandleIT AI</string>
     <string name="software_identity_option_lingshu">Lingshu AI</string>
     <string name="chat_auto_update_memory_failed">Gagal mengemas kini memori secara automatik: %1$s</string>
 
@@ -7692,11 +7683,11 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="user_configuration_auto_update_desc">Apabila diaktifkan, analisis memori jangka panjang akan mengemas kini user.md berdasarkan perbualan ruang yang berkaitan dengan konfigurasi ini. Kunci hanya menghalang kemas kini automatik; penyuntingan manual masih tersedia.</string>
     <string name="user_configuration_unlock_notice">Konfigurasi ini dimigrasikan daripada tetapan kunci versi lama; selepas menyimpan, keseluruhan profil akan dibuka kuncinya.</string>
     <string name="package_market_origin_title">Notis asal pakej luaran</string>
-    <string name="package_market_origin_message">Pakej ini berasal dari pasaran Operit.\nNama pakej: %1$s\nVersi: %2$s\nPengarang: %3$s\nSila sokong pengarang asal dan berhati-hati dengan penjualan semula.</string>
+    <string name="package_market_origin_message">Pakej ini berasal dari pasaran HandleIT.\nNama pakej: %1$s\nVersi: %2$s\nPengarang: %3$s\nSila sokong pengarang asal dan berhati-hati dengan penjualan semula.</string>
     <string name="market_agreement_title">Perjanjian penggunaan pasaran plugin dan kod kelakuan</string>
     <string name="market_agreement_subtitle">Sebelum memasuki pasaran plugin, sila baca dan bersetuju dengan perjanjian ini. Pasaran digunakan untuk berkongsi dan menemui plugin; kami mengesyorkan pengarang menerbitkan sumber terbuka secara langsung melalui repositori GitHub awam.</string>
     <string name="market_agreement_version">Versi perjanjian pasaran: %1$s</string>
-    <string name="market_agreement_content">1. Kedudukan pasaran. Pasaran plugin Operit hanya digunakan untuk berkongsi, menemui, dan mengindeks skrip, kit alat, Skill, MCP, dan sambungan lain, serta menyediakan pintu masuk untuk melayari, memuat turun, dan memasang dalam pasaran. Pasaran bukan pengarang plugin, pembeli, penjual, broker, pihak pembayaran, penjamin, atau institusi pendaftaran hak; paparan, penyertaan, penyusunan, atau pengesyoran plugin oleh pasaran tidak bermakna plugin itu dibangunkan, dimiliki, diwakili, atau disokong oleh Operit.\n\n2. Kebenaran penerbitan. Apabila penerbit menghantar plugin ke pasaran, mereka memberikan Operit lesen bukan eksklusif, tidak boleh dipindah milik, yang diperlukan semata-mata untuk mengendalikan pasaran, untuk menyimpan, cache, menyalin, memproses, memaparkan, mengindeks entri pasaran, dan menyediakan muat turun dan pemasangan plugin kepada pengguna pasaran. Tindakan penerbitan juga bermakna penerbit membenarkan pengguna pasaran memuat turun, memasang, dan menggunakan plugin secara normal dalam skop tujuan reka bentuk, tetapi tidak semestinya membenarkan pengubahsuaian atau pengedaran semula. Lesen ini tidak memindahkan hak cipta, pemilikan, atau hak lain plugin; pasaran tidak boleh memperoleh hak sublesen bebas di luar pasaran berdasarkan ini. Penerbit harus memastikan mereka berhak memberikan kebenaran di atas.\n\n3. Cadangan sumber terbuka GitHub. Kami mengesyorkan penerbit menerbitkan kod sumber, README, lesen, versi atau Release, dan rekod perubahan secara langsung dalam repositori GitHub awam yang mereka kawal, dan mendaftarkan sumber dari repositori tersebut ke pasaran. Repositori GitHub yang boleh dilihat secara awam tidak bermakna lesen sumber terbuka diberikan secara automatik; sama ada penggunaan, pengubahsuaian, dan pengedaran semula dibenarkan adalah berdasarkan lesen sumber terbuka yang dinyatakan secara jelas oleh pengarang atau kebenaran bertulis lain.\n\n4. Penggunaan dan pengedaran semula oleh pengguna. Hak pengedaran semula plugin pada dasarnya dikekalkan oleh pengarang atau pemegang hak lain. Muat turun, pemasangan, dan penggunaan normal yang disebutkan di atas tidak bermakna setiap pengguna diberi hak untuk memuat naik semula, memajukan, mengubah pakej, menjual, atau menerbitkan semula plugin. Kecuali dinyatakan sebaliknya oleh undang-undang, pengguna hanya boleh mengubah suai dan mengedarkan semula mengikut lesen atau kebenaran yang dinyatakan oleh pengarang; plugin yang tidak menyatakan kebenaran pengedaran semula tidak boleh diedarkan semula sendiri. Skop hak plugin sumber terbuka adalah berdasarkan lesen sumber terbukanya.\n\n5. Risiko pihak ketiga dan tanggungjawab keselamatan. Plugin mempunyai kod, konfigurasi, dan kebenaran pelaksanaan bebas; ia mungkin melaksanakan kod, memulakan perkhidmatan tempatan, mengakses fail, membaca pemboleh ubah persekitaran, atau menyambung ke rangkaian. Pengguna harus menyemak sendiri dan menanggung risiko mengaktifkan, memasang, dan menggunakan plugin. Penerbit tidak boleh menyerahkan API Key, Cookie, Token, kunci peribadi, kata laluan akaun, atau data pengguna dalam plugin, repositori, contoh, atau konfigurasi, dan harus menerangkan dengan jujur pengarang, lesen, kebenaran, tingkah laku rangkaian, pemboleh ubah persekitaran, perkhidmatan luaran, dan risiko yang diketahui. Operit tidak menjamin keselamatan, ketepatan, ketersediaan, kesahan, atau keserasian sambungan pihak ketiga.\n\n6. Ulasan dan tingkah laku komuniti. Kandungan ulasan harus berkaitan dengan fungsi plugin, pengalaman penggunaan, kecacatan, atau isu keselamatan. Tidak dibenarkan menerbitkan nombor kumpulan QQ, Telegram, Discord, maklumat hubungan, iklan, maklumat pemindahan trafik, maklumat transaksi, pautan tidak berkaitan, atau kandungan lain yang mungkin mengganggu ketenteraman komuniti; tidak dibenarkan mendedahkan API Key, Cookie, Token, kunci peribadi, kata laluan akaun, atau data peribadi lain.\n\n7. Larangan transaksi dan pemindahan trafik. Tidak dibenarkan membeli, menjual, atau memasang plugin secara tidak sah dalam pasaran; tidak dibenarkan menggunakan pembayaran, tip, keahlian, sembang peribadi, atau pautan pihak ketiga untuk memujuk orang lain membayar untuk plugin percuma. Pasaran tidak menyediakan perkhidmatan pembayaran, pelaksanaan, bayaran balik, atau penyelesaian pertikaian transaksi. Plugin percuma tidak memerlukan pembayaran kepada sesiapa; caj, kebenaran, atau janji dari saluran pihak ketiga tidak mewakili sokongan rasmi Operit.\n\n8. Sempadan perkhidmatan pasaran. Untuk menyediakan perkhidmatan perkongsian, muat turun, dan pemasangan, pasaran mungkin menyimpan, cache, atau menghantar entri pasaran dan fail plugin, tetapi tidak menjanjikan pengehosan kekal, sandaran, kerahsiaan, atau pencegahan penyalinan. Menerbitkan ke pasaran bermakna pengarang memberi kebenaran kepada pasaran untuk menyediakan muat turun dan pemasangan kepada pengguna pasaran mengikut perjanjian ini, tetapi tidak bermakna orang ramai secara automatik mendapat hak pengedaran semula. Ketersediaan, muat turun, dan penggunaan berterusan plugin juga bergantung pada repositori pengarang, GitHub, dan perkhidmatan pihak ketiga lain.\n\n9. Penguatkuasaan peraturan dan kemas kini perjanjian. Ulasan, entri, atau akaun yang melanggar peraturan ini mungkin disekat, disembunyikan, atau dialih keluar. Apabila perjanjian pasaran berubah secara substantif kerana keperluan fungsi, undang-undang, atau keselamatan, versi perjanjian akan dinaikkan; pengguna perlu membaca dan mengesahkan semula apabila memasuki pasaran.</string>
+    <string name="market_agreement_content">1. Kedudukan pasaran. Pasaran plugin HandleIT hanya digunakan untuk berkongsi, menemui, dan mengindeks skrip, kit alat, Skill, MCP, dan sambungan lain, serta menyediakan pintu masuk untuk melayari, memuat turun, dan memasang dalam pasaran. Pasaran bukan pengarang plugin, pembeli, penjual, broker, pihak pembayaran, penjamin, atau institusi pendaftaran hak; paparan, penyertaan, penyusunan, atau pengesyoran plugin oleh pasaran tidak bermakna plugin itu dibangunkan, dimiliki, diwakili, atau disokong oleh HandleIT.\n\n2. Kebenaran penerbitan. Apabila penerbit menghantar plugin ke pasaran, mereka memberikan HandleIT lesen bukan eksklusif, tidak boleh dipindah milik, yang diperlukan semata-mata untuk mengendalikan pasaran, untuk menyimpan, cache, menyalin, memproses, memaparkan, mengindeks entri pasaran, dan menyediakan muat turun dan pemasangan plugin kepada pengguna pasaran. Tindakan penerbitan juga bermakna penerbit membenarkan pengguna pasaran memuat turun, memasang, dan menggunakan plugin secara normal dalam skop tujuan reka bentuk, tetapi tidak semestinya membenarkan pengubahsuaian atau pengedaran semula. Lesen ini tidak memindahkan hak cipta, pemilikan, atau hak lain plugin; pasaran tidak boleh memperoleh hak sublesen bebas di luar pasaran berdasarkan ini. Penerbit harus memastikan mereka berhak memberikan kebenaran di atas.\n\n3. Cadangan sumber terbuka GitHub. Kami mengesyorkan penerbit menerbitkan kod sumber, README, lesen, versi atau Release, dan rekod perubahan secara langsung dalam repositori GitHub awam yang mereka kawal, dan mendaftarkan sumber dari repositori tersebut ke pasaran. Repositori GitHub yang boleh dilihat secara awam tidak bermakna lesen sumber terbuka diberikan secara automatik; sama ada penggunaan, pengubahsuaian, dan pengedaran semula dibenarkan adalah berdasarkan lesen sumber terbuka yang dinyatakan secara jelas oleh pengarang atau kebenaran bertulis lain.\n\n4. Penggunaan dan pengedaran semula oleh pengguna. Hak pengedaran semula plugin pada dasarnya dikekalkan oleh pengarang atau pemegang hak lain. Muat turun, pemasangan, dan penggunaan normal yang disebutkan di atas tidak bermakna setiap pengguna diberi hak untuk memuat naik semula, memajukan, mengubah pakej, menjual, atau menerbitkan semula plugin. Kecuali dinyatakan sebaliknya oleh undang-undang, pengguna hanya boleh mengubah suai dan mengedarkan semula mengikut lesen atau kebenaran yang dinyatakan oleh pengarang; plugin yang tidak menyatakan kebenaran pengedaran semula tidak boleh diedarkan semula sendiri. Skop hak plugin sumber terbuka adalah berdasarkan lesen sumber terbukanya.\n\n5. Risiko pihak ketiga dan tanggungjawab keselamatan. Plugin mempunyai kod, konfigurasi, dan kebenaran pelaksanaan bebas; ia mungkin melaksanakan kod, memulakan perkhidmatan tempatan, mengakses fail, membaca pemboleh ubah persekitaran, atau menyambung ke rangkaian. Pengguna harus menyemak sendiri dan menanggung risiko mengaktifkan, memasang, dan menggunakan plugin. Penerbit tidak boleh menyerahkan API Key, Cookie, Token, kunci peribadi, kata laluan akaun, atau data pengguna dalam plugin, repositori, contoh, atau konfigurasi, dan harus menerangkan dengan jujur pengarang, lesen, kebenaran, tingkah laku rangkaian, pemboleh ubah persekitaran, perkhidmatan luaran, dan risiko yang diketahui. HandleIT tidak menjamin keselamatan, ketepatan, ketersediaan, kesahan, atau keserasian sambungan pihak ketiga.\n\n6. Ulasan dan tingkah laku komuniti. Kandungan ulasan harus berkaitan dengan fungsi plugin, pengalaman penggunaan, kecacatan, atau isu keselamatan. Tidak dibenarkan menerbitkan nombor kumpulan QQ, Telegram, Discord, maklumat hubungan, iklan, maklumat pemindahan trafik, maklumat transaksi, pautan tidak berkaitan, atau kandungan lain yang mungkin mengganggu ketenteraman komuniti; tidak dibenarkan mendedahkan API Key, Cookie, Token, kunci peribadi, kata laluan akaun, atau data peribadi lain.\n\n7. Larangan transaksi dan pemindahan trafik. Tidak dibenarkan membeli, menjual, atau memasang plugin secara tidak sah dalam pasaran; tidak dibenarkan menggunakan pembayaran, tip, keahlian, sembang peribadi, atau pautan pihak ketiga untuk memujuk orang lain membayar untuk plugin percuma. Pasaran tidak menyediakan perkhidmatan pembayaran, pelaksanaan, bayaran balik, atau penyelesaian pertikaian transaksi. Plugin percuma tidak memerlukan pembayaran kepada sesiapa; caj, kebenaran, atau janji dari saluran pihak ketiga tidak mewakili sokongan rasmi HandleIT.\n\n8. Sempadan perkhidmatan pasaran. Untuk menyediakan perkhidmatan perkongsian, muat turun, dan pemasangan, pasaran mungkin menyimpan, cache, atau menghantar entri pasaran dan fail plugin, tetapi tidak menjanjikan pengehosan kekal, sandaran, kerahsiaan, atau pencegahan penyalinan. Menerbitkan ke pasaran bermakna pengarang memberi kebenaran kepada pasaran untuk menyediakan muat turun dan pemasangan kepada pengguna pasaran mengikut perjanjian ini, tetapi tidak bermakna orang ramai secara automatik mendapat hak pengedaran semula. Ketersediaan, muat turun, dan penggunaan berterusan plugin juga bergantung pada repositori pengarang, GitHub, dan perkhidmatan pihak ketiga lain.\n\n9. Penguatkuasaan peraturan dan kemas kini perjanjian. Ulasan, entri, atau akaun yang melanggar peraturan ini mungkin disekat, disembunyikan, atau dialih keluar. Apabila perjanjian pasaran berubah secara substantif kerana keperluan fungsi, undang-undang, atau keselamatan, versi perjanjian akan dinaikkan; pengguna perlu membaca dan mengesahkan semula apabila memasuki pasaran.</string>
     <string name="multi_select_actions">Tindakan</string>
     <string name="speech_services_tts_profiles">Profil konfigurasi TTS</string>
     <string name="speech_services_stt_profiles">Profil konfigurasi STT</string>
