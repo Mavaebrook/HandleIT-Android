@@ -1,5 +1,5 @@
  <resources>
-    <string name="app_name">Operit AI</string>
+    <string name="app_name">HandleIT</string>
     <string name="accessibility_service_description">Used to obtain the UI hierarchy, providing faster interface analysis capabilities for AI assistants, and does not collect or store any personal information.</string>
     
     <!-- Model selector related -->
@@ -582,13 +582,13 @@
     <string name="termux_setup_guide">Termux Setup Guide</string>
     
     <!-- About Screen -->
-    <string name="about_title">About Operit AI</string>
+    <string name="about_title">About HandleIT AI</string>
     <string name="about_version">Version: %1$s</string>
-    <string name="about_description">Operit AI is an intelligent assistant application that helps users use their devices more efficiently, providing interface analysis, chat conversations, and more.</string>
-    <string name="about_developer">Developer: &lt;a href="https://github.com/AAswordman"&gt;AAswordman&lt;/a&gt;</string>
-    <string name="about_contact">Contact Us: aaswordsman@foxmail.com</string>
-    <string name="about_website">&lt;a href="https://github.com/AAswordman/Operit"&gt;GitHub: https://github.com/AAswordman/Operit&lt;/a&gt;</string>
-    <string name="about_copyright">© 2025 - 2026 Operit. All Rights Reserved.</string>
+    <string name="about_description">HandleIT AI is an intelligent assistant application that helps users use their devices more efficiently, providing interface analysis, chat conversations, and more.</string>
+    <string name="about_developer">Developer: &lt;a href=https://github.com/Mavaebrook&gt;HandleIT&lt;/a&gt;</string>
+    <string name="about_contact">Contact Us: sales@handleit.online</string>
+    <string name="about_website">&lt;a href=https://handleit.online&gt;https://handleit.online&lt;/a&gt;</string>
+    <string name="about_copyright">© 2025 - 2026 HandleIT. All Rights Reserved.</string>
     <string name="star_on_github">Star on GitHub</string>
     <string name="update_log">Update Log</string>
     <string name="app_logo_description">App Logo</string>
@@ -610,7 +610,7 @@
     <string name="network_status_label">Network Status</string>
 
     <!-- Configuration Screen -->
-    <string name="config_title">Operit AI Assistant</string>
+    <string name="config_title">HandleIT AI Assistant</string>
     <string name="config_description">Use a DeepSeek API Key or configure another model service</string>
     <string name="config_api_key_label">API Key</string>
     <string name="config_api_key_placeholder">DeepSeek API Key</string>
@@ -721,7 +721,7 @@
     <string name="permission_guide_intro_2_title">A Powerful Toolbox for Geeks and Developers</string>
     <string name="permission_guide_intro_2_desc">With over 40 built-in professional tools for file management, web requests, script execution, and system control. Combined with a robust plugin system, you can automate tasks, and take deep control of your device.</string>
     <string name="permission_guide_intro_3_title">Unleash Creativity, Always on Standby</string>
-    <string name="permission_guide_intro_3_desc">Whether designing web pages, processing media files, or accessing the AI via its floating window, Operit provides a powerful, flexible, and secure environment for creation and assistance. Your data, your control.</string>
+    <string name="permission_guide_intro_3_desc">Whether designing web pages, processing media files, or accessing the AI via its floating window, HandleIT provides a powerful, flexible, and secure environment for creation and assistance. Your data, your control.</string>
     <string name="permission_guide_intro_page_indicator">Feature Tour %1$d/%2$d</string>
 
     <!-- Context Menu -->
@@ -1191,25 +1191,16 @@
     <string name="agreement_subtitle">Please read and agree to the following terms before use.</string>
     <string name="agreement_version">Agreement version: %1$s</string>
     <string name="agreement_human_readable_title">Plain Language Version (Not a legal document)</string>
-    <string name="agreement_human_readable_content">Service boundary: Operit does not provide publicly available anthropomorphic emotional interaction services. Operit is an open-source client that runs locally on your device. It does not operate model inference services, host chat sessions or interaction data, or distribute shared model credentials. Cloud model requests are sent directly from your device to the model provider you configure with your own credentials; related data is governed by the rules of that provider. Local models run inference on your device.\n\nThis app can call files, terminals, automation, Root, ADB, extensions, and similar capabilities. Check operations before running them, back up important data, and grant permissions carefully. Losses involving devices, data, accounts, or other interests caused by user actions, user configuration, third-party services, or third-party extensions should be handled by the actual operator under applicable law.\n\nThird-party plugins, scripts, Skills, toolkits, and other marketplace content belong to their labelled authors or right holders, together with related responsibility. Marketplace listing or installation does not mean Operit guarantees, endorses, or obtains rights to that content. Confirm the license and rights status before using, modifying, publishing, or redistributing it.</string>
+    <string name="agreement_human_readable_content">Service boundary: HandleIT does not provide publicly available anthropomorphic emotional interaction services. HandleIT is an open-source client that runs locally on your device. It does not operate model inference services, host chat sessions or interaction data, or distribute shared model credentials. Cloud model requests are sent directly from your device to the model provider you configure with your own credentials; related data is governed by the rules of that provider. Local models run inference on your device.\n\nThis app can call files, terminals, automation, Root, ADB, extensions, and similar capabilities. Check operations before running them, back up important data, and grant permissions carefully. Losses involving devices, data, accounts, or other interests caused by user actions, user configuration, third-party services, or third-party extensions should be handled by the actual operator under applicable law.\n\nThird-party plugins, scripts, Skills, toolkits, and other marketplace content belong to their labelled authors or right holders, together with related responsibility. Marketplace listing or installation does not mean HandleIT guarantees, endorses, or obtains rights to that content. Confirm the license and rights status before using, modifying, publishing, or redistributing it.</string>
     <string name="agreement_serious_title">Formal Legal Agreement</string>
-    <string name="agreement_serious_content"><![CDATA[
-        <p><b>Operit User Agreement and Privacy Policy</b><br>Version: 2026-07-15; intended effective date: July 15, 2026.</p>
-        <p><b>1. Scope and Agreement Version</b><br>This agreement applies to the officially released Operit Android client and its optional online features. By using this app, you confirm that you have read and accepted the current version. The app records the agreement version you have accepted at startup; when the agreement is materially updated, the app will require you to confirm the new version before continuing. The open-source code in the repository is licensed under the GNU Lesser General Public License version 3 (LGPLv3) in the root <code>LICENSE</code> file. This agreement does not exclude or reduce rights granted by applicable law or open-source licenses.</p>
-        <p><b>2. Product Positioning and Third-Party Services</b><br>Operit is open-source client software. It does not provide large language model inference, shared API Keys, chat request relay, or cloud hosting of chat records. Cloud models, cloud voice, search, image generation, MCP, and other network features are selected, configured, and enabled by you. When you use those services, data is sent directly to the corresponding service provider and is governed by the terms and privacy policy of that provider. You should evaluate the safety, legality, and suitability of providers, models, endpoints, and extensions, and keep credentials secure.</p>
-        <p><b>3. Data Processing and Privacy</b><br>Chat records, character cards, memories, model configuration, and API Keys are usually stored in the app data on your device. When you actively export, back up, upload files, use third-party network features, or submit requests to an external HTTP service, related data will be copied, transmitted, or disclosed according to your actions. Marketplace, announcements, update checks, GitHub login, and publishing features may access Operit, GitHub, or related third-party resources; these features do not relay chat model requests. Manage your data and credentials together with device security settings, third-party service terms, and this agreement.</p>
-        <p><b>4. External Deployment and Operator Responsibility</b><br>External HTTP services, QQ Bot, auto-reply, and similar capabilities are enabled at your choice. If you make them available to others or to the public, you act as the actual deployer or operator and are responsible for access control, user authorization, content safety, data protection, minor protection, required notices, and other applicable obligations. If you continuously provide emotional interaction services to the public in mainland China that simulate natural-person personality traits, thinking patterns, or communication styles, you should evaluate and comply with the Interim Measures for the Administration of Artificial Intelligence Anthropomorphic Interaction Services (《人工智能拟人化互动服务管理暂行办法》) and other applicable rules. You must not use this app to provide virtual relatives, virtual companions, or other virtual intimate relationship services to minors, induce emotional dependence or addiction, conduct emotional manipulation, or otherwise infringe the lawful rights and interests of others.</p>
-        <p><b>5. Lawful Use and Content Responsibility</b><br>You must comply with applicable laws and regulations, third-party service rules, and platform rules. You must not use this app, extensions, or configuration to conduct unlawful activities, infringe others rights, access systems or data without authorization, or spread unlawful or harmful content. You are responsible for the content and conduct you input, configure, generate, publish, forward, or operate. AI outputs may contain errors, omissions, or bias and do not constitute medical, mental-health crisis, legal, financial, or other professional advice. In urgent dangerous situations, contact local emergency services, medical institutions, or trusted people promptly.</p>
-        <p><b>6. Software Provided As Is</b><br>To the extent permitted by applicable law, this software is provided on an "as is" and "as available" basis. Contributors make no express or implied warranties regarding the continued availability, accuracy, safety, merchantability, fitness for a particular purpose, or non-infringement of the software or third-party services. Losses caused by use of this software, third-party services, extensions, user configuration, or self-made modifications should be handled under applicable law and the relevant service agreements.</p>
-        <p><b>7. Agreement Updates and Contact</b><br>We may update this agreement due to feature, legal, or security requirements, and provide the current version in the app. Updates that materially affect user rights will take effect by increasing the agreement version and requiring confirmation again. You may raise questions and feedback through the project repository, in-app feedback entry, or public contact channels.</p>
-    ]]></string>
+    <string name="agreement_serious_content"> &lt;p&gt;&lt;b&gt;HandleIT User Agreement and Privacy Policy&lt;/b&gt;&lt;br&gt;Version: 2026-07-15; intended effective date: July 15, 2026.&lt;/p&gt; &lt;p&gt;&lt;b&gt;1. Scope and Agreement Version&lt;/b&gt;&lt;br&gt;This agreement applies to the officially released HandleIT Android client and its optional online features. By using this app, you confirm that you have read and accepted the current version. The app records the agreement version you have accepted at startup; when the agreement is materially updated, the app will require you to confirm the new version before continuing. The open-source code in the repository is licensed under the GNU Lesser General Public License version 3 (LGPLv3) in the root &lt;code&gt;LICENSE&lt;/code&gt; file. This agreement does not exclude or reduce rights granted by applicable law or open-source licenses.&lt;/p&gt; &lt;p&gt;&lt;b&gt;2. Product Positioning and Third-Party Services&lt;/b&gt;&lt;br&gt;HandleIT is open-source client software. It does not provide large language model inference, shared API Keys, chat request relay, or cloud hosting of chat records. Cloud models, cloud voice, search, image generation, MCP, and other network features are selected, configured, and enabled by you. When you use those services, data is sent directly to the corresponding service provider and is governed by the terms and privacy policy of that provider. You should evaluate the safety, legality, and suitability of providers, models, endpoints, and extensions, and keep credentials secure.&lt;/p&gt; &lt;p&gt;&lt;b&gt;3. Data Processing and Privacy&lt;/b&gt;&lt;br&gt;Chat records, character cards, memories, model configuration, and API Keys are usually stored in the app data on your device. When you actively export, back up, upload files, use third-party network features, or submit requests to an external HTTP service, related data will be copied, transmitted, or disclosed according to your actions. Marketplace, announcements, update checks, GitHub login, and publishing features may access HandleIT, GitHub, or related third-party resources; these features do not relay chat model requests. Manage your data and credentials together with device security settings, third-party service terms, and this agreement.&lt;/p&gt; &lt;p&gt;&lt;b&gt;4. External Deployment and Operator Responsibility&lt;/b&gt;&lt;br&gt;External HTTP services, QQ Bot, auto-reply, and similar capabilities are enabled at your choice. If you make them available to others or to the public, you act as the actual deployer or operator and are responsible for access control, user authorization, content safety, data protection, minor protection, required notices, and other applicable obligations. If you continuously provide emotional interaction services to the public in mainland China that simulate natural-person personality traits, thinking patterns, or communication styles, you should evaluate and comply with the Interim Measures for the Administration of Artificial Intelligence Anthropomorphic Interaction Services (《人工智能拟人化互动服务管理暂行办法》) and other applicable rules. You must not use this app to provide virtual relatives, virtual companions, or other virtual intimate relationship services to minors, induce emotional dependence or addiction, conduct emotional manipulation, or otherwise infringe the lawful rights and interests of others.&lt;/p&gt; &lt;p&gt;&lt;b&gt;5. Lawful Use and Content Responsibility&lt;/b&gt;&lt;br&gt;You must comply with applicable laws and regulations, third-party service rules, and platform rules. You must not use this app, extensions, or configuration to conduct unlawful activities, infringe others rights, access systems or data without authorization, or spread unlawful or harmful content. You are responsible for the content and conduct you input, configure, generate, publish, forward, or operate. AI outputs may contain errors, omissions, or bias and do not constitute medical, mental-health crisis, legal, financial, or other professional advice. In urgent dangerous situations, contact local emergency services, medical institutions, or trusted people promptly.&lt;/p&gt; &lt;p&gt;&lt;b&gt;6. Software Provided As Is&lt;/b&gt;&lt;br&gt;To the extent permitted by applicable law, this software is provided on an as is and as available basis. Contributors make no express or implied warranties regarding the continued availability, accuracy, safety, merchantability, fitness for a particular purpose, or non-infringement of the software or third-party services. Losses caused by use of this software, third-party services, extensions, user configuration, or self-made modifications should be handled under applicable law and the relevant service agreements.&lt;/p&gt; &lt;p&gt;&lt;b&gt;7. Agreement Updates and Contact&lt;/b&gt;&lt;br&gt;We may update this agreement due to feature, legal, or security requirements, and provide the current version in the app. Updates that materially affect user rights will take effect by increasing the agreement version and requiring confirmation again. You may raise questions and feedback through the project repository, in-app feedback entry, or public contact channels.&lt;/p&gt; </string>
     <string name="agreement_disclaimer">The plain language version is only for easier understanding. If it differs from the Chinese formal version, the Chinese formal version prevails.</string>
     <string name="agreement_accept">I have read and agree</string>
     <string name="agreement_wait">Please wait... (%1$d)</string>
     <string name="market_agreement_title">Plugin Market Agreement and Community Rules</string>
     <string name="market_agreement_subtitle">Please read and agree to this agreement before entering the plugin market. The market is for sharing and discovering plugins; authors are encouraged to open source through a public GitHub repository.</string>
     <string name="market_agreement_version">Market agreement version: %1$s</string>
-    <string name="market_agreement_content">1. Market role. The Operit plugin market is only for sharing, discovering, and indexing scripts, packages, Skills, MCP servers, and other extensions, and for providing in-market browsing, downloading, and installation entry points. The market is not the plugin author, buyer, seller, broker, payment provider, guarantor, or rights registry. Listing, displaying, ranking, or recommending a plugin does not mean that Operit developed, owns, represents, or endorses it.\n\n2. Publication license. By submitting a plugin to the market, the publisher grants Operit a non-exclusive, non-transferable license limited to what is necessary to operate the market: to store, cache, reproduce, process, display, and index the market entry, and to provide the plugin to market users for downloading and installation. Publication also means that the publisher allows market users to download, install, and use the plugin for its intended purpose, but does not by itself permit modification or redistribution. This license does not transfer copyright, ownership, or other rights in the plugin, and does not give the market a general right to sublicense the plugin outside the market. The publisher must have the right to grant this license.\n\n3. GitHub open-source recommendation. We recommend that publishers publish source code directly in a public GitHub repository they control, together with a README, license, versions or Releases, and changelogs, and register that source with the market. A publicly visible GitHub repository does not automatically grant an open-source license. Permission to use, modify, or redistribute must come from the author\'s stated open-source license or another written authorization.\n\n4. User use and redistribution. The right to redistribute a plugin remains with its author or other rights holder unless the applicable license or another authorization permits it. The preceding permission to download, install, and use does not grant every user the right to upload, forward, repackage, sell, or republish the plugin. Unless the law provides otherwise, users may modify and redistribute a plugin only under the license or authorization stated by the author. A plugin without permission to redistribute may not be redistributed by users. The rights for an open-source plugin are determined by its open-source license.\n\n5. Third-party risks and security responsibility. Plugins have independent code, configuration, and runtime permissions. They may execute code, start local services, access files, read environment variables, or connect to the network. Users must review and bear the risks of enabling, installing, and using plugins. Publishers must not commit API keys, cookies, tokens, private keys, passwords, or user data to plugins, repositories, examples, or configuration, and must accurately disclose the author, license, permissions, network behavior, environment variables, external services, and known risks. Operit does not guarantee the security, accuracy, availability, legality, or compatibility of third-party extensions.\n\n6. Comments and community conduct. Comments must relate to plugin features, usage, defects, or security issues. Do not post QQ, Telegram, Discord, or other group numbers, contact details, advertisements, traffic diversion, transaction information, unrelated links, or other disruptive content. Do not disclose API keys, cookies, tokens, private keys, passwords, or personal data.\n\n7. No trading or diversion. Do not buy, sell, resell, or provide paid installation of plugins in the market. Do not use payments, tips, memberships, private messages, or third-party links to charge others for free plugins. The market does not provide payment, fulfillment, refunds, or transaction dispute services. Free plugins require no payment to anyone; charges, licenses, or promises from third-party channels are not endorsed by Operit.\n\n8. Market service boundary. To provide sharing, downloading, and installation, the market may store, cache, or transmit market entries and plugin files, but it does not promise permanent hosting, backup, confidentiality, or anti-copying. Publishing to the market means that the author authorizes the market to provide downloading and installation to market users under this agreement; it does not automatically give the public a right to redistribute the plugin. Availability and continued access may depend on the author\'s repository, GitHub, and other third-party services.\n\n9. Enforcement and updates. Comments, entries, or accounts that violate these rules may be restricted, hidden, or removed. When this market agreement changes materially due to product, legal, or security requirements, its version will be increased. Users must read and confirm the updated agreement when they next enter the market.</string>
+    <string name="market_agreement_content">1. Market role. The HandleIT plugin market is only for sharing, discovering, and indexing scripts, packages, Skills, MCP servers, and other extensions, and for providing in-market browsing, downloading, and installation entry points. The market is not the plugin author, buyer, seller, broker, payment provider, guarantor, or rights registry. Listing, displaying, ranking, or recommending a plugin does not mean that HandleIT developed, owns, represents, or endorses it.\n\n2. Publication license. By submitting a plugin to the market, the publisher grants HandleIT a non-exclusive, non-transferable license limited to what is necessary to operate the market: to store, cache, reproduce, process, display, and index the market entry, and to provide the plugin to market users for downloading and installation. Publication also means that the publisher allows market users to download, install, and use the plugin for its intended purpose, but does not by itself permit modification or redistribution. This license does not transfer copyright, ownership, or other rights in the plugin, and does not give the market a general right to sublicense the plugin outside the market. The publisher must have the right to grant this license.\n\n3. GitHub open-source recommendation. We recommend that publishers publish source code directly in a public GitHub repository they control, together with a README, license, versions or Releases, and changelogs, and register that source with the market. A publicly visible GitHub repository does not automatically grant an open-source license. Permission to use, modify, or redistribute must come from the author\'s stated open-source license or another written authorization.\n\n4. User use and redistribution. The right to redistribute a plugin remains with its author or other rights holder unless the applicable license or another authorization permits it. The preceding permission to download, install, and use does not grant every user the right to upload, forward, repackage, sell, or republish the plugin. Unless the law provides otherwise, users may modify and redistribute a plugin only under the license or authorization stated by the author. A plugin without permission to redistribute may not be redistributed by users. The rights for an open-source plugin are determined by its open-source license.\n\n5. Third-party risks and security responsibility. Plugins have independent code, configuration, and runtime permissions. They may execute code, start local services, access files, read environment variables, or connect to the network. Users must review and bear the risks of enabling, installing, and using plugins. Publishers must not commit API keys, cookies, tokens, private keys, passwords, or user data to plugins, repositories, examples, or configuration, and must accurately disclose the author, license, permissions, network behavior, environment variables, external services, and known risks. HandleIT does not guarantee the security, accuracy, availability, legality, or compatibility of third-party extensions.\n\n6. Comments and community conduct. Comments must relate to plugin features, usage, defects, or security issues. Do not post QQ, Telegram, Discord, or other group numbers, contact details, advertisements, traffic diversion, transaction information, unrelated links, or other disruptive content. Do not disclose API keys, cookies, tokens, private keys, passwords, or personal data.\n\n7. No trading or diversion. Do not buy, sell, resell, or provide paid installation of plugins in the market. Do not use payments, tips, memberships, private messages, or third-party links to charge others for free plugins. The market does not provide payment, fulfillment, refunds, or transaction dispute services. Free plugins require no payment to anyone; charges, licenses, or promises from third-party channels are not endorsed by HandleIT.\n\n8. Market service boundary. To provide sharing, downloading, and installation, the market may store, cache, or transmit market entries and plugin files, but it does not promise permanent hosting, backup, confidentiality, or anti-copying. Publishing to the market means that the author authorizes the market to provide downloading and installation to market users under this agreement; it does not automatically give the public a right to redistribute the plugin. Availability and continued access may depend on the author\'s repository, GitHub, and other third-party services.\n\n9. Enforcement and updates. Comments, entries, or accounts that violate these rules may be restricted, hidden, or removed. When this market agreement changes materially due to product, legal, or security requirements, its version will be increased. Users must read and confirm the updated agreement when they next enter the market.</string>
     
     <!-- File Manager -->
     <string name="files_selected">%1$d files selected</string>
@@ -1757,7 +1748,7 @@
     <string name="accessibility_wizard_install_provider">Install Provider App</string>
     <string name="accessibility_wizard_enable_message">Now, enable the accessibility service in your device settings. This allows the provider app to analyze screen content.</string>
     <string name="accessibility_wizard_enable_note">Important Note:</string>
-    <string name="accessibility_wizard_enable_note_details">You must select and enable \"Operit Accessibility Provider\" from the list of services.</string>
+    <string name="accessibility_wizard_enable_note_details">You must select and enable \\"HandleIT Accessibility Provider\\" from the list of services.</string>
     <string name="accessibility_wizard_open_settings">Open Accessibility Settings</string>
     <string name="accessibility_wizard_success_message">Accessibility service is properly configured and ready to use!</string>
 
@@ -1995,7 +1986,7 @@
     <string name="external_http_chat_health_example">Health Check Example</string>
     <string name="external_http_chat_intent_title">Intent Calling Guide</string>
     <string name="external_http_chat_intent_desc">The broadcast entry is still available for local app integration, Tasker, or adb debugging</string>
-    <string name="external_http_chat_intent_overview">HTTP and Intent share the same parameter semantics. Only the entry method is different.\n\nRequest action: %1$s\nDefault result action: %2$s\n\nCommon extras: message, request_id, group, create_new_chat, chat_id, create_if_none, show_floating, return_tool_status, initial_mode, auto_exit_after_ms, stop_after, reply_action, reply_package\n\nAfter completion, Operit returns success, chat_id, ai_response, and error by broadcast. If the result should only be delivered to one app, set reply_package.</string>
+    <string name="external_http_chat_intent_overview">HTTP and Intent share the same parameter semantics. Only the entry method is different.\n\nRequest action: %1$s\nDefault result action: %2$s\n\nCommon extras: message, request_id, group, create_new_chat, chat_id, create_if_none, show_floating, return_tool_status, initial_mode, auto_exit_after_ms, stop_after, reply_action, reply_package\n\nAfter completion, HandleIT returns success, chat_id, ai_response, and error by broadcast. If the result should only be delivered to one app, set reply_package.</string>
     <string name="external_http_chat_copy_example">Copy Example</string>
     <string name="external_http_chat_example_copied">Example command copied</string>
     <string name="external_http_chat_service_enabled">Service enabled</string>
@@ -2175,7 +2166,7 @@
     <string name="tool_user_agreement">User Agreement</string>
     <string name="tool_user_agreement_desc">View the application\'s user agreement and privacy policy</string>
     <string name="tool_default_assistant_guide">Default Assistant Setup</string>
-    <string name="tool_default_assistant_guide_desc">Set Operit voice floating as system default assistant</string>
+    <string name="tool_default_assistant_guide_desc">Set HandleIT voice floating as system default assistant</string>
     <string name="tool_terminal">Command Terminal</string>
     <string name="tool_terminal_desc">Powerful command-line terminal for executing system commands</string>
     <string name="tool_terminal_auto_config">Terminal Auto Configuration</string>
@@ -4849,14 +4840,14 @@
     <string name="mcp_issue_body_title_install_info">## Installation Info</string>
     <string name="mcp_issue_body_repo_address">**Repository:** %1$s</string>
     <string name="mcp_issue_body_title_install_method">### Installation</string>
-    <string name="mcp_issue_body_install_step1">1. Open Operit MCP configuration screen and tap "Import"</string>
+    <string name="mcp_issue_body_install_step1">1. Open HandleIT MCP configuration screen and tap Import</string>
     <string name="mcp_issue_body_install_step2">2. Select "Import from Repo"</string>
     <string name="mcp_issue_body_install_step3">3. Enter repository URL: `%1$s`</string>
     <string name="mcp_issue_body_install_step4">4. Set plugin name and tap import</string>
     <string name="mcp_issue_body_title_tech_info">## Technical Info</string>
-    <string name="mcp_issue_body_tech_platform">- **Platform:** Operit MCP Market</string>
+    <string name="mcp_issue_body_tech_platform">- **Platform:** HandleIT MCP Market</string>
     <string name="mcp_issue_body_tech_publish_time">- **Published at:** %1$s</string>
-    <string name="mcp_issue_body_footer_note">*This Issue was generated automatically by Operit*</string>
+    <string name="mcp_issue_body_footer_note">*This Issue was generated automatically by HandleIT*</string>
 
     <string name="mcp_publish_body_section_plugin_info">## 📋 Plugin Info</string>
     <string name="mcp_publish_body_label_description">**Description:** %1$s</string>
@@ -4865,18 +4856,18 @@
     <string name="mcp_publish_body_section_quick_install">## ⚡ Quick Install</string>
     <string name="mcp_publish_body_section_install_method">## 📦 Installation</string>
     <string name="mcp_publish_body_method_repo_import_title">### Method 1: Import from Repo</string>
-    <string name="mcp_publish_body_method_repo_import_step1">1. Open Operit MCP configuration screen</string>
+    <string name="mcp_publish_body_method_repo_import_step1">1. Open HandleIT MCP configuration screen</string>
     <string name="mcp_publish_body_method_repo_import_step2">2. Tap "Import" → "Import from Repo"</string>
     <string name="mcp_publish_body_method_repo_import_step3">3. Enter repository URL: `%1$s`</string>
     <string name="mcp_publish_body_method_repo_import_step4">4. Set plugin name and import</string>
     <string name="mcp_publish_body_method_config_import_title">### Method 2: Import Config</string>
-    <string name="mcp_publish_body_method_config_import_step1">1. Open Operit MCP configuration screen</string>
+    <string name="mcp_publish_body_method_config_import_step1">1. Open HandleIT MCP configuration screen</string>
     <string name="mcp_publish_body_method_config_import_step2">2. Tap "Import" → "Import Config"</string>
     <string name="mcp_publish_body_method_config_import_step3">3. Paste the following config:</string>
     <string name="mcp_publish_body_section_tech_info">## 🛠️ Technical Info</string>
     <string name="mcp_publish_body_table_header">| Item | Value |</string>
     <string name="mcp_publish_body_table_separator">|------|-----|</string>
-    <string name="mcp_publish_body_table_row_platform">| Platform | Operit MCP Market |</string>
+    <string name="mcp_publish_body_table_row_platform">| Platform | HandleIT MCP Market |</string>
     <string name="mcp_publish_body_table_row_parser_version">| Parser Version | 1.0 |</string>
     <string name="mcp_publish_body_table_row_publish_time">| Published at | %1$s |</string>
     
@@ -4985,7 +4976,7 @@
     <string name="custom">Custom</string>
 
     <!-- Voice Assistant Widget -->
-    <string name="voice_assistant_widget_description">Quick launch Operit voice assistant</string>
+    <string name="voice_assistant_widget_description">Quick launch HandleIT voice assistant</string>
     <string name="voice_assistant_widget_title">Voice Assistant</string>
     <string name="toolpkg_widget_host_label">Custom Widget</string>
     <string name="toolpkg_widget_host_description">Add it and bind it to a widget page registered by a plugin</string>
@@ -5070,15 +5061,15 @@
 
     <!-- Default Assistant Setup Guide -->
     <string name="default_assistant_guide_title">Set Default Voice Assistant</string>
-    <string name="default_assistant_guide_subtitle">Make Operit Your Smart Assistant</string>
-    <string name="default_assistant_guide_intro">After setting Operit as the default system assistant, you can quickly launch the Operit voice assistant by long-pressing the Home button or using voice wake-up, providing a more convenient AI interaction experience.</string>
+    <string name="default_assistant_guide_subtitle">Make HandleIT Your Smart Assistant</string>
+    <string name="default_assistant_guide_intro">After setting HandleIT as the default system assistant, you can quickly launch the HandleIT voice assistant by long-pressing the Home button or using voice wake-up, providing a more convenient AI interaction experience.</string>
     <string name="default_assistant_guide_steps_title">Setup Steps</string>
     
     <!-- Step 1 -->
     <string name="default_assistant_guide_step1_title">Open System Settings</string>
     <string name="default_assistant_guide_step1_desc">First, you need to enter the Android system settings interface</string>
     <string name="default_assistant_guide_step1_detail1">• Open System Settings → Apps → Default apps → Digital assistant app</string>
-    <string name="default_assistant_guide_step1_detail2">• Find and select "Operit AI" in the assistant app list</string>
+    <string name="default_assistant_guide_step1_detail2">• Find and select HandleIT AI in the assistant app list</string>
     <string name="default_assistant_guide_step1_detail_android12">Android 12+: Settings → Apps → Default apps → Digital assistant app → Default digital assistant app</string>
     <string name="default_assistant_guide_open_settings">Open Settings</string>
     
@@ -5093,24 +5084,24 @@
     <string name="default_assistant_guide_step2_detail_android12">Android 12+: Settings → Apps → Default apps → Digital assistant app → Default digital assistant app</string>
     
     <!-- Step 3 -->
-    <string name="default_assistant_guide_step3_title">Select Operit</string>
-    <string name="default_assistant_guide_step3_desc">Choose Operit AI from the assistant app list</string>
-    <string name="default_assistant_guide_step3_detail1">• Find \"Operit AI\" in the available assistant apps list</string>
-    <string name="default_assistant_guide_step3_detail2">• Tap to select, and the system will set Operit as the default assistant</string>
+    <string name="default_assistant_guide_step3_title">Select HandleIT</string>
+    <string name="default_assistant_guide_step3_desc">Choose HandleIT AI from the assistant app list</string>
+    <string name="default_assistant_guide_step3_detail1">• Find \\"HandleIT AI\\" in the available assistant apps list</string>
+    <string name="default_assistant_guide_step3_detail2">• Tap to select, and the system will set HandleIT as the default assistant</string>
     <string name="default_assistant_guide_step3_detail3">• You can try speaking or typing to interact with the assistant</string>
     
     <!-- Step 4 -->
     <string name="default_assistant_guide_step4_title">Test Voice Assistant</string>
     <string name="default_assistant_guide_step4_desc">After setup, test if it can be launched normally</string>
-    <string name="default_assistant_guide_step4_detail1">• Long-press the Home button (home screen button) should invoke Operit voice assistant</string>
-    <string name="default_assistant_guide_step4_detail2">• If voice wake-up is supported, saying \"Hey Google\" or your device\'s designated wake word may also trigger Operit</string>
+    <string name="default_assistant_guide_step4_detail1">• Long-press the Home button (home screen button) should invoke HandleIT voice assistant</string>
+    <string name="default_assistant_guide_step4_detail2">• If voice wake-up is supported, saying \\"Hey Google\\" or your device\'s designated wake word may also trigger HandleIT</string>
     
     <!-- Troubleshooting -->
     <string name="default_assistant_guide_troubleshooting_title">Having Problems?</string>
-    <string name="default_assistant_guide_troubleshooting_content">If you can\'t find Operit in the list, please ensure:\n\n• The app is properly installed and not disabled\n• Necessary permissions have been granted (microphone, overlay, etc.)\n• Try restarting the device and setting it up again\n\nSome custom systems may restrict third-party apps from being set as default assistants. If you encounter this situation, you can still use Operit through the in-app floating window feature.</string>
+    <string name="default_assistant_guide_troubleshooting_content">If you can\'t find HandleIT in the list, please ensure:\n\n• The app is properly installed and not disabled\n• Necessary permissions have been granted (microphone, overlay, etc.)\n• Try restarting the device and setting it up again\n\nSome custom systems may restrict third-party apps from being set as default assistants. If you encounter this situation, you can still use HandleIT through the in-app floating window feature.</string>
 
     <!-- Voice Interaction Service -->
-    <string name="voice_interaction_service_name">Operit AI Assistant</string>
+    <string name="voice_interaction_service_name">HandleIT AI Assistant</string>
     <string name="voice_interaction_service_summary">Intelligent voice assistant service</string>
 
     <!-- Tool Permission Settings -->
@@ -5388,7 +5379,7 @@
     <string name="start_with_new_chat_description">When enabled, each app launch opens a new blank chat instead of reopening the previous conversation.</string>
     <string name="software_identity_title">Software Identity</string>
     <string name="software_identity_description">Change the software identity shown at the top of the sidebar.</string>
-    <string name="software_identity_option_operit">Operit AI</string>
+    <string name="software_identity_option_operit">HandleIT AI</string>
     <string name="software_identity_option_lingshu">Lingshu AI</string>
     <string name="reset_all_display_settings">Reset All Display Settings</string>
     
@@ -5741,7 +5732,7 @@
 
     <!-- Logcat -->
     <string name="logcat_no_logs_to_save">No logs to save</string>
-    <string name="logcat_header">=== Operit Logs ===</string>
+    <string name="logcat_header">=== HandleIT Logs ===</string>
     <string name="logcat_date">Date: %1$s</string>
     <string name="logcat_total_count">Total count: %1$d</string>
     <string name="logcat_save_failed">Save failed: %1$s</string>
@@ -6268,14 +6259,14 @@
     <string name="skill_publish_body_section_repo_info">## 🔗 Repository Info</string>
     <string name="skill_publish_body_label_repo_url">**Repository URL:** %1$s</string>
     <string name="skill_publish_body_section_install_method">## 📦 Installation</string>
-    <string name="skill_publish_body_install_step1">1. Open Operit → Package Manager → Skills</string>
+    <string name="skill_publish_body_install_step1">1. Open HandleIT → Package Manager → Skills</string>
     <string name="skill_publish_body_install_step2">2. Tap "Import Skill" → "Import from Repository"</string>
     <string name="skill_publish_body_install_step3">3. Enter repository URL: `%1$s`</string>
     <string name="skill_publish_body_install_step4">4. Confirm import</string>
     <string name="skill_publish_body_section_tech_info">## 🛠️ Technical Info</string>
     <string name="skill_publish_body_table_header">| Item | Value |</string>
     <string name="skill_publish_body_table_separator">|------|-------|</string>
-    <string name="skill_publish_body_table_row_platform">| Platform | Operit Skill Market |</string>
+    <string name="skill_publish_body_table_row_platform">| Platform | HandleIT Skill Market |</string>
     <string name="skill_publish_body_table_row_parser_version">| Parser version | 1.0 |</string>
     <string name="skill_publish_body_table_row_publish_time">| Publish time | %1$s |</string>
 
@@ -7176,15 +7167,15 @@
     <string name="chat_summarize_generation_failed">Summary generation failed: %1$s</string>
 
     <!-- AIForegroundService (新增) -->
-    <string name="service_operit_running">Operit is running</string>
+    <string name="service_operit_running">HandleIT is running</string>
     <string name="service_chat_complete_reminder">Chat completion reminder</string>
     <string name="service_chat_complete_reminder_sound">Chat completion reminder (sound)</string>
     <string name="service_chat_complete_reminder_vibration">Chat completion reminder (vibration)</string>
     <string name="service_chat_complete_reminder_sound_vibration">Chat completion reminder (sound and vibration)</string>
-    <string name="service_keep_background">Keep Operit running in the background.</string>
+    <string name="service_keep_background">Keep HandleIT running in the background.</string>
     <string name="service_notify_when_complete">Notify you when the conversation is complete.</string>
-    <string name="service_running_wake_pause">Operit is running (wake paused)</string>
-    <string name="service_running_wake_listening">Operit is running (wake listening)</string>
+    <string name="service_running_wake_pause">HandleIT is running (wake paused)</string>
+    <string name="service_running_wake_listening">HandleIT is running (wake listening)</string>
     <string name="service_running_stats">Conversations %1$d · Tools %2$d</string>
     <string name="service_running_http_listening">External HTTP listening on port %1$d</string>
     <string name="service_running_with_http">%1$s · HTTP %2$d</string>
@@ -7231,7 +7222,7 @@
     <string name="html_export_updated">Updated</string>
     <string name="html_export_group">Group</string>
     <string name="html_export_message_count">Message Count</string>
-    <string name="html_export_footer">Exported from Operit AI Assistant</string>
+    <string name="html_export_footer">Exported from HandleIT AI Assistant</string>
 
     <!-- MnnModelDownloadManager -->
     <string name="mnn_no_cache_data">No cache data</string>
@@ -7858,7 +7849,7 @@
     <string name="retry_market_registration">Retry market registration</string>
     <string name="update_to_market">Update to market</string>
     <string name="create_operit_forge_title">Create OperitForge?</string>
-    <string name="create_operit_forge_message">This is your first direct publish. Operit needs to create a public repository `OperitForge` under your GitHub account.</string>
+    <string name="create_operit_forge_message">This is your first direct publish. HandleIT needs to create a public repository `OperitForge` under your GitHub account.</string>
     <string name="confirm_create_public_forge_title">Confirm create public repository</string>
     <string name="confirm_create_public_forge_message">Please confirm again: create the public repository `OperitForge` now. Future publishes will reuse this repository.</string>
     <string name="create_and_publish">Create and publish</string>
@@ -8502,7 +8493,7 @@
     <string name="conversation_media_file_link">&lt;link type=&quot;file&quot; id=&quot;%1$s&quot; filename=&quot;%2$s&quot;&gt;PDF&lt;/link&gt;</string>
 
     <string name="package_market_origin_title">External Package Source Notice</string>
-    <string name="package_market_origin_message">This package is from the Operit market.\nPackage name: %1$s\nVersion: %2$s\nAuthor: %3$s\nPlease support the original author and be cautious of unauthorized resale.</string>
+    <string name="package_market_origin_message">This package is from the HandleIT market.\nPackage name: %1$s\nVersion: %2$s\nAuthor: %3$s\nPlease support the original author and be cautious of unauthorized resale.</string>
     <string name="thinking_config_title">Thinking Configuration</string>
     <string name="thinking_config_subtitle">Matches thinking parameters in rule order; first match takes effect</string>
     <string name="thinking_config_rule_order_hint">Rules are matched from top to bottom; the first enabled and matching rule takes effect. Use the arrows on the right side of each rule to adjust the order.</string>
