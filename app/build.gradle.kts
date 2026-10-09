@@ -435,7 +435,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("debug")
-            resValue("string", "app_name", "Operit Debug")
+            resValue("string", "app_name", "HandleIT")
         }
         create("clone") {
             initWith(getByName("debug"))
@@ -444,7 +444,7 @@ android {
                 signingConfig = releaseSigningConfig
             }
             matchingFallbacks += listOf("debug")
-            resValue("string", "app_name", "Operit Clone")
+            resValue("string", "app_name", "HandleIT Clone")
         }
         create("nightly") {
             isMinifyEnabled = false
