@@ -1891,7 +1891,7 @@
     <string name="free_usage_first_tip">Es la primera vez que lo usas, después tendrás que esperar 1 día para volver a usarlo~</string>
     <string name="free_usage_later_tip">Aprovecharse también tiene límites, necesitas esperar %1$d días más para seguir aprovechándote (๑•̀ㅂ•́)و✧</string>
     <string name="plugin_skip">Saltar</string>
-    <string name="plugin_app_name">OPERIT</string>
+    <string name="plugin_app_name">HandleIT</string>
     <string name="plugin_status">Iniciados: %1$d / %2$d</string>
     <string name="plugin_loading_status_title">Estado de carga de plugins</string>
     <string name="plugin_loading_success">Carga exitosa</string>

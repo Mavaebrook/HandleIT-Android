@@ -609,7 +609,7 @@
     <string name="free_usage_first_tip">이번이 첫 번째 사용이므로 다음번에는 1일을 기다려야 합니다~</string>
     <string name="free_usage_later_tip">무료 리소스에는 제한이 있습니다. %1$d일 더 기다려 주세요. (๑•̀ㅂ•́)و✧</string>
     <string name="plugin_skip">건너뛰기</string>
-    <string name="plugin_app_name">OPERIT</string>
+    <string name="plugin_app_name">HandleIT</string>
     <string name="plugin_status">시작됨: %1$d / %2$d</string>
     <string name="plugin_loading_status_title">플러그인 로딩 상태</string>
     <string name="plugin_loading_success">로드 성공</string>

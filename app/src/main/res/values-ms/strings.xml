@@ -612,7 +612,7 @@
     <string name="free_usage_first_tip">Ini kali pertama guna, selepas ini perlu tunggu 1 hari sebelum boleh guna lagi~</string>
     <string name="free_usage_later_tip">Ambil pun ada hadnya, perlu tunggu %1$d hari lagi sebelum boleh ambil (๑•̀ㅂ•́)و✧</string>
     <string name="plugin_skip">Langkau</string>
-    <string name="plugin_app_name">OPERIT</string>
+    <string name="plugin_app_name">HandleIT</string>
     <string name="plugin_status">Telah dimulakan: %1$d / %2$d</string>
     <string name="plugin_loading_status_title">Status Pemuatan Plugin</string>
     <string name="plugin_loading_success">Pemuatan berjaya</string>

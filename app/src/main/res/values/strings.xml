@@ -667,7 +667,7 @@
     
     <!-- Plugin Loading Screen -->
     <string name="plugin_skip">跳过</string>
-    <string name="plugin_app_name">OPERIT</string>
+    <string name="plugin_app_name">HandleIT</string>
     <string name="plugin_status">已启动: %1$d / %2$d</string>
     <string name="plugin_loading_status_title">插件加载状态</string>
     <string name="plugin_loading_success">加载成功</string>

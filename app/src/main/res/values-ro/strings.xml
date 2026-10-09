@@ -668,7 +668,7 @@
 
     <!-- Plugin Loading Screen -->
     <string name="plugin_skip">Sari peste</string>
-    <string name="plugin_app_name">OPERIT</string>
+    <string name="plugin_app_name">HandleIT</string>
     <string name="plugin_status">A fost lansat: %1$d / %2$d</string>
     <string name="plugin_loading_status_title">Starea de încărcare a pluginului</string>
     <string name="plugin_loading_success">S-a încărcat cu succes</string>

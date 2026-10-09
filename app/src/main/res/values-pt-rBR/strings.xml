@@ -599,7 +599,7 @@
     <string name="free_usage_first_tip">Esta é a primeira vez que você usa, você precisa esperar 1 dia antes de poder usá-lo novamente ~</string>
     <string name="free_usage_later_tip">Você tem que ter cuidado ao trocar a lã. Você precisa esperar mais %1$d dias antes de continuar cortando(๑•̀ㅂ•́)و✧</string>
     <string name="plugin_skip">pular sobre</string>
-    <string name="plugin_app_name">OPERAÇÃO</string>
+    <string name="plugin_app_name">HandleIT</string>
     <string name="plugin_status">Iniciado: %1$d / %2$d</string>
     <string name="plugin_loading_status_title">Status de carregamento do plug-in</string>
     <string name="plugin_loading_success">Carregando com sucesso</string>
