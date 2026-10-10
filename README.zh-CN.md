@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="app/src/main/assets/logo.svg" width="48" height="48" align="absmiddle" alt=""> HandleIT AI
+  <img src="app/src/main/assets/logo.png" width="48" height="48" align="absmiddle" alt=""> HandleIT AI
 </h1>
 
 <div align="center">
