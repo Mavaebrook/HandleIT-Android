@@ -200,6 +200,26 @@ jobs:
           set -euo pipefail
           echo "sdk.dir=$ANDROID_HOME" > local.properties
 
+      - name: Configure APK signing keystore
+        shell: bash
+        env:
+          HANDLEIT_KEYSTORE_BASE64: ${{ secrets.HANDLEIT_KEYSTORE_BASE64 }}
+          HANDLEIT_KEYSTORE_PASSWORD: ${{ secrets.HANDLEIT_KEYSTORE_PASSWORD }}
+          HANDLEIT_KEY_ALIAS: ${{ secrets.HANDLEIT_KEY_ALIAS }}
+          HANDLEIT_KEY_PASSWORD: ${{ secrets.HANDLEIT_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYSTORE_PATH="$GITHUB_WORKSPACE/handleit.keystore"
+          printf '%s' "$HANDLEIT_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          "$JAVA_HOME/bin/keytool" -list -keystore "$KEYSTORE_PATH" -storepass "$HANDLEIT_KEYSTORE_PASSWORD" -alias "$HANDLEIT_KEY_ALIAS" >/dev/null
+          {
+            echo "RELEASE_STORE_FILE=$KEYSTORE_PATH"
+            echo "RELEASE_STORE_PASSWORD=$HANDLEIT_KEYSTORE_PASSWORD"
+            echo "RELEASE_KEY_ALIAS=$HANDLEIT_KEY_ALIAS"
+            echo "RELEASE_KEY_PASSWORD=$HANDLEIT_KEY_PASSWORD"
+          } >> local.properties
+
       - name: Run Gradle build
         env:
           DISPATCH_GRADLE_TASK: ${{ inputs.gradle_task }}
