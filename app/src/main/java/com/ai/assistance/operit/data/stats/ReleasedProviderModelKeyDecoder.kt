@@ -28,15 +28,14 @@ internal object ReleasedProviderModelKeyDecoder {
         }
         val known = aliases.keys.sortedByDescending(String::length)
             .firstOrNull { encoded == it || encoded.startsWith("${it}_") }
-        val separator = known?.length ?: encoded.indexOf('_')
-        require(separator > 0 && separator < encoded.lastIndex) {
-            "released token key does not contain a provider and model: $encoded"
+        require(known != null && known.length < encoded.lastIndex) {
+            "released token key does not contain a known provider and model: $encoded"
         }
-        val providerAlias = encoded.substring(0, separator)
-        val model = encoded.substring(separator + 1)
+        val providerAlias = encoded.substring(0, known.length)
+        val model = encoded.substring(known.length + 1)
         return ReleasedProviderModelKey(
             storedProviderModel = "$providerAlias:$model",
-            provider = if (known == null) providerAlias else aliases.getValue(providerAlias),
+            provider = aliases.getValue(providerAlias),
             model = model,
         )
     }
