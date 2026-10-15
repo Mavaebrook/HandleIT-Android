@@ -432,6 +432,11 @@ object MemoryLibrary {
                         )
                         if (updatedMemory != null) {
                             createdMemories[updatedMemory.title] = updatedMemory
+                            // Self-learning: reinforce only on genuine novelty (content actually
+                            // changed), never on an echo re-statement of identical content.
+                            if (update.newContent != memoryToUpdate.content) {
+                                memoryRepository.reinforceMemory(updatedMemory)
+                            }
                         }
                     } else {
                         AppLogger.w(TAG, "想要更新的记忆未找到: '${update.titleToUpdate}'")
@@ -453,8 +458,13 @@ object MemoryLibrary {
                     val existingMemory = memoryRepository.findMemoryByTitle(mainProblem.title)
                     if (existingMemory != null) {
                         AppLogger.d(TAG, "1. 发现同名核心记忆，更新内容: '${mainProblem.title}'")
+                        val previousContent = existingMemory.content
                         existingMemory.content = mainProblem.content
                         memoryRepository.saveMemory(existingMemory)
+                        // Self-learning: reinforce only on genuine novelty, not on identical echo.
+                        if (mainProblem.content != previousContent) {
+                            memoryRepository.reinforceMemory(existingMemory)
+                        }
                         existingMemory
                     } else {
                         AppLogger.d(TAG, "1. 创建主要问题记忆节点: '${mainProblem.title}'")
@@ -530,6 +540,26 @@ object MemoryLibrary {
                     if (source != null && target != null) {
                         AppLogger.d(TAG, "   -> 正在链接: '${link.sourceTitle}' --(${link.type}, weight=${link.weight})--> '${link.targetTitle}'")
                         memoryRepository.linkMemories(source, target, link.type, weight = link.weight, description = link.description)
+
+                        // Self-learning: an explicit contradiction retires the old memory and
+                        // records a normalized SUPERSEDES audit link for future distillation.
+                        if (source.id != target.id) {
+                            when (link.type) {
+                                "CORRECTS" -> {
+                                    memoryRepository.markMemoryInactive(target)
+                                    memoryRepository.linkMemories(
+                                        source,
+                                        target,
+                                        "SUPERSEDES",
+                                        weight = 1.0f,
+                                        description = "Superseded by corrected memory '${source.title}'"
+                                    )
+                                }
+                                "SUPERSEDES" -> {
+                                    memoryRepository.markMemoryInactive(target)
+                                }
+                            }
+                        }
                     } else {
                         AppLogger.w(TAG, "   -> 无法创建链接，源或目标实体未找到: ${link.sourceTitle} -> ${link.targetTitle}")
                         if (source == null) AppLogger.w(TAG, "      源节点 '${link.sourceTitle}' 未找到")

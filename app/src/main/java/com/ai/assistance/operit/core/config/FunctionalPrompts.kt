@@ -1160,8 +1160,10 @@ $memoryExtractionCustomRulesInstruction
 - Create a link only when the relation is explicitly supported by conversation evidence.
 - Recommended relation types:
   - Event flow: `FOLLOWS`, `CORRECTS`, `UPDATES`
+  - Supersession (a new fact invalidates an old one): `SUPERSEDES`
   - Participation/context: `INVOLVES`, `HAPPENS_AT`
   - Worldbuilding structure: `PART_OF`, `ALLIED_WITH`, `OPPOSES`
+- `SUPERSEDES` means a new memory replaces an older, now-invalid memory: set `source` to the new memory and `target` to the old memory.
 - Do not create links from weak co-occurrence alone.
 - If uncertain, do not create the link.
 - Do not limit linking to newly created memories. If a provided existing memory has explicit relation with current-turn memory/event, add the link.
@@ -1243,8 +1245,10 @@ $memoryExtractionCustomRulesInstruction
 - 只有当对话里有明确证据时才建边。
 - 推荐关系类型：
   - 事件流程：`FOLLOWS`、`CORRECTS`、`UPDATES`
+  - 取代/失效（新事实推翻旧记忆）：`SUPERSEDES`
   - 参与与上下文：`INVOLVES`、`HAPPENS_AT`
   - 世界观结构：`PART_OF`、`ALLIED_WITH`、`OPPOSES`
+- `SUPERSEDES` 表示新记忆取代旧的已失效记忆：`source` 填新记忆，`target` 填旧记忆。
 - 不能仅凭"同段提到过"就连边。
 - 拿不准就不连。
 - 建边范围不应只限于本轮新输出；如果"已有样本记忆"与本轮事件/实体关系明确，也应主动建边。

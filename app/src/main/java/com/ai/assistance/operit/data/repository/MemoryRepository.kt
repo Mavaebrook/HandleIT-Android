@@ -6,6 +6,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.db.ObjectBoxManager
 import com.ai.assistance.operit.data.model.Memory
 import com.ai.assistance.operit.data.model.MemoryLink
+import com.ai.assistance.operit.data.model.MemoryProperty
 import com.ai.assistance.operit.data.model.MemoryTag
 import com.ai.assistance.operit.data.model.MemoryTag_
 import com.ai.assistance.operit.data.model.Memory_
@@ -46,6 +47,8 @@ import com.ai.assistance.operit.util.vector.VectorIndexManager
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlin.math.exp
+import kotlin.math.ln
 import kotlin.math.sqrt
 
 /**
@@ -67,6 +70,19 @@ class MemoryRepository(private val context: Context, profileId: String) {
         private const val SEARCH_RRF_K = 60.0
         private const val SEARCH_KEYWORD_COVERAGE_BONUS = 0.6
         private const val SEARCH_RELEVANCE_THRESHOLD = 0.025
+
+        // Self-learning memory salience metadata keys (stored in Memory.properties).
+        const val PROP_STATUS = "status"
+        const val STATUS_ACTIVE = "ACTIVE"
+        const val STATUS_INACTIVE = "INACTIVE"
+        const val PROP_OCCURRENCES = "occurrences"
+        const val PROP_LAST_SEEN = "last_seen"
+
+        // Recency weight at retrieval: 0.5 + 0.5 * exp(-ageMs / tau).
+        // The floor keeps old, uncontradicted facts from decaying to zero.
+        private const val RECENCY_FLOOR = 0.5
+        private const val RECENCY_TAU_DAYS = 90.0
+        private const val DAY_MS = 24L * 60L * 60L * 1000L
         private val INDEX_KEY_SANITIZE_REGEX = Regex("[^a-zA-Z0-9._-]")
 
         fun normalizeFolderPath(folderPath: String?): String? {
@@ -92,6 +108,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
     private val tagBox = store.boxFor<MemoryTag>()
     private val linkBox = store.boxFor<MemoryLink>()
     private val chunkBox = store.boxFor<DocumentChunk>()
+    private val propertyBox = store.boxFor<MemoryProperty>()
 
     private val searchSettingsPreferences = MemorySearchSettingsPreferences(context, profileId)
     private val cloudEmbeddingService = CloudEmbeddingService(context)
@@ -255,6 +272,79 @@ class MemoryRepository(private val context: Context, profileId: String) {
         if (matchedTokenCount <= 0 || totalTokenCount <= 0) return 1.0
         val coverageRatio = matchedTokenCount.toDouble() / totalTokenCount.toDouble()
         return 1.0 + (SEARCH_KEYWORD_COVERAGE_BONUS * coverageRatio)
+    }
+
+    // --- Self-learning memory salience (metadata stored in Memory.properties) ---
+
+    private data class MemorySalienceMetadata(
+        val occurrences: Int,
+        val lastSeenMs: Long,
+        val status: String
+    )
+
+    private fun readProperty(memory: Memory, key: String): String? {
+        if (memory.id <= 0L) return null
+        memory.properties.reset()
+        return memory.properties.firstOrNull { it.key == key }?.value
+    }
+
+    private fun writeProperty(memory: Memory, key: String, value: String) {
+        if (memory.id <= 0L) return
+        memory.properties.reset()
+        val existing = memory.properties.firstOrNull { it.key == key }
+        if (existing != null) {
+            existing.value = value
+            propertyBox.put(existing)
+        } else {
+            val property = MemoryProperty(key = key, value = value)
+            propertyBox.put(property)
+            memory.properties.add(property)
+        }
+        memoryBox.put(memory)
+    }
+
+    private fun loadMemorySalienceMetadata(memory: Memory): MemorySalienceMetadata {
+        if (memory.id <= 0L) {
+            return MemorySalienceMetadata(
+                occurrences = 1,
+                lastSeenMs = memory.createdAt.time,
+                status = STATUS_ACTIVE
+            )
+        }
+        memory.properties.reset()
+        val props = memory.properties.associate { it.key to it.value }
+        return MemorySalienceMetadata(
+            occurrences = props[PROP_OCCURRENCES]?.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+            lastSeenMs = props[PROP_LAST_SEEN]?.toLongOrNull() ?: memory.createdAt.time,
+            status = props[PROP_STATUS]?.takeIf { it.isNotBlank() } ?: STATUS_ACTIVE
+        )
+    }
+
+    private fun computeSalienceWeight(metadata: MemorySalienceMetadata, nowMs: Long): Double {
+        val occurrenceBoost = ln(1.0 + metadata.occurrences) / ln(2.0)
+        val ageMs = (nowMs - metadata.lastSeenMs).coerceAtLeast(0L)
+        val recency = RECENCY_FLOOR + (1.0 - RECENCY_FLOOR) * exp(-ageMs / (RECENCY_TAU_DAYS * DAY_MS))
+        return occurrenceBoost * recency
+    }
+
+    suspend fun reinforceMemory(memory: Memory) {
+        withContext(Dispatchers.IO) {
+            if (memory.id <= 0L) return@withContext
+            val metadata = loadMemorySalienceMetadata(memory)
+            val nowMs = System.currentTimeMillis()
+            writeProperty(memory, PROP_OCCURRENCES, (metadata.occurrences + 1).toString())
+            writeProperty(memory, PROP_LAST_SEEN, nowMs.toString())
+            if (readProperty(memory, PROP_STATUS) == null) {
+                writeProperty(memory, PROP_STATUS, STATUS_ACTIVE)
+            }
+        }
+    }
+
+    suspend fun markMemoryInactive(memory: Memory) {
+        withContext(Dispatchers.IO) {
+            if (memory.id <= 0L) return@withContext
+            writeProperty(memory, PROP_STATUS, STATUS_INACTIVE)
+        }
     }
 
     private fun computeSemanticWeightedScore(
@@ -1321,7 +1411,13 @@ class MemoryRepository(private val context: Context, profileId: String) {
         // --- PRE-FILTERING BY FOLDER ---
         // If a folder path is provided, all subsequent searches will be performed on this subset.
         // Otherwise, search all memories.
-        val memoriesToSearch = timeFilteredMemoriesInScope
+        // SELF-LEARNING: INACTIVE pre-filter + salience metadata cache (guardrail G2).
+        // Superseded facts are excluded before scoring so graph propagation cannot pull them back.
+        val salienceCache = mutableMapOf<Long, MemorySalienceMetadata>()
+        fun salienceOf(memory: Memory): MemorySalienceMetadata =
+            salienceCache.getOrPut(memory.id) { loadMemorySalienceMetadata(memory) }
+
+        val memoriesToSearch = timeFilteredMemoriesInScope.filterNot { salienceOf(it).status == STATUS_INACTIVE }
 
         if (memoriesToSearch.isEmpty()) {
             com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "No memories found in folder '$folderPath' to search.")
@@ -1526,14 +1622,25 @@ class MemoryRepository(private val context: Context, profileId: String) {
             )
         }
 
+        // 获取参与评分的记忆对象，用于后续加权与调试输出。
+        val scoredMemoryMap = memoryBox.get(scores.keys.toList()).filterNotNull().associateBy { it.id }
+
+        // SELF-LEARNING: apply lazy recency + occurrence weight at fusion (guardrail G1).
+        // Old, uncontradicted facts keep a floor and never decay to zero.
+        val fusionNowMs = System.currentTimeMillis()
+        val weightedScores = scores.entries.associate { (memoryId, rawScore) ->
+            val memory = scoredMemoryMap[memoryId] ?: memoriesToSearch.find { it.id == memoryId }
+            val salienceWeight = memory?.let { computeSalienceWeight(salienceOf(it), fusionNowMs) } ?: 1.0
+            memoryId to (rawScore * salienceWeight)
+        }
+
         // 添加相关性阈值过滤，避免返回不相关的记忆
-        val filteredScores = scores.entries.filter { it.value >= effectiveRelevanceThreshold }
+        val filteredScores = weightedScores.entries.filter { it.value >= effectiveRelevanceThreshold }
 
         com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Final results: ${filteredScores.size}/${scores.size} above threshold")
 
         // 只显示前3个结果的分数
-        val sortedScoresForLogging = scores.entries.sortedByDescending { it.value }
-        val scoredMemoryMap = memoryBox.get(scores.keys.toList()).filterNotNull().associateBy { it.id }
+        val sortedScoresForLogging = weightedScores.entries.sortedByDescending { it.value }
         sortedScoresForLogging.take(3).forEach { (id, score) ->
             val memory = scoredMemoryMap[id] ?: memoriesToSearch.find { it.id == id }
             if (memory != null) {
