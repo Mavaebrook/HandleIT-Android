@@ -461,7 +461,6 @@ android {
                 signingConfig = releaseSigningConfig
             }
             matchingFallbacks += listOf("release")
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
     applicationVariants.all {

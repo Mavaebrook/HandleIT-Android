@@ -26,9 +26,9 @@ signs with the same key as the production install.
 
 ## Secrets (GitHub Actions, repo `Mavaebrook/HandleIT-Android`)
 - `HANDLEIT_KEYSTORE_BASE64` — base64 of `handleit.keystore` (2732 B)
-- `HANDLEIT_KEYSTORE_PASSWORD` — handleit123
+- `HANDLEIT_KEYSTORE_PASSWORD` — <redacted-in-github-secrets>
 - `HANDLEIT_KEY_ALIAS` — handleit
-- `HANDLEIT_KEY_PASSWORD` — handleit123
+- `HANDLEIT_KEY_PASSWORD` — <redacted-in-github-secrets>
 
 ## Verification
 - Push triggers `Android Build` (push `paths` include `app/**` and the workflow file).

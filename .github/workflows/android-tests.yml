@@ -169,5 +169,5 @@ jobs:
           path: |
             app/build/reports/**
             build/reports/**
-          if-no-files-found: warn
+          if-no-files-found: ignore
           retention-days: 14
