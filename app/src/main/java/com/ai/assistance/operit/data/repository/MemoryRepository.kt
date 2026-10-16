@@ -1419,6 +1419,11 @@ class MemoryRepository(private val context: Context, profileId: String) {
 
         val memoriesToSearch = timeFilteredMemoriesInScope.filterNot { salienceOf(it).status == STATUS_INACTIVE }
 
+        // Scope + active-state guard for graph expansion and final retrieval.
+        // memoriesToSearch already excludes inactive memories and is folder/time scoped,
+        // so its id set is exactly the set of memories allowed in normal active retrieval.
+        val allowedScopedIds = memoriesToSearch.map { it.id }.toHashSet()
+
         if (memoriesToSearch.isEmpty()) {
             com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "No memories found in folder '$folderPath' to search.")
             return@withContext SearchComputationResult(
@@ -1580,7 +1585,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             // Propagate score through outgoing links
             sourceMemory.links.forEach { link ->
                 val targetMemory = link.target.target
-                if (targetMemory != null) {
+                if (targetMemory != null && MemoryGraphScopeFilter.shouldPropagateTo(allowedScopedIds, targetMemory.id)) {
                     // 边权重越高，传播的分数越多
                     val propagatedScore = (sourceScore * link.weight * graphPropagationWeight) + basePropagationScore
                     scores[targetMemory.id] = scores.getOrDefault(targetMemory.id, 0.0) + propagatedScore
@@ -1592,7 +1597,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             // Propagate score through incoming links (backlinks)
             sourceMemory.backlinks.forEach { link ->
                 val targetMemory = link.source.target
-                if (targetMemory != null) {
+                if (targetMemory != null && MemoryGraphScopeFilter.shouldPropagateTo(allowedScopedIds, targetMemory.id)) {
                     // 边权重越高，传播的分数越多
                     val propagatedScore = (sourceScore * link.weight * graphPropagationWeight) + basePropagationScore
                     scores[targetMemory.id] = scores.getOrDefault(targetMemory.id, 0.0) + propagatedScore
@@ -1678,7 +1683,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             scoredCount = scores.size,
             passedThresholdCount = filteredScores.size,
             candidates = candidateRows,
-            finalResultIds = filteredScores.sortedByDescending { it.value }.map { it.key }
+            finalResultIds = MemoryGraphScopeFilter.filterAllowedIds(allowedScopedIds, filteredScores.sortedByDescending { it.value }.map { it.key })
         )
 
         if (filteredScores.isEmpty()) {
@@ -1691,8 +1696,12 @@ class MemoryRepository(private val context: Context, profileId: String) {
 
         val sortedMemoryIds = filteredScores.sortedByDescending { it.value }.map { it.key }
 
+        // Final scope re-filter: never return inactive or out-of-scope memories, even if a
+        // graph link or stale score resurrected them.
+        val scopedSortedMemoryIds = MemoryGraphScopeFilter.filterAllowedIds(allowedScopedIds, sortedMemoryIds)
+
         // Fetch the sorted entities from the database
-        val sortedMemories = memoryBox.get(sortedMemoryIds).filterNotNull()
+        val sortedMemories = memoryBox.get(scopedSortedMemoryIds).filterNotNull()
 
         // 7. Semantic Deduplication
         // deduplicateBySemantics(sortedMemories)
