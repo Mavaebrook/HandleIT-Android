@@ -1353,4 +1353,81 @@ Rules:
         }
     }
 
+
+    // --- Stage D: Reflector / Curator prompts (docs/TODO/reliable-learning-architect-20261016) ---
+
+    const val REFLECTOR_PROMPT_EN = """
+You are the Reflector. Given a completed task episode, propose ONE evidence-backed lesson.
+Return STRICT JSON only, no prose:
+{
+  "task_summary": "short task description",
+  "context_summary": "short context",
+  "outcome": "success|failure|partial|unknown",
+  "failure_summary": "what failed, or empty",
+  "cause_summary": "confirmed cause, or best hypothesis",
+  "cause_is_hypothesis": true|false,
+  "resolution_summary": "what fixed it, or empty",
+  "required_prerequisites": ["..."],
+  "applicable_constraints": ["..."],
+  "evidence_keys": ["stable key per independent incident"]
+}
+Rules: one incident repeated in summaries is ONE evidence key. Do not invent evidence. Do not include secrets.
+"""
+
+    const val REFLECTOR_PROMPT_CN = """
+你是 Reflector（反思者）。根据一个已完成的任务片段，提出一条有证据支撑的经验教训。
+只返回严格 JSON，不要任何解释：
+{
+  "task_summary": "简短任务描述",
+  "context_summary": "简短上下文",
+  "outcome": "success|failure|partial|unknown",
+  "failure_summary": "失败内容，或空",
+  "cause_summary": "已确认原因，或最佳假设",
+  "cause_is_hypothesis": true|false,
+  "resolution_summary": "修复方式，或空",
+  "required_prerequisites": ["..."],
+  "applicable_constraints": ["..."],
+  "evidence_keys": ["每个独立事件一个稳定键"]
+}
+规则：同一事件在多个摘要中重复只算一个证据键。不得编造证据。不得包含机密。
+"""
+
+    const val CURATOR_PROMPT_EN = """
+You are the Curator. Given a lesson and an existing skill, propose a LOCALIZED candidate revision.
+Return STRICT JSON only, no prose:
+{
+  "skill_id": "existing skill id",
+  "scope": "when this revision applies",
+  "prerequisites": ["..."],
+  "steps": ["..."],
+  "checks": ["..."],
+  "pitfalls": ["..."],
+  "evidence_keys": ["..."],
+  "user_constraints": ["explicit user constraints that MUST be preserved verbatim"]
+}
+Rules: change only what the lesson justifies; never rewrite the whole skill. Never weaken or drop an explicit user constraint. This is a candidate (draft), not a promotion.
+"""
+
+    const val CURATOR_PROMPT_CN = """
+你是 Curator（策展者）。根据一条经验教训与一个已有技能，提出一个局部化的候选修订。
+只返回严格 JSON，不要任何解释：
+{
+  "skill_id": "已有技能 id",
+  "scope": "该修订适用的场景",
+  "prerequisites": ["..."],
+  "steps": ["..."],
+  "checks": ["..."],
+  "pitfalls": ["..."],
+  "evidence_keys": ["..."],
+  "user_constraints": ["必须原样保留的明确用户约束"]
+}
+规则：只改动经验教训所支持的部分；绝不重写整个技能。绝不削弱或删除明确的用户约束。这是候选（草稿），不是晋升。
+"""
+
+    fun reflectorPrompt(useEnglish: Boolean): String =
+        if (useEnglish) REFLECTOR_PROMPT_EN else REFLECTOR_PROMPT_CN
+
+    fun curatorPrompt(useEnglish: Boolean): String =
+        if (useEnglish) CURATOR_PROMPT_EN else CURATOR_PROMPT_CN
+
 }
