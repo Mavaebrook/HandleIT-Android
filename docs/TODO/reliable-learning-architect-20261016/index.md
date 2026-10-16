@@ -24,7 +24,7 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 - [x] T09 Add selective Reflector/Curator review and versioned candidate skill updates.
 - [x] T10 Validate skill revisions before promotion; preserve user constraints and rollback history.
 - [ ] T11 Add meaningful regression coverage and evaluate current versus same-model versus stronger-teacher configurations. (47 new JVM regressions added; teacher-comparison evaluation not measured — no stronger configured model access confirmed)
-- [ ] T12 Verify Android Build and Android Tests through GitHub-hosted Actions; report exact SHA/run URLs. (GitHub-hosted Android Build / Android Tests runs triggered for ef2f3bc5; URLs recorded in bridge handoff)
+- [x] T12 Verify Android Build and Android Tests through GitHub-hosted Actions; report exact SHA/run URLs. (CI-verified on c0bba97a: Android Build success https://github.com/Mavaebrook/HandleIT-Android/actions/runs/38958024774 ; Android Tests success https://github.com/Mavaebrook/HandleIT-Android/actions/runs/38958024652)
 - [ ] T13 Perform or explicitly hand off device acceptance: update compatibility, notification snapshot, memory correction, skill preflight. (device acceptance pending — no actual device evidence available)
 - [ ] T14 Finish README/changelog/checklist evidence and report remaining blockers honestly. (final handoff pending)
 
@@ -48,6 +48,6 @@ Reason: find useful existing work before building, carry forward earlier discove
 
 ## Checkpoint
 Owner: VPS orchestrator via [bridge job #26](https://github.com/Mavaebrook/handleit-bridge/issues/26).
-State: Stages A-E implemented and pushed to main. Latest commit ef2f3bc5. CI verification and final handoff in progress.
-Next: record Android Build / Android Tests run URLs for ef2f3bc5, then post final handoff.
-Evidence: A=5a91bd14; B=36a478f5; C=cff6dc79,b5c4fa0c; D=e83644e4,26ae216c,1d633f26,ef2f3bc5. 47 new JVM regression tests. Device acceptance pending.
+State: Stages A-E implemented, pushed to main, and CI-verified. Latest commit c0bba97a.
+Next: device acceptance (T13) remains pending; teacher-comparison evaluation (T11) not measured.
+Evidence: A=5a91bd14; B=36a478f5; C=cff6dc79,b5c4fa0c; D=e83644e4,26ae216c,1d633f26,ef2f3bc5; compile fix c0bba97a. 47 new JVM regression tests. CI: Android Build + Android Tests success on c0bba97a. Device acceptance pending.

@@ -20,6 +20,11 @@ Implemented the bounded specification in `docs/TODO/reliable-learning-architect-
 ### Tests
 - 47 new JVM regression tests: `MemoryGraphScopeFilterTest` (8), `TaskEpisodeRetrievalTest` (14), `SkillRevisionLifecycleTest` (12), `ReviewTriggerPolicyTest` (7), `ReflectorCuratorParseTest` (6).
 
+### Verification
+- GitHub-hosted CI on commit `c0bba97a`: Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/38958024774) and Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/38958024652).
+- An earlier CI run on `ef2f3bc5` failed at `:app:compileDebugKotlin` (4 Kotlin compile errors); fixed in `c0bba97a`.
+- Device acceptance remains pending (no actual device evidence available).
+
 ### Notes
 - Full GEPA prompt search, automatic executable-skill synthesis, wholesale memory-backend replacement, new model subscriptions, credential rotation, history rewriting, and signing-key replacement remain deferred.
 - Teacher-comparison evaluation (baseline vs same-model vs stronger-model) was not measured; no stronger configured model access was confirmed.
