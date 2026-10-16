@@ -15,18 +15,18 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 - [x] T00 Create this repository checklist before specification and dispatch.
 - [x] T01 Commit the technical specification and numbered implementation steps.
 - [x] T02 Dispatch bridge job and record its issue link.
-- [ ] T03 Inspect latest code and active jobs; map integration points and preserve concurrent work.
-- [ ] T04 Persist architect requirements in AGENTS.md and runtime start/resume/compaction handling.
-- [ ] T05 Add completion checks and root CHANGELOG.md; link active TODO from README.
-- [ ] T06 Fix inactive-memory resurrection and scope leakage in graph expansion and final retrieval.
-- [ ] T07 Record structured task episodes, independent evidence, outcomes, and required prerequisites.
-- [ ] T08 Add bounded similar-task preflight and context-sensitive missing-prerequisite detection.
-- [ ] T09 Add selective Reflector/Curator review and versioned candidate skill updates.
-- [ ] T10 Validate skill revisions before promotion; preserve user constraints and rollback history.
-- [ ] T11 Add meaningful regression coverage and evaluate current versus same-model versus stronger-teacher configurations.
-- [ ] T12 Verify Android Build and Android Tests through GitHub-hosted Actions; report exact SHA/run URLs.
-- [ ] T13 Perform or explicitly hand off device acceptance: update compatibility, notification snapshot, memory correction, skill preflight.
-- [ ] T14 Finish README/changelog/checklist evidence and report remaining blockers honestly.
+- [x] T03 Inspect latest code and active jobs; map integration points and preserve concurrent work.
+- [x] T04 Persist architect requirements in AGENTS.md and runtime start/resume/compaction handling.
+- [x] T05 Add completion checks and root CHANGELOG.md; link active TODO from README.
+- [x] T06 Fix inactive-memory resurrection and scope leakage in graph expansion and final retrieval.
+- [x] T07 Record structured task episodes, independent evidence, outcomes, and required prerequisites.
+- [x] T08 Add bounded similar-task preflight and context-sensitive missing-prerequisite detection.
+- [x] T09 Add selective Reflector/Curator review and versioned candidate skill updates.
+- [x] T10 Validate skill revisions before promotion; preserve user constraints and rollback history.
+- [ ] T11 Add meaningful regression coverage and evaluate current versus same-model versus stronger-teacher configurations. (47 new JVM regressions added; teacher-comparison evaluation not measured — no stronger configured model access confirmed)
+- [ ] T12 Verify Android Build and Android Tests through GitHub-hosted Actions; report exact SHA/run URLs. (GitHub-hosted Android Build / Android Tests runs triggered for ef2f3bc5; URLs recorded in bridge handoff)
+- [ ] T13 Perform or explicitly hand off device acceptance: update compatibility, notification snapshot, memory correction, skill preflight. (device acceptance pending — no actual device evidence available)
+- [ ] T14 Finish README/changelog/checklist evidence and report remaining blockers honestly. (final handoff pending)
 
 ## Scope boundaries
 Implement the minimal end-to-end learning and architect-persistence path described in [01-design.md](01-design.md), following [02-implementation.md](02-implementation.md). Full GEPA search, automatic executable skill synthesis, wholesale memory replacement, new model subscriptions, credential rotation, history rewriting, and signing-key replacement are deferred. Do not silently expand scope.
@@ -48,6 +48,6 @@ Reason: find useful existing work before building, carry forward earlier discove
 
 ## Checkpoint
 Owner: VPS orchestrator via [bridge job #26](https://github.com/Mavaebrook/handleit-bridge/issues/26).
-State: specification committed and job dispatched; execution acknowledgement pending.
-Next: orchestrator inspects latest HEAD and active jobs, then records T03 progress.
-Evidence: T00 commit 7d1623d; design commit 7354f04; numbered implementation plan committed alongside this milestone.
+State: Stages A-E implemented and pushed to main. Latest commit ef2f3bc5. CI verification and final handoff in progress.
+Next: record Android Build / Android Tests run URLs for ef2f3bc5, then post final handoff.
+Evidence: A=5a91bd14; B=36a478f5; C=cff6dc79,b5c4fa0c; D=e83644e4,26ae216c,1d633f26,ef2f3bc5. 47 new JVM regression tests. Device acceptance pending.
