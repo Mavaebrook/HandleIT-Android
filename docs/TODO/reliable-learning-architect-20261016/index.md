@@ -13,7 +13,7 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 
 ## Ordered implementation checklist
 - [x] T00 Create this repository checklist before specification and dispatch.
-- [ ] T01 Commit the technical specification and numbered implementation steps.
+- [x] T01 Commit the technical specification and numbered implementation steps.
 - [ ] T02 Dispatch bridge job and record its issue link.
 - [ ] T03 Inspect latest code and active jobs; map integration points and preserve concurrent work.
 - [ ] T04 Persist architect requirements in AGENTS.md and runtime start/resume/compaction handling.
@@ -33,6 +33,6 @@ Implement the minimal end-to-end learning and architect-persistence path describ
 
 ## Checkpoint
 Owner: ChatGPT preparing bridge dispatch.
-State: checklist created; implementation not started.
-Next: commit specification, then dispatch.
-Evidence: T00 is established by this file's creation commit.
+State: checklist and technical specification committed; implementation not started.
+Next: dispatch bridge job.
+Evidence: T00 commit 7d1623d; design commit 7354f04; numbered implementation plan committed alongside this milestone.
