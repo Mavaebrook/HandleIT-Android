@@ -37,3 +37,14 @@ ts的报错catch后需要log出来
 代码的更改应维护相称的文档，注意docs\doc-src\before_docing.md
 debug的时候注释记录你的修改意图（为什么，不这么做后果是什么）
 完成初步计划后，使用docs\TODO\README.md来细化计划
+
+## Project requirements (HandleIT-Android)
+
+These are durable project requirements for agents working in this repository. They are pinned separately from salience-ranked memory and must survive task resume and context compaction.
+
+- Canonical repository: `Mavaebrook/HandleIT-Android`, branch `main`. All Gradle builds and tests run ONLY through GitHub-hosted Actions (`Android Build` = `.github/workflows/android-build.yml`, `Android Tests` = `.github/workflows/android-tests.yml`). Never build or test on VPS, local machine, phone, or PRoot.
+- Preserve explicit user corrections. A corrected fact must not be silently reverted or reintroduced.
+- Plan multistep tasks before editing; keep the active TODO (`docs/TODO/`) and `CHANGELOG.md` updated at meaningful milestones, not only at the end.
+- Update the relevant README documentation when behavior or usage changes.
+- Preserve invariants: namespace/applicationId `com.ai.assistance.operit`, `.debug` identity, internal Operit classes, licensing, existing data and ObjectBox IDs. Do not modify `entity12`/`MemoryLedger`. Preserve the a9d4849 notification snapshot behavior. Preserve the existing signing identity and certificate SHA-256. No key replacement, secret rotation, or history rewrite. Never print secrets.
+- Completion gate: before declaring a task complete, reconcile acceptance criteria against actual changes, tests, and documentation. Report unfinished or blocked items honestly; never manufacture a documentation edit where it is irrelevant.

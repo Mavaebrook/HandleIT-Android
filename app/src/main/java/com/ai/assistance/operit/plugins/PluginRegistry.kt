@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.plugins
 
+import com.ai.assistance.operit.core.chat.hooks.ArchitectRulesHookRegistrar
 import com.ai.assistance.operit.plugins.toolbox.ToolboxPlugin
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgCommonBridgePlugin
 import com.ai.assistance.operit.plugins.workflow.WorkflowLifecyclePlugin
@@ -29,6 +30,9 @@ object PluginRegistry {
     fun initializeBuiltins() {
         if (builtinsInitialized) return
         builtinsInitialized = true
+
+        // Pin durable architect rules into the prompt/summary hook registries once at startup.
+        ArchitectRulesHookRegistrar.register()
 
         register(ToolboxPlugin)
         register(ToolPkgCommonBridgePlugin)
