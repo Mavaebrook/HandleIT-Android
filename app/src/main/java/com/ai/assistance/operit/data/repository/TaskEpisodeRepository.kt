@@ -24,7 +24,7 @@ class TaskEpisodeRepository(
     }
 
     fun all(): List<TaskEpisode> {
-        return episodeBox.all().map { it.toEpisode() }
+        return episodeBox.query().build().find().map { it.toEpisode() }
     }
 
     fun count(): Long = episodeBox.count()

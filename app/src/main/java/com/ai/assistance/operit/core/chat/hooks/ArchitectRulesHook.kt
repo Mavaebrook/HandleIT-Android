@@ -14,7 +14,7 @@ package com.ai.assistance.operit.core.chat.hooks
 object ArchitectRulesProvider {
     const val HOOK_ID = "builtin_architect_rules"
 
-    private const val RULES_BLOCK_EN =
+    private val RULES_BLOCK_EN =
         """
         [Pinned project requirements — HandleIT-Android]
         - Canonical repo: Mavaebrook/HandleIT-Android, branch main. Build/test ONLY via GitHub-hosted Actions (Android Build / Android Tests). Never build or test on VPS, local machine, phone, or PRoot.
@@ -25,7 +25,7 @@ object ArchitectRulesProvider {
         - Completion gate: before declaring a task complete, reconcile acceptance criteria against actual changes, tests, and documentation. Report unfinished or blocked items honestly; never manufacture a documentation edit where it is irrelevant.
         """.trimIndent()
 
-    private const val RULES_BLOCK_ZH =
+    private val RULES_BLOCK_ZH =
         """
         [固定项目要求 — HandleIT-Android]
         - 规范仓库：Mavaebrook/HandleIT-Android，分支 main。构建/测试仅通过 GitHub 托管的 Actions（Android Build / Android Tests）执行。禁止在 VPS、本机、手机或 PRoot 上构建或测试。

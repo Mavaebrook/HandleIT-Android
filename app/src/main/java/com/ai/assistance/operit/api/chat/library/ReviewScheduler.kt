@@ -48,7 +48,7 @@ class ReviewScheduler(
         }
     }
 
-    fun runOnce() {
+    suspend fun runOnce() {
         if (!isRunning.compareAndSet(false, true)) return
         try {
             drainPendingReviews()

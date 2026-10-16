@@ -21,7 +21,7 @@ class SkillRevisionRepository(
         return revisionBox.put(SkillRevisionEntity.fromRevision(revision))
     }
 
-    fun all(): List<SkillRevision> = revisionBox.all().map { it.toRevision() }
+    fun all(): List<SkillRevision> = revisionBox.query().build().find().map { it.toRevision() }
 
     fun bySkill(skillId: String): List<SkillRevision> =
         all().filter { it.skillId == skillId }.sortedBy { it.version }
