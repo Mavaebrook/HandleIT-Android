@@ -14,7 +14,7 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 ## Ordered implementation checklist
 - [x] T00 Create this repository checklist before specification and dispatch.
 - [x] T01 Commit the technical specification and numbered implementation steps.
-- [ ] T02 Dispatch bridge job and record its issue link.
+- [x] T02 Dispatch bridge job and record its issue link.
 - [ ] T03 Inspect latest code and active jobs; map integration points and preserve concurrent work.
 - [ ] T04 Persist architect requirements in AGENTS.md and runtime start/resume/compaction handling.
 - [ ] T05 Add completion checks and root CHANGELOG.md; link active TODO from README.
@@ -32,7 +32,7 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 Implement the minimal end-to-end learning and architect-persistence path described in [01-design.md](01-design.md), following [02-implementation.md](02-implementation.md). Full GEPA search, automatic executable skill synthesis, wholesale memory replacement, new model subscriptions, credential rotation, history rewriting, and signing-key replacement are deferred. Do not silently expand scope.
 
 ## Checkpoint
-Owner: ChatGPT preparing bridge dispatch.
-State: checklist and technical specification committed; implementation not started.
-Next: dispatch bridge job.
+Owner: VPS orchestrator via [bridge job #26](https://github.com/Mavaebrook/handleit-bridge/issues/26).
+State: specification committed and job dispatched; execution acknowledgement pending.
+Next: orchestrator inspects latest HEAD and active jobs, then records T03 progress.
 Evidence: T00 commit 7d1623d; design commit 7354f04; numbered implementation plan committed alongside this milestone.
