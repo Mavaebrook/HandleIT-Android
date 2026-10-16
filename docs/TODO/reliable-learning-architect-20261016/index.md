@@ -31,6 +31,21 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 ## Scope boundaries
 Implement the minimal end-to-end learning and architect-persistence path described in [01-design.md](01-design.md), following [02-implementation.md](02-implementation.md). Full GEPA search, automatic executable skill synthesis, wholesale memory replacement, new model subscriptions, credential rotation, history rewriting, and signing-key replacement are deferred. Do not silently expand scope.
 
+## Future updates — research-driven planning and expert review
+
+Status: backlog only, added at Teddy's request on 2026-10-16. NOT part of bridge job #26 or T00-T14 acceptance. Do not implement or dispatch this section until separately authorized.
+
+Reason: find useful existing work before building, carry forward earlier discoveries, and challenge assumptions before committing to an approach.
+
+- [ ] F01 Define a proportional planning protocol: small fixes use focused local inspection; new features use targeted research; major architecture changes use deeper comparison and a bounded validation experiment.
+- [ ] F02 Start with requirements, explicit constraints, acceptance criteria, material unknowns, and retrieval of similar past tasks and lessons.
+- [ ] F03 Search relevant prior art, GitHub, official documentation and, where models/datasets matter, Hugging Face. Record sources, search dates and relevant versions/commit IDs.
+- [ ] F04 Apply hard compatibility, licensing and resource exclusions first; then compare maintenance, evidence, integration effort, reliability and operating cost. Distinguish reported claims from verified behavior.
+- [ ] F05 Identify specific reusable code, APIs, algorithms, tests or concepts. Record whether to adopt, adapt, borrow the concept or build anew, with reasons and rejected alternatives.
+- [ ] F06 Add a bounded expert-review workflow (MoE-inspired orchestration, not neural MoE): research/reuse, integration, adversarial and evaluation roles. Obtain independent initial assessments, reconcile using evidence rather than majority vote, and turn disagreements into targeted checks.
+- [ ] F07 Persist requirements, research findings, decision rationale, smallest validation experiment and implementation TODO in the repository. Explicit user constraints govern every stage; do not let reviewers invent or override requirements.
+- [ ] F08 Set search/model-call/token budgets and stopping conditions. Evaluate whether the protocol reduces rework and improves decisions enough to justify its cost; revisit decisions when their recorded assumptions change.
+
 ## Checkpoint
 Owner: VPS orchestrator via [bridge job #26](https://github.com/Mavaebrook/handleit-bridge/issues/26).
 State: specification committed and job dispatched; execution acknowledgement pending.
