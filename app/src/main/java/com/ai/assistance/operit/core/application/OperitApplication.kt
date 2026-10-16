@@ -23,6 +23,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.api.chat.AIForegroundService
 import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
+import com.ai.assistance.operit.api.chat.library.ReviewScheduler
 import com.ai.assistance.operit.plugins.PluginRegistry
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleEvent
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleHookParams
@@ -98,6 +99,7 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
     // 应用级协程作用域
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var memoryAutoSaveScheduler: MemoryAutoSaveScheduler? = null
+    private var reviewScheduler: ReviewScheduler? = null
     private val mainInitializationLock = Any()
     @Volatile
     private var mainApplicationInitialized = false
@@ -224,6 +226,8 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         memoryAutoSaveScheduler = MemoryAutoSaveScheduler(applicationContext, applicationScope)
             .also { it.start() }
         AppLogger.d(TAG, "【启动计时】长期记忆自动保存轮询器启动完成 - ${System.currentTimeMillis() - startTime}ms")
+        reviewScheduler = ReviewScheduler(applicationContext, applicationScope).also { it.start() }
+        AppLogger.d(TAG, "【启动计时】复习调度器启动完成 - ${System.currentTimeMillis() - startTime}ms")
 
         // 初始化当前活跃角色目标的自定义表情
         applicationScope.launch {

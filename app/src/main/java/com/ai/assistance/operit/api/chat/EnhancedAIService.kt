@@ -84,6 +84,8 @@ import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.preferencesManager
 import com.ai.assistance.operit.data.repository.MemoryAutoSaveCandidateRepository
+import com.ai.assistance.operit.api.chat.library.ReviewTriggerEnqueuer
+import com.ai.assistance.operit.data.learning.ReviewTriggerPolicy
 import com.ai.assistance.operit.core.config.SystemToolPrompts
 import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.data.model.ToolParameterSchema
@@ -2050,6 +2052,22 @@ class EnhancedAIService private constructor(private val context: Context) {
                             chatId = currentChatId,
                             triggerMessageTimestamp = System.currentTimeMillis()
                         )
+                    // Bounded post-task review trigger (docs/.../01-design.md §4). Conservative
+                    // signals keep this a no-op by default; plumbing exists for future wiring.
+                    ReviewTriggerEnqueuer.maybeEnqueue(
+                        context = this@EnhancedAIService.context,
+                        profileId = profileId,
+                        chatId = currentChatId,
+                        signals = ReviewTriggerPolicy.ReviewSignals(
+                            explicitUserCorrection = false,
+                            taskFailed = false,
+                            repeatedRepairCount = 0,
+                            complexSuccessWithReusableLesson = false
+                        ),
+                        taskSummary = content.take(2000),
+                        contextSummary = "",
+                        outcome = com.ai.assistance.operit.data.model.TaskEpisode.OUTCOME_UNKNOWN
+                    )
                 }
             }.onFailure { e ->
                 AppLogger.e(TAG, "自动保存长期记忆候选入队失败", e)
