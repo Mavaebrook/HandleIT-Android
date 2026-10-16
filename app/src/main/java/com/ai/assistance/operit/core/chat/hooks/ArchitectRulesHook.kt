@@ -63,7 +63,16 @@ class ArchitectRulesSystemPromptHook : SystemPromptComposeHook {
         }
         val current = context.systemPrompt ?: return null
         val block = ArchitectRulesProvider.buildArchitectRulesBlock(context.useEnglish == true)
-        val appended = current + "\n\n" + block
+        val preflight = (context.metadata["architectPreflightBlock"] as? String)?.takeIf { it.isNotBlank() }
+        val appended = buildString {
+            append(current)
+            append("\n\n")
+            append(block)
+            if (preflight != null) {
+                append("\n\n")
+                append(preflight)
+            }
+        }
         return PromptHookMutation(systemPrompt = appended)
     }
 }

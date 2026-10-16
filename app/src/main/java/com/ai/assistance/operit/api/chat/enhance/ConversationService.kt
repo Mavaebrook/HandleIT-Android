@@ -52,6 +52,7 @@ import com.ai.assistance.operit.core.tools.ComputerDesktopActionResultData
 import com.ai.assistance.operit.util.LocaleUtils
 import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
+import com.ai.assistance.operit.data.learning.TaskPreflightProvider
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkBuilder
 import com.ai.assistance.operit.data.repository.getCustomMoodDefinitions
 import com.ai.assistance.operit.data.repository.getMoodAnimationMapping
@@ -557,6 +558,26 @@ class ConversationService(
                 )
 
                 // 获取系统提示词，现在传入workspacePath和识图配置状态
+                // Bounded similar-task preflight: only for development/workspace tasks, pure
+                // retrieval (no model call), top-k clamped to 3-5. Failures are swallowed.
+                val architectPreflightBlock =
+                    if (!workspacePath.isNullOrBlank()) {
+                        TaskPreflightProvider.buildPreflightBlock(
+                            context = context,
+                            profileId = effectiveMemorySpaceId,
+                            taskQuery = processedInput,
+                            currentTaskContext = workspacePath,
+                            useEnglish = useEnglish
+                        )
+                    } else {
+                        ""
+                    }
+                val systemPromptHookMetadata =
+                    if (architectPreflightBlock.isNotBlank()) {
+                        activePromptMetadata + ("architectPreflightBlock" to architectPreflightBlock)
+                    } else {
+                        activePromptMetadata
+                    }
                 val systemPrompt = SystemPromptConfig.getSystemPromptWithCustomPrompts(
                     context = context,
                     packageManager = packageManager,
@@ -584,7 +605,7 @@ class ConversationService(
                     groupOrchestrationRoleName = activeCard?.name?.takeIf { it.isNotBlank() }
                         ?: context.getString(R.string.app_name),
                     groupParticipantNamesText = groupParticipantNamesText.orEmpty(),
-                    hookMetadata = activePromptMetadata,
+                    hookMetadata = systemPromptHookMetadata,
                     dispatchSystemPromptComposeHooks = dispatchSystemPromptComposeHooks,
                     dispatchToolPromptComposeHooks = dispatchToolPromptComposeHooks
                 )
