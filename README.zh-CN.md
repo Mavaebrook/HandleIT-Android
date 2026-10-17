@@ -199,6 +199,7 @@
 - [ToolPkg 格式指南](docs/TOOLPKG_FORMAT_GUIDE.md)
 - [更新日志](CHANGELOG.md)
 - [当前开发 TODO](docs/TODO/reliable-learning-architect-20261016/index.md)
+- [学习管线加固 TODO](docs/TODO/learning-pipeline-hardening-20261017/index.md)
 - 构建项目需准备 `subpack.zip`、`jniLibs.zip` 和 `libs.zip` 三份外部依赖归档，并初始化 `terminal` 子模块；默认本地 STT 模型会按照 `app/config/stt-model-assets.properties` 自动获取并校验
 - 社区讨论：[QQ群](https://qm.qq.com/q/Sa4fKEH7sO) | [Discord](https://discord.gg/YnV9MWurRF)
 

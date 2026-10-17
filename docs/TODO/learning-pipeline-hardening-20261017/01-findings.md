@@ -1,0 +1,208 @@
+# Findings: learning pipeline hardening
+
+Independent static review of the learning pipeline at commit `28b53abd`. Every finding below was re-checked against the code at that commit. Where a finding turned out to be already fixed or factually wrong at HEAD, that is stated with evidence instead of being copied forward. Paths are relative to `app/src/main/java/com/ai/assistance/operit/` unless stated otherwise.
+
+Severity is about user-visible consequence, not code size. "Confirmed" means the code at HEAD does what the finding says. "Partly wrong" means the finding's premise does not hold at HEAD.
+
+## Stage A — signals and schema safety
+
+### R01 — ObjectBox model does not contain the new entities (confirmed, but the entity12 premise is wrong)
+
+Evidence: `app/objectbox-models/default.json` declares `lastEntityId: 11:3712699051976894545` and `modelVersion: 5`. The highest entity id present is 11 (`MemoryAutoSaveCandidate`). `TaskEpisodeEntity`, `SkillRevisionEntity` and `PendingReviewEntity` are declared as `@Entity` in `data/model/TaskEpisodeEntity.kt:12`, `data/model/SkillRevisionEntity.kt:13` and `data/model/PendingReviewEntity.kt:12`, each with a plain `@Id var id: Long = 0` and no explicit `@Entity(uid = ...)`, but none of them appears in `default.json`.
+
+Correction to the original finding: there is no `entity12` and no `MemoryLedger` in this repository. A repo-wide search finds the strings only in prose — `AGENTS.md:49`, `core/chat/hooks/ArchitectRulesHook.kt:24`, `docs/TODO/reliable-learning-architect-20261016/01-design.md:23` and `docs/plans/rebrand-completion-2026-10-10.md:40`. No Kotlin symbol, no `@Entity`, no id 12 exists. The constraint in `AGENTS.md` therefore protects something that is not in the schema. It must still be honoured as written, but it does not constrain this work, and the risk of an id collision with entity 12 is not real at HEAD.
+
+Why it matters: ObjectBox assigns entity ids and UIDs at annotation-processing time and records them in `default.json`. If the model file is not committed alongside the entity declarations, the next build regenerates ids from scratch. Two builds can then disagree about which id belongs to which entity, which produces unstable UIDs, a schema mismatch on open, and a database that fails to open after an app update on an installed device. Because the three entities are new and empty, the safe path is to commit the regenerated model together with the entity declarations in one change, before any of them holds user data.
+
+Proposed fix: run the ObjectBox annotation processor once through GitHub-hosted Actions, commit the regenerated `app/objectbox-models/default.json` in the same commit as the entity declarations, and confirm that ids 12, 13 and 14 are assigned to the three new entities with stable UIDs. Do not hand-edit the JSON. Do not modify or renumber any existing entity. Verify update-over-existing-install by installing the previous build, then the new build, and confirming the database opens and existing memories are intact.
+
+Acceptance test: `default.json` contains all three new entities with explicit ids and UIDs; a build from a clean checkout produces a byte-identical model file; an update-over-existing-install on a device opens the database and preserves existing memory rows.
+
+### R02 — Review signals are hardcoded false, so no review is ever enqueued (confirmed)
+
+Evidence: `api/chat/EnhancedAIService.kt:2057-2070` constructs `ReviewTriggerPolicy.ReviewSignals` with `explicitUserCorrection = false`, `taskFailed = false`, `repeatedRepairCount = 0` and `complexSuccessWithReusableLesson = false`. The comment immediately above admits the intent: "Conservative signals keep this a no-op by default; plumbing exists for future wiring." `ReviewTriggerPolicy.decide` returns `shouldReview = false` for an all-false signal set, so `ReviewTriggerEnqueuer.maybeEnqueue` always returns false and the pending-review queue is never populated in production. The Reflector therefore never runs, and every downstream stage that depends on episodes is starved.
+
+Why it matters: this is the single reason the whole learning loop is inert. Everything else in this document is downstream of a queue that never fills.
+
+Proposed fix: derive the four signals from deterministic, observable outcomes rather than from model self-judgement. `explicitUserCorrection` from a detected correction turn; `taskFailed` from a terminal tool error or a failed build result; `repeatedRepairCount` from a counter of repair attempts within the turn; `complexSuccessWithReusableLesson` from a success that exceeded a step or tool-call threshold. Each signal must be computed from recorded events, not inferred by the model about itself.
+
+Acceptance test: a turn containing an explicit user correction enqueues exactly one review; a turn with no correction, no failure and a short success enqueues none; a unit test asserts each signal maps to its event source.
+
+### R03 — Scheduler drains the hardcoded `"default"` profile (confirmed)
+
+Evidence: `api/chat/library/ReviewScheduler.kt:62-64` sets `val profileId = "default"` and builds `PendingReviewRepository(context, profileId)` from it. The enqueuer uses the real active memory space: `api/chat/EnhancedAIService.kt:2044-2046` resolves `profileId` from `memorySpaceIdOverride` or `preferencesManager.activeMemorySpaceIdFlow.first()`, and `api/chat/library/ReviewTriggerEnqueuer.kt:24` writes through `PendingReviewRepository(context, profileId)` with that value.
+
+Why it matters: reviews are written into the active memory space's store and drained from the `"default"` store. Unless the user happens to be on `"default"`, the queue is never drained and reviews accumulate forever in a store nobody reads.
+
+Proposed fix: resolve the profile id the same way the enqueuer does, and drain every memory space that has pending reviews rather than a single hardcoded one.
+
+Acceptance test: with the active memory space set to a non-default id, an enqueued review is drained and produces an episode in that same space.
+
+## Stage B — scheduler robustness
+
+### R04 — Batch deletion, unbounded retries, stuck PROCESSING rows, hardcoded language (confirmed)
+
+Evidence: `api/chat/library/ReviewScheduler.kt:62-89`. The loop sets a single `processedAny` flag and, if any one review produced an episode, calls `pendingRepository.delete(ids)` with the whole batch id list — so reviews whose `reflect()` returned null are deleted without ever being processed. `MAX_REVIEWS_PER_RUN = 5` bounds batch size, not attempts; `PendingReviewRepository.markFailed` increments `attemptCount` but nothing ever reads it, so a permanently failing review is retried every `LOOP_TICK_MS = 60_000L` forever. `getPendingAndFailed` (`data/repository/PendingReviewRepository.kt:43-53`) queries only `STATUS_PENDING` or `STATUS_FAILED`, so a row left in `STATUS_PROCESSING` by a crash between `markProcessing` and `delete`/`markFailed` is never re-queried and leaks permanently. Line 76 passes `useEnglish = true` unconditionally, ignoring the user's locale, whereas `api/chat/enhance/ConversationService.kt:552` correctly computes `!LocaleUtils.usesChineseContent(context)`.
+
+Why it matters: silent loss of reviews, an unbounded retry loop that burns model calls on a permanently broken item, a permanent leak of stuck rows, and English lessons generated for Chinese users.
+
+Proposed fix: delete only the ids that succeeded; add an attempt cap with a terminal dead-letter status; add a startup sweep that returns stale `PROCESSING` rows to `PENDING`; derive `useEnglish` from the locale as `ConversationService` does.
+
+Acceptance test: a batch of three where one fails deletes exactly two and leaves the third retryable; a review failing past the cap stops being retried; a row left in `PROCESSING` is recovered on the next start; a Chinese-locale user gets Chinese lessons.
+
+## Stage C — retrieval and gap check
+
+### R05 — `workspacePath` used as task context, single-token matching, `missingPrerequisites` never called (confirmed)
+
+Evidence: `api/chat/enhance/ConversationService.kt:563-574` calls `TaskPreflightProvider.buildPreflightBlock(...)` with `currentTaskContext = workspacePath`, and `data/learning/TaskPreflightProvider.kt:16-30` forwards that string into `TaskPreflightFormatter.buildPreflightBlock`. A filesystem path is therefore tokenized and matched against prerequisite conditions. `data/learning/TaskEpisodeRetrieval.kt:75-80` implements `isPrerequisiteApplicable` as `conditionTokens.any { it in contextTokens }` — one shared token is enough — and `tokenize` (lines 99-104) has no stopword list, no stemming and no IDF. `missingPrerequisites` (`TaskEpisodeRetrieval.kt:65-68`) has exactly two call sites, both in `app/src/test/java/com/ai/assistance/operit/data/learning/TaskEpisodeRetrievalTest.kt` (lines 184 and 197); it is never called in production, so the applicability gate is never enforced in the shipped path.
+
+Why it matters: the update-versus-fresh-install distinction that the existing test claims to prove passes only because the test sentences happen to avoid token overlap. In production a path containing a common token such as `storage` or `com` matches almost any prerequisite, so the gate is either always-on or never-on, and the missing-prerequisite check that would catch it is dead code.
+
+Proposed fix: pass the actual task description as `currentTaskContext`; add a stopword list and require a match threshold rather than any single token; call `missingPrerequisites` in the production preflight path.
+
+Acceptance test: a fresh-install task does not match an update-only prerequisite and vice versa, using sentences that deliberately share common tokens; a test asserts `missingPrerequisites` is reached from the production preflight path.
+
+### R06 — Latin-only tokenization, full-table scan, no vector or graph retrieval (confirmed)
+
+Evidence: `data/learning/TaskEpisodeRetrieval.kt:99-104` tokenizes with `split(Regex("[^a-z0-9]+"))`, so Chinese, Japanese and Cyrillic text yields an empty token set and `rankRelevantEpisodes` returns an empty list for any non-Latin task. `data/repository/TaskEpisodeRepository.kt:26-35` implements `all()` as `episodeBox.query().build().find()` with no filter and no limit, and `retrieveRelevant` ranks that full list; the "bounded" claim applies only to the output `take(clampTopK(topK))`. Neither `TaskEpisodeRetrieval.kt` nor `TaskEpisodeRepository.kt` references a vector index, an embedding or `MemoryLink`, although `MemoryRepository` has both (`vectorIndexDir()` at `MemoryRepository.kt:363`, graph propagation at 1565-1608) and `docs/TODO/reliable-learning-architect-20261016/01-design.md` section 3 requires vector relevance plus graph links.
+
+Why it matters: retrieval silently returns nothing for the app's primary Chinese-speaking users, and it degrades linearly with episode count because every query loads the whole table.
+
+Proposed fix: tokenize with a Unicode-aware splitter that handles CJK; use the existing vector index for candidate generation and the `MemoryLink` graph for expansion, with a bounded candidate set instead of a full scan.
+
+Acceptance test: a Chinese task retrieves relevant episodes; retrieval issues a bounded query rather than loading the full table; a test asserts the vector index and graph are consulted.
+
+### N01 — Episode schema lacks signature, omissions, conditions and warning feedback (confirmed absent)
+
+Evidence: `data/model/TaskEpisodeModels.kt:12-24` declares exactly 13 fields — `id`, `taskSummary`, `contextSummary`, `outcome`, `failureSummary`, `causeSummary`, `causeIsHypothesis`, `resolutionSummary`, `requiredPrerequisites`, `applicableConstraints`, `evidenceKeys`, `relatedSkillVersion`, `createdAtMs`. `data/model/TaskEpisodeEntity.kt:14-26` mirrors them with three newline-joined list fields. None of `taskSignature`, `omittedFromRequest`, `applicabilityConditions`, `trajectoryRef`, `warningsHelpful` or `warningsDismissed` exists in either file, in camelCase or snake_case. The Reflector prompt (`core/config/FunctionalPrompts.kt:1359-1375`) asks for ten keys and neither `omitted_from_request` nor `applicability_conditions`; `ReflectorCurator.parseEpisode` (`api/chat/library/ReflectorCurator.kt:78-95`) reads only those ten, so any new key would be silently dropped.
+
+Why it matters: without a signature there is no stable way to find "the same task again"; without `omittedFromRequest` the system cannot learn what a request failed to mention; without structured `applicabilityConditions` the prerequisite gate has nothing machine-checkable to test; without `warningsHelpful`/`warningsDismissed` there is no way to retire a lesson that users keep rejecting.
+
+Proposed fix: add the six fields as a compatible metadata extension on `TaskEpisode` and `TaskEpisodeEntity` (new columns, defaults, no renumbering of existing fields). Extend both Reflector prompts to emit `omitted_from_request` and `applicability_conditions`, and extend `parseEpisode` to read them. Add a plan-time gap check: retrieve the top 3-5 episodes by signature plus embedding, extract facts from the current request, test the structured conditions (a small model call only when a condition is ambiguous), test whether the request or plan already covers each item, and emit at most three warnings phrased as cautions or questions — never as new user mandates. Record accept/dismiss per warning and retire lessons that are repeatedly dismissed. Attach this to the existing planning call so there is no unconditional extra model call per turn. Precision over recall.
+
+Acceptance test: a request that omits a prerequisite that mattered before produces at most three caution-phrased warnings; a request that already covers the item produces none; a lesson dismissed repeatedly stops being surfaced; the planning path issues no additional model call when no condition is ambiguous.
+
+## Stage D — skill lifecycle and governance
+
+### R07 — Curator and skill-revision lifecycle have no production callers (confirmed)
+
+Evidence: `ReflectorCurator.reflect` (`api/chat/library/ReflectorCurator.kt:33`) is called from `api/chat/library/ReviewScheduler.kt:73`, so it is wired — but only into a scheduler that is starved by R02 and R03. `ReflectorCurator.curate` (`ReflectorCurator.kt:55`) has zero call sites anywhere. `SkillRevisionLifecycle.evaluate` (`data/learning/SkillRevisionLifecycle.kt:36`), `applyEvaluation` (line 69) and `rollbackTarget` (line 82) are called only from `app/src/test/java/com/ai/assistance/operit/data/learning/SkillRevisionLifecycleTest.kt`. `SkillRevisionRepository` (`data/repository/SkillRevisionRepository.kt:13`) is never instantiated outside its own declaration, so skill revisions are never persisted.
+
+Correction to the existing checklist: the `[x]` marks on T09 and T10 in `docs/TODO/reliable-learning-architect-20261016/index.md` overstate the wiring. The code exists and is unit-tested, but the Curator half and the entire promotion/rollback lifecycle are library code with no production caller. The history must not be deleted; a visible note is added under T07-T10 instead.
+
+Why it matters: the documented capability "versioned candidate skill updates with evidence-based promotion and rollback" does not run. A reader of the checklist would reasonably conclude it does.
+
+Proposed fix: either wire `curate`, `SkillRevisionLifecycle` and `SkillRevisionRepository` into the post-review path, or record them explicitly as library-only. Add a visible note under T07-T10 in the existing index.md stating they are library code not yet wired, without deleting the history.
+
+Acceptance test: a completed review produces a persisted draft revision through a production call path, or the checklist note is present and accurate.
+
+### R08 — CORRECTS/SUPERSEDES retires the target permanently with no check (confirmed)
+
+Evidence: `api/chat/library/MemoryLibrary.kt:540-562`. When a link of type `CORRECTS` or `SUPERSEDES` is processed, the code calls `memoryRepository.markMemoryInactive(target)`. `markMemoryInactive` (`data/repository/MemoryRepository.kt:343-348`) writes `PROP_STATUS = STATUS_INACTIVE`, and nothing ever writes it back: the only other writer, `reinforceMemory` (lines 337-339), sets `STATUS_ACTIVE` only when the property is absent, so it can never reactivate an inactive memory. The link is matched by title only (lines 533-538, `findMemoryByTitle`), with no id and no content hash. There is no user confirmation, no consistency check that the two memories actually contradict, and no reactivation path. The inactive status is honoured at retrieval (`MemoryRepository.kt:1420`), so retirement is effective and therefore effectively irreversible.
+
+Why it matters: the link type comes from an LLM extraction. A reversed link (the older fact marked as correcting the newer one) or a hallucinated link retires the correct fact permanently, and a title collision retires the wrong memory entirely. This directly violates the project requirement that a corrected fact must not be silently reverted.
+
+Proposed fix: add a governance gate before retirement — verify the link direction against creation timestamps, check the target against active explicit user constraints, require confirmation for anything not clearly superseded, and make retirement reversible by recording the prior status and providing a reactivation path.
+
+Acceptance test: a reversed link does not retire the newer fact; a retirement can be undone and the memory returns to active retrieval; a link whose target matches an active user constraint is refused.
+
+### R09 — Promotion gate is too weak (confirmed)
+
+Evidence: `data/learning/SkillRevisionLifecycle.kt:15` sets `const val MIN_INDEPENDENT_EVIDENCE = 1`. `evaluate` (lines 36-62) computes `passed = preserves && hasEvidence && noHarm`; `helpfulCount` is accepted and copied into the result but is not part of the predicate, so a candidate with zero helpful outcomes promotes on one evidence key. Evidence dedup is `normalize` (line 89) and `normalizeEvidenceKey` (`TaskEpisodeRetrieval.kt:106-108`), both of which only lowercase, trim and collapse whitespace — so two paraphrases of one incident count as two independent sources, contradicting the design note "Do not equate paraphrasing with new evidence". `preservesUserConstraints` (lines 22-29) compares only the candidate's self-declared `userConstraints` list against the authoritative list and never inspects `candidate.steps`, `checks` or `pitfalls`; it also returns `true` immediately when the authoritative list is empty.
+
+Why it matters: a single incident can promote a skill revision, a paraphrase can fake independence, and a candidate can echo the constraint strings while its actual steps violate them.
+
+Proposed fix: raise `MIN_INDEPENDENT_EVIDENCE` above one; require at least one helpful outcome; collapse paraphrases with a similarity threshold rather than string normalization; check the candidate's steps and checks against the constraints instead of trusting its self-report.
+
+Acceptance test: a single-incident candidate is rejected; two paraphrases of one incident count as one source; a candidate whose steps violate a constraint is rejected even when its `userConstraints` list echoes the constraint.
+
+### R10 — Reinforcement on text inequality, salience N+1, unconditional propagation floor (confirmed)
+
+Evidence: `api/chat/library/MemoryLibrary.kt:435-439` and `464-467` call `reinforceMemory` whenever `newContent != memoryToContent` — a raw string comparison with no normalization, so a trailing space or a re-wrapped line counts as novelty. `MemoryRepository.kt:306-321` implements `loadMemorySalienceMetadata` with `memory.properties.reset()`, which discards the cached relation and forces a fresh query per memory; it is invoked per-memory from the search filter at `MemoryRepository.kt:1416-1420`, so the first pass over the candidate set issues one property query per memory. `MemoryRepository.kt:1575` defines `val basePropagationScore = 0.03 * effectiveEdgeWeight` and adds it to every traversed edge at lines 1590 and 1602 regardless of the source's relevance.
+
+Why it matters: occurrence counts inflate on cosmetic edits, so they stop being evidence of usefulness; search cost grows with memory count; and a flat floor boosts semantically meaningless neighbours into results.
+
+Proposed fix: reinforce only on semantic novelty (normalized comparison, or an embedding distance threshold); load salience metadata in one batched query; drop the unconditional floor and let edge weight alone determine propagation.
+
+Acceptance test: a whitespace-only edit does not increment occurrences; a search over N memories issues a constant number of property queries; a zero-weight link contributes no score.
+
+### R11 — Architect rules are global and prompt-only (confirmed)
+
+Evidence: `core/chat/hooks/ArchitectRulesHook.kt:17-26` (English) and 28-37 (Chinese) inject HandleIT-specific rules — canonical repository, Actions-only builds, invariants, completion gate — into the system prompt. The hook is registered unconditionally at startup: `plugins/PluginRegistry.kt:29-41` calls `ArchitectRulesHookRegistrar.register()` from `initializeBuiltins()`, which `core/application/OperitApplication.kt:203` invokes. `isDevelopmentTask` (lines 47-50) requires a non-blank `workspacePath`, which excludes casual chat but not other projects. A search of `core/tools/` for any build guard (`gradlew`, `assembleDebug`) returns nothing, so the build restriction is text in a prompt with no dispatch-level enforcement.
+
+Why it matters: every workspace task in every project receives HandleIT's repository rules, which is wrong for unrelated projects, and a model that ignores the prompt can run a local build freely. The design document already says a prompt alone is not enforcement.
+
+Proposed fix: scope the rules to this project (match on repository or workspace identity) rather than every workspace task, and either add dispatch-level enforcement for the build restriction or document the gap explicitly as a known limitation.
+
+Acceptance test: a workspace task in an unrelated project receives no HandleIT rules; the enforcement gap is either closed at dispatch or stated in the documentation.
+
+### R12 — Episodes are injected into system prompts without provenance or sanitization (confirmed)
+
+Evidence: episodes are produced by `ReflectorCurator.reflect` from raw user text (`api/chat/library/ReviewScheduler.kt:71-82`) and injected at `api/chat/enhance/ConversationService.kt:563-580` via `architectPreflightBlock`, consumed at `core/chat/hooks/ArchitectRulesHook.kt:66-74`. `TaskPreflightFormatter.buildPreflightBlock` interpolates `taskSummary`, `resolutionSummary`, `causeSummary` and `requiredPrerequisites` verbatim with no escaping and no delimiter fencing. The block header is a soft caveat only; there is no episode id, timestamp, source chat or confidence. Length is capped per field (`MAX_CHARS_PER_FIELD = 240`, `MAX_EPISODES_IN_BLOCK = 5`), so the block is bounded, but the cap is applied after the content is already trusted.
+
+Why it matters: episode text originates as model output over past conversations and re-enters the system prompt with system-level authority. That is a prompt-injection path, and the model cannot tell which past task a lesson came from or how old it is.
+
+Proposed fix: attach provenance (episode id, timestamp, source chat, confidence) to each injected lesson, sanitize and fence the content so it cannot be read as instructions, and keep a hard length cap on the whole block.
+
+Acceptance test: an episode containing instruction-like text cannot alter behaviour when injected; every injected lesson carries an id and timestamp; the block stays under its cap.
+
+### R13 — Newline-joined list fields are lossy (confirmed)
+
+Evidence: `data/model/TaskEpisodeEntity.kt:61-65` and `data/model/SkillRevisionEntity.kt:68-72` both implement `joinList` as `joinToString("\n")` and `splitJoined` as `split("\n")`. Affected fields: `requiredPrerequisitesJoined`, `applicableConstraintsJoined`, `evidenceKeysJoined` on `TaskEpisodeEntity`; `prerequisitesJoined`, `stepsJoined`, `checksJoined`, `pitfallsJoined`, `evidenceKeysJoined`, `userConstraintsJoined` on `SkillRevisionEntity`. `PendingReviewEntity` has no list fields.
+
+Why it matters: any list element containing an embedded newline is silently split into two elements on round-trip, and `trim()` destroys leading and trailing whitespace. A multi-line step in a skill revision is corrupted on save.
+
+Proposed fix: encode lists losslessly — JSON array in a single column, or escape newlines on join and unescape on split.
+
+Acceptance test: a list element containing a newline round-trips unchanged through save and load.
+
+## Stage E — trajectory log for future local-model migration
+
+### N02 — No trajectory log exists (confirmed absent)
+
+Evidence: a repo-wide search for `trajectory` returns zero matches in any file type. `jsonl` matches only LLM-provider stream parsing in `api/chat/llmprovider/ClaudeProvider.kt` and unrelated local variables; no `.jsonl` file exists in the repository. There is no append-only record of prompts, tool calls, results and outcomes.
+
+Why it matters: episode summaries are lossy by design. Without a raw trajectory record there is no data from which to later train or evaluate a local model, and no way to reconstruct why a past turn succeeded or failed.
+
+Proposed fix: add an append-only JSONL trajectory log, separate from episode summaries. Each record carries a schema version, model id, system prompt version, playbook and skill versions, ids of retrieved episodes and skills, the prompt context, tool calls and results, the final response, an outcome label (`success`, `failure`, `user_correction`) and correction pairs (rejected versus corrected response). Redact secrets at write time, cap and rotate on device, exclude sensitive chats by default, and record the embedding model name. Note: check the provider terms before ever training a model on another provider's outputs.
+
+Acceptance test: a completed turn appends exactly one well-formed JSONL record with all required fields; a secret in the prompt does not appear in the record; the log rotates at its cap; an excluded chat produces no record.
+
+### N03 — Retrieval should prefer raw trajectories over distilled skills (confirmed absent)
+
+Evidence: retrieval today uses only `TaskEpisode` summaries (`data/repository/TaskEpisodeRepository.kt:26-35`); there is no trajectory source to prefer, and no gating of injection by task difficulty.
+
+Why it matters: reported results in the skill-evolution literature indicate that raw-trajectory reuse often outperforms distilled skills, and that skill injection helps most on hard or pattern-matching tasks while adding noise elsewhere. Treating distilled skills as the primary source inverts that.
+
+Proposed fix: make raw trajectories the primary retrieval source and distilled skills a supplement, and gate injection to hard or pattern-matching tasks.
+
+Acceptance test: a hard task retrieves raw trajectories ahead of skills; an easy task receives no skill injection.
+
+## Stage F — evaluation
+
+### N04 — No replay fixtures or lesson A/B evaluation exist (confirmed absent)
+
+Evidence: no replay harness, no fixture set and no baseline/with-lesson/without-lesson comparison exists in the repository. The existing checklist already records that teacher-comparison evaluation was not measured.
+
+Why it matters: without a replay set there is no way to show that a lesson helps rather than merely exists, and no way to tune retrieval weights without guessing.
+
+Proposed fix: build replay fixtures from real tasks and compare baseline, with-lesson and without-lesson runs before promoting a lesson; later tune retrieval weights and thresholds against the replays with automatic revert on regression. Record only measured numbers; leave unmeasured comparisons marked pending.
+
+Acceptance test: a lesson is promoted only after a replay shows it does not regress the baseline; a regression in the replay set automatically reverts the tuned weights.
+
+## References and design inputs
+
+These are design inputs, not installed frameworks. All are preprints; reported claims are marked as reported, not verified. Identifiers were resolved against arXiv while writing this document.
+
+- ACE — Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models, arXiv:2510.04618. Preprint; comments field claims ICLR 2026. Reported: incremental playbook updates via generation, reflection and curation avoid brevity bias and context collapse. Source of the Generator/Reflector/Curator role split used in stage D.
+- SkillEvolBench — Benchmarking the Evolution from Episodic Experience to Procedural Skills, arXiv:2605.24117. Preprint. Reported: agents often adapt locally but rarely form robust reusable skills, and raw-trajectory reuse frequently beats distilled skills. Design input for N03.
+- EvoMemBench — Benchmarking Agent Memory from a Self-Evolving Perspective, arXiv:2605.18421. Preprint. Reported: long-context baselines remain competitive and no single memory form wins consistently. Design input for N04.
+- SSGM — Governing Evolving Memory in LLM Agents: Risks, Mechanisms, and the Stability and Safety Governed Memory Framework, arXiv:2603.11768. Preprint; a conceptual governance architecture with formal analysis, not an empirical system. Design input for R08 and R09.
+- EvolveMem — Self-Evolving Memory Architecture via AutoResearch for LLM Agents, arXiv:2605.13941. Preprint. Reported: co-evolving stored knowledge and the retrieval mechanism itself. Design input for N04.
+- HyperSkill — Self-Evolving LLM Agents via Hypergraph-Structured Skill Memory, arXiv:2608.16114. Preprint. Reported: hypergraph-structured skill memory with dual-path retrieval and structure-informed pruning. Design input for R06 and N03.
+
+## Findings that were already fixed or wrong at HEAD
+
+- R01's premise that an `entity12`/`MemoryLedger` exists and could collide with the new entities is wrong at HEAD. No such entity exists in code or in `default.json`; the strings appear only in prose. The real and still-open part of R01 is that the three new entities are absent from the committed model.
+- R07's premise that the Reflector is entirely unwired is partly wrong: `ReflectorCurator.reflect` is called from `ReviewScheduler.kt:73`. It is wired but unreachable because the queue never fills (R02) and the wrong store is drained (R03). The Curator, the lifecycle and the repository remain genuinely unwired.
+- R04's premise that `getPendingAndFailed` includes `PROCESSING` rows is wrong: it queries only `PENDING` and `FAILED`. The real defect is the opposite — rows stuck in `PROCESSING` after a crash are never recovered.

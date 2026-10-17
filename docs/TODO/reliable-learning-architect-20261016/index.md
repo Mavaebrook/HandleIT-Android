@@ -23,6 +23,9 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 - [x] T08 Add bounded similar-task preflight and context-sensitive missing-prerequisite detection.
 - [x] T09 Add selective Reflector/Curator review and versioned candidate skill updates.
 - [x] T10 Validate skill revisions before promotion; preserve user constraints and rollback history.
+
+> **Wiring note (added 2026-10-17, see [learning-pipeline-hardening-20261017](../learning-pipeline-hardening-20261017/index.md)):** the `[x]` marks on T09 and T10 record that the code and its unit tests exist, not that the path runs in production. At commit `28b53abd`, `ReflectorCurator.curate`, `SkillRevisionLifecycle.evaluate`/`applyEvaluation`/`rollbackTarget` and `SkillRevisionRepository` have no production callers (tests only), and `ReflectorCurator.reflect` is reachable only through a review queue that is never populated. These are library code not yet wired. The history above is preserved unchanged; the wiring work is tracked as D01 in the new TODO.
+
 - [ ] T11 Add meaningful regression coverage and evaluate current versus same-model versus stronger-teacher configurations. (47 new JVM regressions added; teacher-comparison evaluation not measured — no stronger configured model access confirmed)
 - [x] T12 Verify Android Build and Android Tests through GitHub-hosted Actions; report exact SHA/run URLs. (CI-verified on c0bba97a: Android Build success https://github.com/Mavaebrook/HandleIT-Android/actions/runs/38958024774 ; Android Tests success https://github.com/Mavaebrook/HandleIT-Android/actions/runs/38958024652)
 - [ ] T13 Perform or explicitly hand off device acceptance: update compatibility, notification snapshot, memory correction, skill preflight. (device acceptance pending — no actual device evidence available)

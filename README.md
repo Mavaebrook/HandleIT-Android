@@ -200,6 +200,7 @@ Contributions to HandleIT's scripts, extensions, documentation, and core feature
 - [ToolPkg Format Guide (Chinese)](docs/TOOLPKG_FORMAT_GUIDE.md)
 - [Changelog](CHANGELOG.md)
 - [Active development TODO](docs/TODO/reliable-learning-architect-20261016/index.md)
+- [Learning pipeline hardening TODO](docs/TODO/learning-pipeline-hardening-20261017/index.md)
 - Building requires the external `subpack.zip`, `jniLibs.zip`, and `libs.zip` archives and an initialized `terminal` submodule; the default local STT model is fetched and verified according to `app/config/stt-model-assets.properties`
 - Community: [QQ Group](https://qm.qq.com/q/Sa4fKEH7sO) | [Discord](https://discord.gg/YnV9MWurRF)
 

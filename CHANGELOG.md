@@ -2,6 +2,20 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-17 — learning pipeline hardening review
+
+Recorded an independent static review of the learning pipeline as an ordered, checkable TODO in `docs/TODO/learning-pipeline-hardening-20261017/`. Documentation only; no source code changed.
+
+### Added
+- `docs/TODO/learning-pipeline-hardening-20261017/` with `index.md` (ordered checklist A01-F02), `01-findings.md` (per-finding evidence, impact, fix and acceptance test) and `02-implementation.md` (staged order A-F).
+- README link to the new TODO alongside the existing active TODO link.
+
+### Notes
+- Every finding was re-verified against commit `28b53abd` before being recorded. Three findings were corrected rather than copied forward: there is no `entity12`/`MemoryLedger` in the schema (the strings appear only in prose), `ReflectorCurator.reflect` is wired but unreachable rather than entirely unwired, and `getPendingAndFailed` excludes `PROCESSING` rows rather than including them.
+- The T09/T10 checklist marks in `docs/TODO/reliable-learning-architect-20261016/index.md` overstate the wiring; a visible note was added under T07-T10 without deleting the history.
+- Known unresolved security item: earlier signing-document redaction does not erase exposed passwords from git history. No rotation or history rewrite is performed under this task.
+
+
 ## 2026-10-16 — reliable learning and persistent architect workflow
 
 Implemented the bounded specification in `docs/TODO/reliable-learning-architect-20261016/` (stages A–E).
