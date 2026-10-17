@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat.library
 
 import android.content.Context
+import com.ai.assistance.operit.data.preferences.preferencesManager
 import com.ai.assistance.operit.data.repository.PendingReviewRepository
 import com.ai.assistance.operit.data.repository.TaskEpisodeRepository
 import com.ai.assistance.operit.util.AppLogger
@@ -9,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -18,6 +20,9 @@ import kotlinx.coroutines.launch
  *
  * Bounded: processes a small batch per tick, marks processing, deletes on success, marks failed
  * on error. No every-turn call; only queued reviews are processed.
+ *
+ * A03: drains every memory space that has pending reviews, not just the hardcoded "default" space.
+ * Each resulting episode is saved into the SAME space the review was enqueued in.
  */
 class ReviewScheduler(
     private val context: Context,
@@ -32,6 +37,13 @@ class ReviewScheduler(
         private var instance: ReviewScheduler? = null
 
         fun getInstance(): ReviewScheduler? = instance
+
+        /**
+         * A03: the memory spaces that must be drained. Every space in the user's memory space list
+         * is a candidate, because a review may have been enqueued into any of them.
+         */
+        internal fun memorySpacesToDrain(profileIds: List<String>): List<String> =
+            profileIds.filter { it.isNotBlank() }.distinct()
     }
 
     private val isRunning = AtomicBoolean(false)
@@ -60,10 +72,17 @@ class ReviewScheduler(
     }
 
     private suspend fun drainPendingReviews() {
-        val profileId = "default"
+        val profileIds = memorySpacesToDrain(preferencesManager.memorySpaceListFlow.first())
+        for (profileId in profileIds) {
+            drainPendingReviewsForSpace(profileId)
+        }
+    }
+
+    private suspend fun drainPendingReviewsForSpace(profileId: String) {
         val pendingRepository = PendingReviewRepository(context, profileId)
         val pending = pendingRepository.getPendingAndFailed().take(MAX_REVIEWS_PER_RUN)
         if (pending.isEmpty()) return
+        AppLogger.d(TAG, "开始处理待复盘队列: profileId=$profileId, pending=${pending.size}")
         val ids = pending.map { it.id }
         pendingRepository.markProcessing(ids)
         val episodeRepository = TaskEpisodeRepository(context, profileId)
