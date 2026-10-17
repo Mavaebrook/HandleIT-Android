@@ -40,6 +40,23 @@ Documentation only. This job records findings and an ordered plan; it does not c
 
 ## Checkpoint
 Owner: VPS orchestrator via the bridge, at Teddy's explicit request.
-State: Stage A implemented and CI-verified. A01 model committed (`9afd9627`), A02 signals derived (`cddaa1e0`), A03 multi-space drain (`27a6cef1`). A01 device update-over-existing-install verification is PENDING and its checkbox remains unchecked.
+State: Stage A implemented and CI-verified. A01 model committed (`9afd9627`), A02 signals derived (`cddaa1e0`), A03 multi-space drain (`27a6cef1`), A03 per-space error isolation and Stage A docs (`58bedd67`). Final CI on `58bedd67`: Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39051121196), Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39051121190). A01 device update-over-existing-install verification is PENDING and its checkbox remains unchecked.
 Next: start Stage B (B01: make `drainPendingReviews` delete only succeeded reviews, cap retry attempts, recover rows stuck in `PROCESSING`; B02: stop hardcoding `useEnglish = true`).
 Blockers: none for Stage B. A01 device verification needs a real device with an existing install and cannot be performed from CI.
+
+## Stage A CI evidence
+
+All runs are GitHub-hosted Actions. No build or test was run on the VPS or any local machine.
+
+| Item | Commit | Android Build | Android Tests |
+| --- | --- | --- | --- |
+| A01 ObjectBox model | `9afd9627` | superseded by the next push (cancelled); covered by the green run on `58bedd67` | same |
+| A02 derived signals | `cddaa1e0` | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39049257681) | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39049257792) |
+| A03 multi-space drain | `27a6cef1` | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39049278206) | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39049278262) |
+| A03 error isolation + docs | `58bedd67` | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39051121196) | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39051121190) |
+
+The `58bedd67` tree contains A01, A02 and A03 together, so its green Android Build and Android Tests runs verify the whole of Stage A compiles and its JVM tests pass.
+
+ObjectBox model generation: `ObjectBox Model` workflow run 39048652619 (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39048652619), artifact `objectbox-model-1`, generated from commit `043ee519`.
+
+Not verified: update-over-existing-install on a real device (A01). This cannot be performed from CI and remains PENDING.
