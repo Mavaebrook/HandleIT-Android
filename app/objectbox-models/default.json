@@ -298,10 +298,238 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "12:4325003580155501390",
+      "lastPropertyId": "11:2479376348990645399",
+      "name": "PendingReviewEntity",
+      "properties": [
+        {
+          "id": "1:6177512967211540237",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3970933396964865194",
+          "name": "chatId",
+          "indexId": "14:6242930259308079629",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:7281082686227155747",
+          "name": "triggerReason",
+          "type": 9
+        },
+        {
+          "id": "4:2146674079480232796",
+          "name": "taskSummary",
+          "type": 9
+        },
+        {
+          "id": "5:7242565178059109375",
+          "name": "contextSummary",
+          "type": 9
+        },
+        {
+          "id": "6:767455186586857748",
+          "name": "outcome",
+          "type": 9
+        },
+        {
+          "id": "7:7010393479998204277",
+          "name": "createdAt",
+          "type": 10
+        },
+        {
+          "id": "8:3457297109790360928",
+          "name": "updatedAt",
+          "type": 10
+        },
+        {
+          "id": "9:4011177076833863224",
+          "name": "status",
+          "type": 9
+        },
+        {
+          "id": "10:7483732115422613303",
+          "name": "attemptCount",
+          "type": 5
+        },
+        {
+          "id": "11:2479376348990645399",
+          "name": "lastError",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "13:990099011800972325",
+      "lastPropertyId": "15:5568354850164856209",
+      "name": "SkillRevisionEntity",
+      "properties": [
+        {
+          "id": "1:6154608949018726393",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:7608288765031616613",
+          "name": "skillId",
+          "indexId": "15:2510987209679261429",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:6364869791433985465",
+          "name": "version",
+          "type": 5
+        },
+        {
+          "id": "4:8529547070228198060",
+          "name": "parentVersion",
+          "type": 5
+        },
+        {
+          "id": "5:8775410393867458973",
+          "name": "scope",
+          "type": 9
+        },
+        {
+          "id": "6:6673571136933476794",
+          "name": "prerequisitesJoined",
+          "type": 9
+        },
+        {
+          "id": "7:7009860901948242146",
+          "name": "stepsJoined",
+          "type": 9
+        },
+        {
+          "id": "8:3340263466685809392",
+          "name": "checksJoined",
+          "type": 9
+        },
+        {
+          "id": "9:1456505262816846452",
+          "name": "pitfallsJoined",
+          "type": 9
+        },
+        {
+          "id": "10:6711351051649340142",
+          "name": "evidenceKeysJoined",
+          "type": 9
+        },
+        {
+          "id": "11:1270144658431713543",
+          "name": "userConstraintsJoined",
+          "type": 9
+        },
+        {
+          "id": "12:6767334882680896523",
+          "name": "status",
+          "type": 9
+        },
+        {
+          "id": "13:6091556383282611049",
+          "name": "helpfulCount",
+          "type": 5
+        },
+        {
+          "id": "14:3834205389985279765",
+          "name": "harmfulCount",
+          "type": 5
+        },
+        {
+          "id": "15:5568354850164856209",
+          "name": "createdAt",
+          "type": 10
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "14:4269907125077724122",
+      "lastPropertyId": "13:22693058790726397",
+      "name": "TaskEpisodeEntity",
+      "properties": [
+        {
+          "id": "1:6498641764688466090",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:9066920127713388609",
+          "name": "taskSummary",
+          "indexId": "16:6279691876956123683",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:7435881054397498872",
+          "name": "contextSummary",
+          "type": 9
+        },
+        {
+          "id": "4:8932135847205295942",
+          "name": "outcome",
+          "type": 9
+        },
+        {
+          "id": "5:6214668651817018972",
+          "name": "failureSummary",
+          "type": 9
+        },
+        {
+          "id": "6:8605907993333248284",
+          "name": "causeSummary",
+          "type": 9
+        },
+        {
+          "id": "7:5732490997534838903",
+          "name": "causeIsHypothesis",
+          "type": 1
+        },
+        {
+          "id": "8:8857781637857115444",
+          "name": "resolutionSummary",
+          "type": 9
+        },
+        {
+          "id": "9:2720081125632085954",
+          "name": "requiredPrerequisitesJoined",
+          "type": 9
+        },
+        {
+          "id": "10:5194537867825726162",
+          "name": "applicableConstraintsJoined",
+          "type": 9
+        },
+        {
+          "id": "11:3208645636988062910",
+          "name": "evidenceKeysJoined",
+          "type": 9
+        },
+        {
+          "id": "12:8558306068118516118",
+          "name": "relatedSkillVersion",
+          "type": 9
+        },
+        {
+          "id": "13:22693058790726397",
+          "name": "createdAt",
+          "type": 10
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "11:3712699051976894545",
-  "lastIndexId": "13:8050158526538100522",
+  "lastEntityId": "14:4269907125077724122",
+  "lastIndexId": "16:6279691876956123683",
   "lastRelationId": "10:1689903676451604172",
   "lastSequenceId": "0:0",
   "modelVersion": 5,
