@@ -85,7 +85,7 @@ import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.preferencesManager
 import com.ai.assistance.operit.data.repository.MemoryAutoSaveCandidateRepository
 import com.ai.assistance.operit.api.chat.library.ReviewTriggerEnqueuer
-import com.ai.assistance.operit.data.learning.ReviewTriggerPolicy
+import com.ai.assistance.operit.data.learning.ReviewSignalDeriver
 import com.ai.assistance.operit.core.config.SystemToolPrompts
 import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.data.model.ToolParameterSchema
@@ -432,7 +432,9 @@ class EnhancedAIService private constructor(private val context: Context) {
         val isConversationActive: AtomicBoolean = AtomicBoolean(true),
         val conversationHistory: MutableList<PromptTurn>,
         val eventChannel: MutableSharedStream<TextStreamEvent>,
-        var modelExecutionSnapshot: ModelExecutionSnapshot? = null
+        var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
+        var turnObservations: ReviewSignalDeriver.TurnObservationAccumulator =
+            ReviewSignalDeriver.TurnObservationAccumulator()
     )
 
     private val activeExecutionContexts = ConcurrentHashMap<Int, MessageExecutionContext>()
@@ -1891,6 +1893,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                         TAG,
                         "检测到未闭合工具调用，disableWarning=true，直接结束本轮而不注入警告。invalidated=${truncatedToolRecovery.invalidatedToolNames}"
                     )
+                    // A02: an invalidated tool round is a deterministic repair/failure event.
+                    context.turnObservations.truncatedToolRecoveryCount += 1
                     finalizeAssistantResponse(
                         context = context,
                         content = context.roundManager.getDisplayContent(),
@@ -1918,6 +1922,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                         TAG,
                         "检测到未闭合工具调用，本轮工具全部作废。invalidated=${truncatedToolRecovery.invalidatedToolNames}"
                 )
+                // A02: an invalidated tool round is a deterministic repair/failure event.
+                context.turnObservations.truncatedToolRecoveryCount += 1
                 handleToolInvocation(
                         toolInvocations = emptyList(),
                         context = context,
@@ -2009,6 +2015,19 @@ class EnhancedAIService private constructor(private val context: Context) {
         }
     }
 
+    /**
+     * A02: the assistant turn immediately preceding the last user turn in this turn's history,
+     * used to decide whether the user turn is a correction. Returns "" when there is no such turn.
+     */
+    private fun previousAssistantTurnContent(history: List<PromptTurn>): String {
+        val lastUserIndex = history.indexOfLast { it.kind == PromptTurnKind.USER }
+        if (lastUserIndex <= 0) return ""
+        for (index in lastUserIndex - 1 downTo 0) {
+            if (history[index].kind == PromptTurnKind.ASSISTANT) return history[index].content
+        }
+        return ""
+    }
+
     /** Finalize an assistant response without relying on status-tag control flow. */
     private suspend fun finalizeAssistantResponse(
         context: MessageExecutionContext,
@@ -2052,21 +2071,41 @@ class EnhancedAIService private constructor(private val context: Context) {
                             chatId = currentChatId,
                             triggerMessageTimestamp = System.currentTimeMillis()
                         )
-                    // Bounded post-task review trigger (docs/.../01-design.md §4). Conservative
-                    // signals keep this a no-op by default; plumbing exists for future wiring.
+                    // Bounded post-task review trigger (docs/.../01-design.md §4). Signals are
+                    // derived from recorded turn events (tool results, model hops, conversation
+                    // turns) by ReviewSignalDeriver; ReviewTriggerPolicy remains the single
+                    // decision point.
+                    val reviewSignals =
+                        ReviewSignalDeriver.derive(
+                            context.turnObservations.toObservations(
+                                modelHopCount = context.roundManager.getCurrentRound(),
+                                userTurnCount =
+                                    context.conversationHistory.count {
+                                        it.kind == PromptTurnKind.USER
+                                    },
+                                lastUserTurnContent =
+                                    context.conversationHistory
+                                        .lastOrNull { it.kind == PromptTurnKind.USER }
+                                        ?.content
+                                        .orEmpty(),
+                                previousAssistantTurnContent =
+                                    previousAssistantTurnContent(context.conversationHistory)
+                            )
+                        )
+                    val reviewOutcome =
+                        if (reviewSignals.taskFailed) {
+                            com.ai.assistance.operit.data.model.TaskEpisode.OUTCOME_FAILURE
+                        } else {
+                            com.ai.assistance.operit.data.model.TaskEpisode.OUTCOME_SUCCESS
+                        }
                     ReviewTriggerEnqueuer.maybeEnqueue(
                         context = this@EnhancedAIService.context,
                         profileId = profileId,
                         chatId = currentChatId,
-                        signals = ReviewTriggerPolicy.ReviewSignals(
-                            explicitUserCorrection = false,
-                            taskFailed = false,
-                            repeatedRepairCount = 0,
-                            complexSuccessWithReusableLesson = false
-                        ),
+                        signals = reviewSignals,
                         taskSummary = content.take(2000),
                         contextSummary = "",
-                        outcome = com.ai.assistance.operit.data.model.TaskEpisode.OUTCOME_UNKNOWN
+                        outcome = reviewOutcome
                     )
                 }
             }.onFailure { e ->
@@ -2249,6 +2288,17 @@ class EnhancedAIService private constructor(private val context: Context) {
             AppLogger.d(TAG, "开始处理工具结果: $toolNames, 成功: ${results.all { it.success }}")
         } else {
             AppLogger.d(TAG, "开始处理0工具覆盖消息，长度: ${toolResultMessage.length}")
+        }
+
+        // A02: record deterministic tool outcomes for the post-task review signals.
+        context.turnObservations.toolResultCount += results.size
+        val failedResults = results.count { !it.success }
+        if (failedResults > 0) {
+            context.turnObservations.failedToolResultCount += failedResults
+            AppLogger.d(
+                TAG,
+                "记录工具失败结果用于复盘信号: failed=$failedResults, total=${results.size}"
+            )
         }
 
         // Add transition state
