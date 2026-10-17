@@ -12,9 +12,9 @@ The learning pipeline that was built in `docs/TODO/reliable-learning-architect-2
 Read this file on task start, resume, and after context compaction. Keep a current checkpoint with owner/job, exact commit, next action, and blockers. Update after each meaningful verified milestone, not only at the end. Check an item only with commit and verification evidence. Distinguish implemented, CI-verified, and device-verified. Pending or blocked items remain unchecked. Never mark the entire job complete merely because a build passes. This job is documentation only: it records findings and a plan, it does not implement them.
 
 ## Ordered implementation checklist
-- [ ] A01 Commit the ObjectBox model so `TaskEpisodeEntity`, `SkillRevisionEntity` and `PendingReviewEntity` have stable ids and UIDs, and verify update-over-existing-install. (R01)
-- [ ] A02 Derive `ReviewSignals` from deterministic outcomes instead of hardcoded `false`, so reviews are actually enqueued. (R02)
-- [ ] A03 Drain reviews from the active memory space instead of the hardcoded `"default"` profile. (R03)
+- [ ] A01 Commit the ObjectBox model so `TaskEpisodeEntity`, `SkillRevisionEntity` and `PendingReviewEntity` have stable ids and UIDs, and verify update-over-existing-install. (R01) — model committed and CI-verified at commit `9afd9627` (ids 12/13/14, purely additive). Device update-over-existing-install verification PENDING; checkbox stays unchecked until that check has actually run.
+- [x] A02 Derive `ReviewSignals` from deterministic outcomes instead of hardcoded `false`, so reviews are actually enqueued. (R02) — implemented and CI-verified at commit `cddaa1e0`; tests `ReviewSignalDeriverTest` (13 tests: one per signal mapping, `turnWithNoSignals_enqueuesNothing`, `correctionTurn_enqueuesExactlyOneReview`).
+- [x] A03 Drain reviews from the active memory space instead of the hardcoded `"default"` profile. (R03) — implemented and CI-verified at commit `27a6cef1`; tests `ReviewSchedulerMemorySpaceTest` (5 tests incl. `reviewEnqueuedInNonDefaultSpace_isDrainedInThatSpace`).
 - [ ] B01 Make `drainPendingReviews` delete only the reviews that succeeded, cap retry attempts, and recover rows stuck in `PROCESSING` after a crash. (R04)
 - [ ] B02 Stop hardcoding `useEnglish = true` in the scheduler; follow the user's locale. (R04)
 - [ ] C01 Pass a real task description as `currentTaskContext` instead of `workspacePath`, and call `missingPrerequisites` in production. (R05)
@@ -40,6 +40,6 @@ Documentation only. This job records findings and an ordered plan; it does not c
 
 ## Checkpoint
 Owner: VPS orchestrator via the bridge, at Teddy's explicit request.
-State: planned. Static review recorded against commit `28b53abd`; no implementation started.
-Next: start with A01 (commit the ObjectBox model) because every later stage persists through those entities, then A02/A03 so the review queue actually fills and drains.
-Blockers: none for the documentation job. Implementation is blocked on CI capacity for the update-over-existing-install verification in A01.
+State: Stage A implemented and CI-verified. A01 model committed (`9afd9627`), A02 signals derived (`cddaa1e0`), A03 multi-space drain (`27a6cef1`). A01 device update-over-existing-install verification is PENDING and its checkbox remains unchecked.
+Next: start Stage B (B01: make `drainPendingReviews` delete only succeeded reviews, cap retry attempts, recover rows stuck in `PROCESSING`; B02: stop hardcoding `useEnglish = true`).
+Blockers: none for Stage B. A01 device verification needs a real device with an existing install and cannot be performed from CI.

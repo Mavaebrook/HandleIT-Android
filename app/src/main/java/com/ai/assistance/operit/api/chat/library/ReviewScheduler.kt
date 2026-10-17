@@ -6,6 +6,7 @@ import com.ai.assistance.operit.data.repository.PendingReviewRepository
 import com.ai.assistance.operit.data.repository.TaskEpisodeRepository
 import com.ai.assistance.operit.util.AppLogger
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -74,7 +75,16 @@ class ReviewScheduler(
     private suspend fun drainPendingReviews() {
         val profileIds = memorySpacesToDrain(preferencesManager.memorySpaceListFlow.first())
         for (profileId in profileIds) {
-            drainPendingReviewsForSpace(profileId)
+            // Each memory space is an independent ObjectBox store. A failure in one store must
+            // not prevent the remaining spaces from being drained, so the failure is logged with
+            // its space id and the loop continues. The exception is never discarded silently.
+            try {
+                drainPendingReviewsForSpace(profileId)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                AppLogger.e(TAG, "待复盘队列处理失败: profileId=$profileId", error)
+            }
         }
     }
 
