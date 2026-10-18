@@ -15,8 +15,8 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 - [ ] A01 Commit the ObjectBox model so `TaskEpisodeEntity`, `SkillRevisionEntity` and `PendingReviewEntity` have stable ids and UIDs, and verify update-over-existing-install. (R01) — model committed and CI-verified at commit `9afd9627` (ids 12/13/14, purely additive). Device update-over-existing-install verification PENDING; checkbox stays unchecked until that check has actually run.
 - [x] A02 Derive `ReviewSignals` from deterministic outcomes instead of hardcoded `false`, so reviews are actually enqueued. (R02) — implemented and CI-verified at commit `cddaa1e0`; tests `ReviewSignalDeriverTest` (13 tests: one per signal mapping, `turnWithNoSignals_enqueuesNothing`, `correctionTurn_enqueuesExactlyOneReview`).
 - [x] A03 Drain reviews from the active memory space instead of the hardcoded `"default"` profile. (R03) — implemented and CI-verified at commit `27a6cef1`; tests `ReviewSchedulerMemorySpaceTest` (5 tests incl. `reviewEnqueuedInNonDefaultSpace_isDrainedInThatSpace`).
-- [ ] B01 Make `drainPendingReviews` delete only the reviews that succeeded, cap retry attempts, and recover rows stuck in `PROCESSING` after a crash. (R04)
-- [ ] B02 Stop hardcoding `useEnglish = true` in the scheduler; follow the user's locale. (R04)
+- [x] B01 Make `drainPendingReviews` delete only the reviews that succeeded, cap retry attempts, and recover rows stuck in `PROCESSING` after a crash. (R04) — implemented and CI-verified at commit `79a17f54`; tests `ReviewSchedulerBatchTest` (9 tests: batchOfThreeWithOneFailure_deletesExactlyTwo, reviewFailingPastMaxAttempts_isDeadLettered, deadLetteredReview_isNotRetried, reviewBelowMaxAttempts_staysRetryable, staleProcessingRow_isRecovered, freshProcessingRow_isLeftAlone, processingRowExactlyAtStalenessBoundary_isNotStale, nonProcessingStatus_isNeverStale, succeededReview_isDeleted).
+- [x] B02 Stop hardcoding `useEnglish = true` in the scheduler; follow the user's locale. (R04) — implemented and CI-verified at commit `68931d45`; tests `ReviewLessonLanguageTest` (7 tests: chineseLocale_requestsChinese, chineseRegionVariant_requestsChinese, englishLocale_requestsEnglish, otherSupportedLocale_requestsEnglish, uppercaseChineseCode_isStillChinese, blankCode_requestsEnglish, lessonLanguage_matchesUseEnglish).
 - [ ] C01 Pass a real task description as `currentTaskContext` instead of `workspacePath`, and call `missingPrerequisites` in production. (R05)
 - [ ] C02 Replace single-token prerequisite matching with a stopword-aware, threshold-based match. (R05)
 - [ ] C03 Tokenize non-Latin text correctly and use the vector index plus the `MemoryLink` graph for episode retrieval. (R06)
@@ -36,8 +36,9 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 - [ ] E02 Treat raw trajectories as the primary retrieval source and distilled skills as a supplement; gate injection to hard or pattern-matching tasks. (N03)
 - [ ] F01 Build replay fixtures from real tasks and compare baseline / with-lesson / without-lesson before promoting a lesson. (N04)
 - [ ] F02 Tune retrieval weights and thresholds against the replays with automatic revert on regression. (N04)
-- [ ] R14 Separate the raw observed event from its interpreted meaning in ReviewSignals; rename or re-document the complexity signal so it only claims what it measures; add an explicit user-initiated correction signal and treat the lexical marker match as a weaker candidate. (R14) — Stage A refinement.
-- [ ] R15 Record the release that first shipped entities 12-14 and keep default.json lineage from that release onward; add a CI step that fails on a non-byte-identical regeneration; A01 stays unchecked until the update-over-existing-install check runs. (R15) — Stage A refinement.
+- [x] R14 Separate the raw observed event from its interpreted meaning in ReviewSignals; rename or re-document the complexity signal so it only claims what it measures; add an explicit user-initiated correction signal and treat the lexical marker match as a weaker candidate. (R14) — Stage A refinement. — implemented and CI-verified at commit `72c98edc` (test fix `d3535a5a`); tests `ReviewSignalDeriverTest` (23) and `ReviewTriggerPolicyTest` (10). The explicit-user-action UI remains an UNCHECKED follow-up (see below).
+- [x] R15 Record the release that first shipped entities 12-14 and keep default.json lineage from that release onward; add a CI step that fails on a non-byte-identical regeneration; A01 stays unchecked until the update-over-existing-install check runs. (R15) — Stage A refinement. — implemented and CI-verified at commit `2703b216`; ObjectBox Model run 39096814734 succeeded and its byte-identical step printed the success line at runtime. A01 stays unchecked.
+- [ ] R14-UI Add an explicit user-initiated "this reply is wrong" control (for example a thumbs-down or mark-wrong action on an assistant message) and wire it to `ReviewSignalDeriver.TurnObservationAccumulator.explicitCorrectionAction`, so the explicit-correction signal is set by a deliberate user action rather than only by lexical markers. (R14 follow-up) — NOT DONE. No such control exists today; `regenerate` is a retry, not a correction marker. The deriver input is implemented and unit-tested but nothing in production sets it.
 - [ ] R16 Keep review TRIGGER, lesson CONFIDENCE and PROMOTION EVIDENCE separate in the schema and in every later stage. (R16) — design rule, referenced from Stages C, D and F.
 
 ## Scope boundaries
@@ -45,11 +46,28 @@ Documentation only. This job records findings and an ordered plan; it does not c
 
 ## Checkpoint
 Owner: VPS orchestrator via the bridge, at Teddy's explicit request.
-State: Stage A implemented and CI-verified. A01 model committed (`9afd9627`), A02 signals derived (`cddaa1e0`), A03 multi-space drain (`27a6cef1`), A03 per-space error isolation and Stage A docs (`58bedd67`). Final CI on `58bedd67`: Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39051121196), Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39051121190). A01 device update-over-existing-install verification is PENDING and its checkbox remains unchecked.
-Docs amendment (2026-10-17): an independent review of Stage A raised refinements R14-R16, promoted G01 and G02 into the checklist, amended E02/N03, C06 and F02, and recorded a deferred backlog. This amendment is documentation only; no source code, workflow or checkbox was changed.
-Exact commit: the docs-only amendment commit that carries this checkpoint (see CHANGELOG.md entry dated 2026-10-17).
-Next: start Stage B (B01: make `drainPendingReviews` delete only succeeded reviews, cap retry attempts, recover rows stuck in `PROCESSING`; B02: stop hardcoding `useEnglish = true`).
-Blockers: none for Stage B. A01 device verification needs a real device with an existing install and cannot be performed from CI. Amendment (2026-10-17): A01 device verification is pending and requires a device with an older build installed; it cannot be performed from CI. No blocker for Stage B.
+State: Stage A and Stage B implemented and CI-verified. A01 model committed (`9afd9627`), A02 signals derived (`cddaa1e0`), A03 multi-space drain (`27a6cef1`), A03 per-space error isolation (`58bedd67`). Stage B: B01 (`79a17f54`), B02 (`68931d45`). R14 (`72c98edc`, test fix `d3535a5a`) and R15 (`2703b216`) implemented. Final green CI on `d3535a5a`: Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39095530659), Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39095530635). A01 device update-over-existing-install verification is PENDING and its checkbox remains unchecked. Nothing in this job is device-verified.
+Exact commit: `d3535a5a7c3c5950af49eaf368d0213dc6408fc0` (the docs commit that carries this checkpoint is the one after it).
+Next: start Stage C (C01: pass a real task description as `currentTaskContext` instead of `workspacePath`, and call `missingPrerequisites` in production; C02: stopword-aware prerequisite matching).
+Blockers: none for Stage C. A01 device verification needs a real device with an older build installed and cannot be performed from CI. The R14 explicit-user-action UI (R14-UI) is an open follow-up, not a blocker for Stage C.
+
+## Stage B and R14/R15 CI evidence
+
+All runs are GitHub-hosted Actions. No build or test was run on the VPS or any local machine.
+
+| Item | Commit | Android Build | Android Tests |
+| --- | --- | --- | --- |
+| B01 per-review delete, retry cap, stale recovery | `79a17f54` | cancelled by concurrency group (superseded by the next push); covered by the green run on `d3535a5a` | same |
+| B02 locale-derived lesson language | `68931d45` | cancelled by concurrency group; covered by the green run on `d3535a5a` | same |
+| R14 observed/interpreted split, candidate correction | `72c98edc` | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39094387037) | failure (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39094387036) — one JUnit assertion, fixed in `d3535a5a` |
+| R15 byte-identical model enforcement | `2703b216` | not triggered (workflow-only change outside the `paths:` filter) | not triggered (same) |
+| R14 test fix | `d3535a5a` | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39095530659) | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39095530635) |
+
+The `d3535a5a` tree contains B01, B02, R14, R15 and the R14 test fix together, so its green Android Build and Android Tests runs verify the whole of Stage B plus R14 and R15 compile and their JVM tests pass.
+
+ObjectBox Model: run 39096814734 (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39096814734) succeeded on `d3535a5a`. The new step `Verify committed ObjectBox model is byte-identical` concluded success and printed `ObjectBox model is byte-identical to the committed file.` at runtime, which proves `git diff --exit-code` returned 0 and the committed `default.json` is exactly what a clean regeneration produces.
+
+Not verified: update-over-existing-install on a real device (A01). This cannot be performed from CI and remains PENDING. No item in this job is device-verified.
 
 ## Stage A CI evidence
 

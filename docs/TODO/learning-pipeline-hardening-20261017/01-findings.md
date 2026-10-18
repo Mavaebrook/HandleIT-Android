@@ -36,14 +36,17 @@ Acceptance test: a turn containing an explicit user correction enqueues exactly 
 
 #### R02 — implemented behaviour (A02, commit `cddaa1e0`)
 
-The four signals are now derived by `ReviewSignalDeriver` (`app/src/main/java/com/ai/assistance/operit/data/learning/ReviewSignalDeriver.kt`) from events recorded during the turn. `ReviewTriggerPolicy` remains the single decision point; the deriver only produces signals.
+The signals are now derived by `ReviewSignalDeriver` (`app/src/main/java/com/ai/assistance/operit/data/learning/ReviewSignalDeriver.kt`) from events recorded during the turn. `ReviewTriggerPolicy` remains the single decision point; the deriver only produces signals.
 
 | Signal | Event source | Rule |
 | --- | --- | --- |
-| `explicitUserCorrection` | The turn's conversation history (`MessageExecutionContext.conversationHistory`, `PromptTurnKind.USER` / `PromptTurnKind.ASSISTANT`) | True when an assistant turn precedes the last user turn in the same turn's history AND the trimmed, lower-cased user content contains one of `ReviewSignalDeriver.CORRECTION_MARKERS` (a documented lexical list, e.g. "no,", "that's wrong", "incorrect", "not what i asked", "actually,", "不对", "错了", "重新"). This is a recorded-text detector, not model self-judgement. |
+| `explicitUserCorrection` | `TurnObservations.explicitCorrectionAction` only | Set ONLY by a deliberate user action recorded in `TurnObservations.explicitCorrectionAction`. Nothing in production sets it yet: there is no user-initiated "this reply is wrong" control in the app, and `regenerate` is a retry, not a correction marker. A lexical marker match does NOT set this signal. |
+| `candidateCorrection` | The turn's conversation history (`MessageExecutionContext.conversationHistory`, `PromptTurnKind.USER` / `PromptTurnKind.ASSISTANT`) | True when an assistant turn precedes the last user turn in the same turn's history AND the trimmed, lower-cased user content matches one of `ReviewSignalDeriver.CORRECTION_MARKERS` on a word boundary. The markers are specific phrases; the bare `"wrong"` marker was removed because it matched "wrongly" and "nothing wrong with the build". A match is a weaker candidate signal, not an explicit correction. |
 | `taskFailed` | `ToolResult.success` from `processToolResults`, and invalidated tool rounds from `processStreamCompletion` | True when at least one tool result in the turn reported `success = false`, or at least one truncated/unclosed tool round was invalidated (`truncatedToolRecoveryCount > 0`). |
 | `repeatedRepairCount` | `ToolResult.success` from `processToolResults` | The number of failed tool results in the turn; each failed tool result is one repair attempt. |
-| `complexSuccessWithReusableLesson` | `ConversationRoundManager.getCurrentRound()` (model hops) and tool result count | True when the turn had no failed tool results and no invalidated tool round, AND it reached `COMPLEX_TURN_HOP_THRESHOLD` (3) model hops or `COMPLEX_TURN_TOOL_THRESHOLD` (3) tool results. |
+| `complexSuccessfulTurn` | `ConversationRoundManager.getCurrentRound()` (model hops) and tool result count | True when the turn had no failed tool results and no invalidated tool round, AND it reached `COMPLEX_TURN_HOP_THRESHOLD` (3) model hops or `COMPLEX_TURN_TOOL_THRESHOLD` (3) tool results. It measures complexity and success only and never asserts that a lesson exists. |
+
+Note (after R14): the raw observed events are retained alongside the interpreted booleans in `ReviewSignals.observed` (an `ObservedTurnEvents`), so a later reader can see what was observed and what was inferred. The table above describes behaviour after R14 (commit `72c98edc`, test fix `d3535a5a`).
 
 Recording points: `MessageExecutionContext` carries a `TurnObservationAccumulator`; `processToolResults` records `toolResultCount` and `failedToolResultCount`; `processStreamCompletion` records `truncatedToolRecoveryCount` at both `truncatedToolRecovery != null` handling sites. `finalizeAssistantResponse` derives the signals and passes them to `ReviewTriggerEnqueuer.maybeEnqueue`, which calls `PendingReviewRepository.enqueue` exactly once when the policy returns `shouldReview`.
 
@@ -76,6 +79,18 @@ Why it matters: silent loss of reviews, an unbounded retry loop that burns model
 Proposed fix: delete only the ids that succeeded; add an attempt cap with a terminal dead-letter status; add a startup sweep that returns stale `PROCESSING` rows to `PENDING`; derive `useEnglish` from the locale as `ConversationService` does.
 
 Acceptance test: a batch of three where one fails deletes exactly two and leaves the third retryable; a review failing past the cap stops being retried; a row left in `PROCESSING` is recovered on the next start; a Chinese-locale user gets Chinese lessons.
+
+#### R04 — implemented behaviour (B01 and B02, commits `79a17f54` and `68931d45`)
+
+B01 (`79a17f54`): `ReviewScheduler.drainPendingReviewsForSpace` now decides each review individually through the new pure decision core `PendingReviewBatchPolicy` (`app/src/main/java/com/ai/assistance/operit/data/repository/PendingReviewBatchPolicy.kt`) and deletes only the ids that actually produced an episode. A review whose `reflect()` returned null is marked failed on its own and stays retryable; it is no longer deleted as collateral of a sibling's success. `PendingReviewEntity` gained a terminal `STATUS_DEAD_LETTER`, and a review that reaches `MAX_ATTEMPTS` (3) is dead-lettered: never retried, never deleted, and inspectable through `getDeadLettered()`. `ReviewScheduler.start()` runs a recovery sweep that returns `PROCESSING` rows older than `PROCESSING_STALE_AFTER_MS` (10 minutes) to `PENDING`, while leaving fresh `PROCESSING` rows alone. The per-space failure isolation from `58bedd67` is preserved: a failure in one memory space is logged with its space id and does not abort draining of the remaining spaces.
+
+B02 (`68931d45`): `useEnglish` is no longer hardcoded. It is derived from the user's locale through the new pure decision core `ReviewLessonLanguage` (`app/src/main/java/com/ai/assistance/operit/data/learning/ReviewLessonLanguage.kt`), resolved once per batch, mirroring `LocaleUtils.usesChineseContent`. A Chinese locale (including region variants and upper-case codes) requests Chinese lessons; every other locale, and a blank code, requests English.
+
+Limitation (B02): the generation language is NOT persisted with the lesson. `TaskEpisode` and `TaskEpisodeEntity` have no language column; adding one would change the ObjectBox schema and require regenerating `default.json`, which was out of scope. The language only shapes the Reflector request. Recording it is a follow-up requiring a model regeneration.
+
+Tests: `app/src/test/java/com/ai/assistance/operit/api/chat/library/ReviewSchedulerBatchTest.kt` (9 tests: `batchOfThreeWithOneFailure_deletesExactlyTwo`, `reviewFailingPastMaxAttempts_isDeadLettered`, `deadLetteredReview_isNotRetried`, `reviewBelowMaxAttempts_staysRetryable`, `staleProcessingRow_isRecovered`, `freshProcessingRow_isLeftAlone`, `processingRowExactlyAtStalenessBoundary_isNotStale`, `nonProcessingStatus_isNeverStale`, `succeededReview_isDeleted`) and `app/src/test/java/com/ai/assistance/operit/data/learning/ReviewLessonLanguageTest.kt` (7 tests: `chineseLocale_requestsChinese`, `chineseRegionVariant_requestsChinese`, `englishLocale_requestsEnglish`, `otherSupportedLocale_requestsEnglish`, `uppercaseChineseCode_isStillChinese`, `blankCode_requestsEnglish`, `lessonLanguage_matchesUseEnglish`). `ReviewSchedulerMemorySpaceTest` (5 tests) is unchanged and still green.
+
+Status: implemented and CI-verified at `d3535a5a` (the tree that contains B01 and B02 together, with green Android Build and Android Tests). Not device-verified.
 
 ## Stage C — retrieval and gap check
 
@@ -262,6 +277,24 @@ Proposed fix: store the raw observed event and its interpreted meaning as separa
 
 Acceptance test: a retry, an edit, and a normal reply beginning with "no," each do not set explicit correction; an explicit user action does set it; a complex-but-unremarkable turn can trigger a review without recording a lesson.
 
+#### R14 — implemented behaviour (commit `72c98edc`, test fix `d3535a5a`)
+
+(i) `ReviewSignals` now carries `ObservedTurnEvents` in `ReviewSignals.observed`, so the raw facts (tool result count, failed tool result count, truncated tool recovery count, model hop count, the explicit correction action, and the matched lexical marker) are retained alongside the interpreted booleans. A later reader can see what was observed and what was inferred.
+
+(ii) `complexSuccessWithReusableLesson` was renamed to `complexSuccessfulTurn` everywhere (deriver, policy, tests). The decision reason string is now `"complex successful turn warranted review"` and no longer claims a lesson. The signal measures complexity and success only.
+
+(iii) Correction detection now uses word-boundary matching. The bare `"wrong"` marker was removed because it matched "wrongly" and "nothing wrong with the build"; it was replaced by specific phrases. A lexical match now sets `candidateCorrection` only, and only a deliberate action sets `explicitUserCorrection`. The preceding-assistant-turn requirement is kept for the candidate signal.
+
+Explicit-control finding (recorded verbatim): there is NO explicit user-initiated "this reply is wrong" control in the app. Searches for `markWrong`, `markAsWrong`, `userCorrection`, `explicitCorrection`, `reportIncorrect`, `flagWrong`, `thumbsDown`, `dislike`, `isWrong` return zero hits. The only user-initiated re-run action is `regenerate` (`MessageCoordinationDelegate.regenerateSingleAiMessage`, `MessageProcessingDelegate.regenerateAiMessageVariant`, `ChatHistoryManager.addMessageVariant`), which is a RETRY, not a correction marker. Therefore the explicit-signal input (`TurnObservations.explicitCorrectionAction`) is implemented but set by nothing in production; wiring a UI action is an unchecked follow-up (R14-UI in the checklist). No UI was built.
+
+`ReviewTriggerPolicy` remains the single decision point. A candidate correction alone may trigger a review; that check is evaluated last and is bounded by the preceding-assistant-turn plus matched-marker requirement, so an ordinary reply cannot open a review. An explicit correction takes precedence over a candidate.
+
+Tests: `ReviewSignalDeriverTest` grew 13 → 23 tests. Four complexity tests were renamed to the `complexSuccessfulTurn` name; three correction tests were updated to candidate semantics; ten R14 tests were added: `retry_doesNotSetExplicitCorrection`, `edit_doesNotSetExplicitCorrection`, `normalReplyBeginningWithNo_doesNotSetExplicitCorrection`, `wrongInsideAnotherWord_doesNotSetCandidate`, `wrongAsUnrelatedTopic_doesNotSetCandidate`, `lexicalMatch_setsCandidateOnly`, `explicitInput_setsExplicit`, `complexButUnremarkableTurn_triggersReviewWithoutAssertingLesson`, `observedEvents_areRetainedAlongsideSignals`, `candidateCorrection_aloneTriggersBoundedReview`. `ReviewTriggerPolicyTest` grew 8 → 10 tests: `complexSuccessWithReusableLesson_triggersReview` was renamed to `complexSuccessfulTurn_triggersReview` (now asserting the reason does NOT contain "lesson"), and `candidateCorrection_triggersReview` and `explicitCorrection_takesPrecedenceOverCandidate` were added. No test was deleted.
+
+CI failure and fix: on `72c98edc` Android Build succeeded (run 39094387037) but Android Tests failed (run 39094387036) with one JUnit assertion failure, `ReviewSignalDeriverTest.retry_doesNotSetExplicitCorrection` at `ReviewSignalDeriverTest.kt:222`, because the test used "try again" as its input while "try again" is itself a `CORRECTION_MARKERS` entry, so `candidateCorrection` was legitimately set. 1423 tests ran, 1 failed, 6 skipped. The root cause was the test's input, not the implementation; it was fixed in `d3535a5a` by using marker-free text.
+
+Status: implemented and CI-verified at `d3535a5a`. Not device-verified.
+
 ### R15 — ObjectBox schema lineage is recorded but not yet proven for upgrades (confirmed, risk assessed as low)
 
 Facts recorded: the committed model was generated from a fresh CI run. `app/objectbox-models/default.json` carries `modelVersion` 5, `lastEntityId` `14:4269907125077724122` and `lastIndexId` `16:6279691876956123683`; the three new entities are `PendingReviewEntity` = `12:4325003580155501390`, `SkillRevisionEntity` = `13:990099011800972325` and `TaskEpisodeEntity` = `14:4269907125077724122`. `git log -- app/objectbox-models/default.json` shows the file was last changed by `9afd9627`, the same commit that added the entity declarations, so the model and the declarations landed together as R01 required.
@@ -279,6 +312,14 @@ Why it matters: a committed model with stable ids is what prevents per-build id 
 Proposed fix: run the update-over-existing-install check on a device with an older build before A01 is checked; record the first release that ships entities 12-14 and treat that release as the lineage anchor; add a CI step that fails when a regeneration is not byte-identical to the committed model.
 
 Acceptance test: an update over an existing install opens the database with existing memories intact; the release that first shipped the entities is recorded in this document; a CI run fails when the regenerated model differs from the committed one.
+
+#### R15 — implemented behaviour (commit `2703b216`)
+
+`.github/workflows/objectbox-model.yml` now has a step after annotation processing, `Verify committed ObjectBox model is byte-identical`, that fails the workflow with `git diff --exit-code` when the regenerated model differs from the committed one, and also fails when the model was not generated at all. The step has no `if:` condition and no `continue-on-error`, so a non-byte-identical regeneration fails the workflow rather than being silently uploaded. The print and upload steps keep `if: always()` so the artifact and the diff are still available on failure.
+
+Verification: ObjectBox Model run 39096814734 (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39096814734) succeeded on `d3535a5a`. The byte-identical step concluded success and printed `ObjectBox model is byte-identical to the committed file.` at runtime, proving `git diff --exit-code` returned 0.
+
+A01 remains unchecked: byte-identical regeneration is necessary but is not proof of upgrade compatibility, and the update-over-existing-install check has not run on a device.
 
 ### R16 — Keep trigger, confidence and promotion evidence separate (design rule)
 
