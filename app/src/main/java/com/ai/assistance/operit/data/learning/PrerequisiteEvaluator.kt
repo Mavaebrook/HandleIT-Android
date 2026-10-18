@@ -1,0 +1,68 @@
+package com.ai.assistance.operit.data.learning
+
+/**
+ * Three-valued evaluation of a supported typed predicate against a [TaskContextSnapshot]
+ * (Step 1, Area 2).
+ *
+ * This applies ONLY to supported structured claims. Existing free-text prerequisites are NOT
+ * automatically converted into typed predicates; this evaluator does not pretend they have been.
+ * The result is advisory and is NOT an execution authorization gate.
+ */
+enum class EvaluationResult {
+    SATISFIED,
+    CONTRADICTED,
+    UNKNOWN
+}
+
+object PrerequisiteEvaluator {
+
+    /**
+     * Evaluate [predicate] about [subject] against [snapshot] at [nowMs].
+     *
+     * Rules:
+     *  - no matching, applicable, non-expired observation -> [EvaluationResult.UNKNOWN];
+     *  - all matching observations agree on BooleanValue(true) -> [EvaluationResult.SATISFIED];
+     *  - all matching observations agree on BooleanValue(false) -> [EvaluationResult.CONTRADICTED];
+     *  - contradictory equally-applicable evidence (both true and false present) -> UNKNOWN (a
+     *    conflict is not resolved by newest-wins);
+     *  - expired observations (validUntilMs != 0 && nowMs > validUntilMs) are ignored;
+     *  - non-boolean or [TypedValue.Unknown] values -> UNKNOWN.
+     *
+     * Only [TrustLevel.OBSERVED] records count: a REPORTED or REQUESTED claim cannot satisfy an
+     * observed predicate.
+     */
+    fun evaluate(
+        predicate: String,
+        subject: String,
+        snapshot: TaskContextSnapshot,
+        nowMs: Long
+    ): EvaluationResult {
+        val matching = snapshot.observations.filter { record ->
+            record.predicate == predicate &&
+                record.subject == subject &&
+                record.trust == TrustLevel.OBSERVED &&
+                !isExpired(record, nowMs)
+        }
+        if (matching.isEmpty()) return EvaluationResult.UNKNOWN
+
+        var sawTrue = false
+        var sawFalse = false
+        for (record in matching) {
+            when (val value = record.value) {
+                is TypedValue.BooleanValue -> {
+                    if (value.value) sawTrue = true else sawFalse = true
+                }
+                else -> return EvaluationResult.UNKNOWN
+            }
+        }
+        return when {
+            sawTrue && sawFalse -> EvaluationResult.UNKNOWN
+            sawTrue -> EvaluationResult.SATISFIED
+            sawFalse -> EvaluationResult.CONTRADICTED
+            else -> EvaluationResult.UNKNOWN
+        }
+    }
+
+    private fun isExpired(record: ObservationRecord, nowMs: Long): Boolean =
+        record.validUntilMs != 0L && nowMs > record.validUntilMs
+}

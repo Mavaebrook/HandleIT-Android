@@ -53,6 +53,7 @@ import com.ai.assistance.operit.util.LocaleUtils
 import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
 import com.ai.assistance.operit.data.learning.TaskPreflightProvider
+import com.ai.assistance.operit.data.learning.TaskContextSnapshotStore
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkBuilder
 import com.ai.assistance.operit.data.repository.getCustomMoodDefinitions
 import com.ai.assistance.operit.data.repository.getMoodAnimationMapping
@@ -92,6 +93,12 @@ class ConversationService(
     }
 
     private val apiPreferences = ApiPreferences.getInstance(context)
+    /**
+     * In-memory, bounded store of typed observations for the preflight snapshot (Step 1, Area 2).
+     * Injected clock; persistence is deferred (restart means unknown). The snapshot is advisory and
+     * does not gate execution.
+     */
+    private val taskContextSnapshotStore = TaskContextSnapshotStore(clock = { System.currentTimeMillis() })
     private val displayPreferencesManager = DisplayPreferencesManager.getInstance(context)
     private val waifuPreferences = WaifuPreferences.getInstance(context)
     private val characterCardManager = CharacterCardManager.getInstance(context)
@@ -611,25 +618,32 @@ class ConversationService(
                 // by TaskPreflightProvider and yields the defined no-op (empty block).
                 // buildPreflightBlock is suspend because retrieval merges the lexical candidates
                 // with the episode vector index; this function is already suspend.
-                val architectPreflightBlock =
+                val preflightContext =
                     if (!workspacePath.isNullOrBlank()) {
-                        TaskPreflightProvider.buildPreflightBlock(
+                        TaskPreflightProvider.buildPreflightContext(
                             context = context,
                             profileId = effectiveMemorySpaceId,
                             taskQuery = processedInput,
                             currentTaskContext =
                                 buildPreflightTaskContext(processedInput, effectiveChatHistory),
-                            useEnglish = useEnglish
+                            useEnglish = useEnglish,
+                            snapshotStore = taskContextSnapshotStore
                         )
                     } else {
-                        ""
+                        TaskPreflightProvider.PreflightContext(textBlock = "", snapshot = null)
                     }
-                val systemPromptHookMetadata =
-                    if (architectPreflightBlock.isNotBlank()) {
-                        activePromptMetadata + ("architectPreflightBlock" to architectPreflightBlock)
-                    } else {
-                        activePromptMetadata
-                    }
+                val architectPreflightBlock = preflightContext.textBlock
+                var systemPromptHookMetadata = activePromptMetadata
+                if (architectPreflightBlock.isNotBlank()) {
+                    systemPromptHookMetadata =
+                        systemPromptHookMetadata + ("architectPreflightBlock" to architectPreflightBlock)
+                }
+                // Step 1, Area 2: pass the typed snapshot through preflight plumbing alongside the
+                // bounded text context. Advisory only; it does not gate execution.
+                preflightContext.snapshot?.let { snapshot ->
+                    systemPromptHookMetadata =
+                        systemPromptHookMetadata + ("taskContextSnapshot" to snapshot)
+                }
                 val systemPrompt = SystemPromptConfig.getSystemPromptWithCustomPrompts(
                     context = context,
                     packageManager = packageManager,

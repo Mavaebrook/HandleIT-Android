@@ -86,6 +86,9 @@ import com.ai.assistance.operit.data.preferences.preferencesManager
 import com.ai.assistance.operit.data.repository.MemoryAutoSaveCandidateRepository
 import com.ai.assistance.operit.api.chat.library.ReviewTriggerEnqueuer
 import com.ai.assistance.operit.data.learning.ReviewSignalDeriver
+import com.ai.assistance.operit.data.learning.ObservationScope
+import com.ai.assistance.operit.data.learning.TaskContextSnapshotStore
+import com.ai.assistance.operit.data.learning.ToolObservationProducer
 import com.ai.assistance.operit.core.config.SystemToolPrompts
 import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.data.model.ToolParameterSchema
@@ -434,7 +437,14 @@ class EnhancedAIService private constructor(private val context: Context) {
         val eventChannel: MutableSharedStream<TextStreamEvent>,
         var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
         var turnObservations: ReviewSignalDeriver.TurnObservationAccumulator =
-            ReviewSignalDeriver.TurnObservationAccumulator()
+            ReviewSignalDeriver.TurnObservationAccumulator(),
+        /**
+         * Step 1, Area 2: bounded in-memory store of typed observations produced from this
+         * execution's tool results. Injected clock; persistence deferred (restart means unknown).
+         * Advisory only; it does not gate execution.
+         */
+        val taskContextSnapshotStore: TaskContextSnapshotStore =
+            TaskContextSnapshotStore(clock = { System.currentTimeMillis() })
     )
 
     private val activeExecutionContexts = ConcurrentHashMap<Int, MessageExecutionContext>()
@@ -2305,6 +2315,39 @@ class EnhancedAIService private constructor(private val context: Context) {
                 TAG,
                 "记录工具失败结果用于复盘信号: failed=$failedResults, total=${results.size}"
             )
+        }
+
+        // Step 1, Area 2: record typed observations from the actual tool results. Only structured
+        // facts are recorded (tool execution status, and a structured shell exit code when present);
+        // tool transport success is NOT treated as task success. Scope fields that are not known
+        // here stay empty (unknown). This is advisory and does not gate execution.
+        val observationScope = ObservationScope(
+            memorySpace = memorySpaceIdOverride ?: "",
+            projectScope = "",
+            taskScope = "",
+            executorId = "",
+            environment = "",
+            sessionId = ""
+        )
+        val observationNowMs = System.currentTimeMillis()
+        results.forEachIndexed { index, toolResult ->
+            val callId = "${context.executionId}:$index:${toolResult.toolName}"
+            context.taskContextSnapshotStore.record(
+                ToolObservationProducer.fromToolResult(
+                    toolName = toolResult.toolName,
+                    callId = callId,
+                    result = toolResult,
+                    scope = observationScope,
+                    nowMs = observationNowMs
+                )
+            )
+            ToolObservationProducer.shellExitCodeObservation(
+                toolName = toolResult.toolName,
+                callId = callId,
+                result = toolResult,
+                scope = observationScope,
+                nowMs = observationNowMs
+            )?.let { context.taskContextSnapshotStore.record(it) }
         }
 
         // Add transition state

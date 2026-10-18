@@ -20,6 +20,16 @@ object TaskPreflightProvider {
     const val DEFAULT_TOP_K = 3
 
     /**
+     * Result of building the preflight context: the bounded text block plus an optional typed
+     * snapshot of prior observations (Step 1, Area 2). The snapshot is advisory and does NOT gate
+     * execution; it is passed through preflight plumbing alongside the text block.
+     */
+    data class PreflightContext(
+        val textBlock: String,
+        val snapshot: TaskContextSnapshot?
+    )
+
+    /**
      * Build the bounded preflight block for the current task.
      *
      * Suspending because retrieval now merges two candidate generators: the lexical path and the
@@ -55,6 +65,47 @@ object TaskPreflightProvider {
             useEnglish = useEnglish,
             topK = topK
         )
+    }
+
+    /**
+     * Build the preflight context: the bounded text block (via [buildPreflightBlock]) plus a typed
+     * [TaskContextSnapshot] taken from [snapshotStore] for the given scope coordinates.
+     *
+     * The snapshot is built from PRIOR completed events only: the current turn's preflight cannot
+     * use future results. When [snapshotStore] is null, or the task query is blank, the snapshot is
+     * null and only the text block is produced. This adds NO model call.
+     */
+    suspend fun buildPreflightContext(
+        context: Context,
+        profileId: String,
+        taskQuery: String,
+        currentTaskContext: String,
+        useEnglish: Boolean,
+        snapshotStore: TaskContextSnapshotStore?,
+        projectScope: String = "",
+        taskScope: String = "",
+        executorId: String = "",
+        environment: String = "",
+        sessionId: String = "",
+        topK: Int = DEFAULT_TOP_K
+    ): PreflightContext {
+        val textBlock = buildPreflightBlock(
+            context = context,
+            profileId = profileId,
+            taskQuery = taskQuery,
+            currentTaskContext = currentTaskContext,
+            useEnglish = useEnglish,
+            topK = topK
+        )
+        val snapshot = snapshotStore?.snapshotFor(
+            memorySpace = profileId,
+            projectScope = projectScope,
+            taskScope = taskScope,
+            executorId = executorId,
+            environment = environment,
+            sessionId = sessionId
+        )
+        return PreflightContext(textBlock = textBlock, snapshot = snapshot)
     }
 
     /**
