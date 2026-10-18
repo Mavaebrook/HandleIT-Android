@@ -8,6 +8,11 @@ import org.junit.Test
 /**
  * JVM regression tests for Stage D (part 2a): pure bounded review-trigger policy in
  * [ReviewTriggerPolicy]. No Android or ObjectBox dependencies.
+ *
+ * R14 (docs/TODO/learning-pipeline-hardening-20261017/01-findings.md): the complexity signal is
+ * renamed to `complexSuccessfulTurn` because it measures complexity and success only, never a
+ * lesson; a lexical marker match is a weaker CANDIDATE correction, and an explicit user correction
+ * takes precedence over it.
  */
 class ReviewTriggerPolicyTest {
 
@@ -76,17 +81,19 @@ class ReviewTriggerPolicyTest {
         assertFalse(decision.shouldReview)
     }
 
-    // --- Criterion 4: complex success with reusable lesson triggers review ---
+    // --- Criterion 4: a complex successful turn triggers review, without asserting a lesson ---
 
     @Test
-    fun complexSuccessWithReusableLesson_triggersReview() {
-        // Criterion 4: a complex success carrying a reusable lesson must trigger a review.
+    fun complexSuccessfulTurn_triggersReview() {
+        // Criterion 4 (R14): a complex successful turn must trigger a review. The reason must not
+        // assert that a lesson exists — the derivation never checks for one.
         val decision = ReviewTriggerPolicy.decide(
-            ReviewTriggerPolicy.ReviewSignals(complexSuccessWithReusableLesson = true)
+            ReviewTriggerPolicy.ReviewSignals(complexSuccessfulTurn = true)
         )
 
         assertTrue(decision.shouldReview)
-        assertTrue(decision.reason.contains("reusable lesson"))
+        assertTrue(decision.reason.contains("complex successful turn"))
+        assertFalse(decision.reason.contains("lesson"))
     }
 
     // --- Criterion 5: no signals -> no review (no every-turn teacher call) ---
@@ -110,11 +117,40 @@ class ReviewTriggerPolicyTest {
                 explicitUserCorrection = true,
                 taskFailed = true,
                 repeatedRepairCount = 5,
-                complexSuccessWithReusableLesson = true
+                complexSuccessfulTurn = true
             )
         )
 
         assertTrue(decision.shouldReview)
         assertTrue(decision.reason.contains("correction"))
+    }
+
+    // --- R14: candidate correction is a weaker signal, checked last ---
+
+    @Test
+    fun candidateCorrection_triggersReview() {
+        // R14: a candidate correction alone triggers a review, and the reason says it is a
+        // candidate rather than an explicit correction.
+        val decision = ReviewTriggerPolicy.decide(
+            ReviewTriggerPolicy.ReviewSignals(candidateCorrection = true)
+        )
+
+        assertTrue(decision.shouldReview)
+        assertTrue(decision.reason.contains("candidate"))
+    }
+
+    @Test
+    fun explicitCorrection_takesPrecedenceOverCandidate() {
+        // R14: an explicit correction is stronger than a candidate and is checked first, so the
+        // reason reports the explicit correction.
+        val decision = ReviewTriggerPolicy.decide(
+            ReviewTriggerPolicy.ReviewSignals(
+                explicitUserCorrection = true,
+                candidateCorrection = true
+            )
+        )
+
+        assertTrue(decision.shouldReview)
+        assertTrue(decision.reason.contains("explicit"))
     }
 }

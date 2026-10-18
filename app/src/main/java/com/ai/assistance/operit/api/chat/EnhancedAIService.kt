@@ -2075,6 +2075,12 @@ class EnhancedAIService private constructor(private val context: Context) {
                     // derived from recorded turn events (tool results, model hops, conversation
                     // turns) by ReviewSignalDeriver; ReviewTriggerPolicy remains the single
                     // decision point.
+                    // R14: the derived signals now carry the raw observed events in
+                    // `reviewSignals.observed` (counts, matched lexical marker, explicit-action
+                    // flag) alongside the interpreted booleans, so what was observed is not lost.
+                    // `explicitCorrectionAction` is not set by any production path yet because the
+                    // app has no explicit-correction UI control; wiring one is a recorded
+                    // follow-up (docs/TODO/learning-pipeline-hardening-20261017/01-findings.md R14).
                     val reviewSignals =
                         ReviewSignalDeriver.derive(
                             context.turnObservations.toObservations(
