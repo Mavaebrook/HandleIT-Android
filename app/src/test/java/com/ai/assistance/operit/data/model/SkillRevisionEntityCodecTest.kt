@@ -2,8 +2,11 @@ package com.ai.assistance.operit.data.model
 
 import com.ai.assistance.operit.data.learning.SkillRevision
 import com.ai.assistance.operit.data.learning.StringListCodec
+import com.ai.assistance.operit.util.AppLogger
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -14,6 +17,19 @@ import org.junit.Test
  * upgrade compatibility is NOT proven here; that remains part of A01 device verification (PENDING).
  */
 class SkillRevisionEntityCodecTest {
+
+    private var previousSystemLog = true
+
+    @Before
+    fun disableSystemLog() {
+        previousSystemLog = AppLogger.enableSystemLog
+        AppLogger.enableSystemLog = false
+    }
+
+    @After
+    fun restoreSystemLog() {
+        AppLogger.enableSystemLog = previousSystemLog
+    }
 
     private fun revision(
         prerequisites: List<String> = emptyList(),
