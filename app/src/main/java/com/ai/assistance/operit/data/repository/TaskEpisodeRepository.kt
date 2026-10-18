@@ -19,7 +19,7 @@ import io.objectbox.query.QueryBuilder
 class TaskEpisodeRepository(
     private val context: Context,
     profileId: String
-) {
+) : EpisodeStore {
     private val store = ObjectBoxManager.get(context, profileId)
     private val episodeBox: Box<TaskEpisodeEntity> = store.boxFor()
 
@@ -29,21 +29,34 @@ class TaskEpisodeRepository(
      */
     private val vectorIndex = TaskEpisodeVectorIndex(context, profileId)
 
-    fun save(episode: TaskEpisode): Long {
+    override fun save(episode: TaskEpisode): Long {
         return episodeBox.put(TaskEpisodeEntity.fromEpisode(episode))
+    }
+
+    /**
+     * Add an ALREADY SAVED episode to the episode vector index.
+     *
+     * The episode must already be persisted: this method only adds it to the vector index, it does
+     * not save anything. [episodeId] is the id ObjectBox returned from [save], so the index always
+     * refers to a stored episode.
+     *
+     * When the user has not configured an embedding provider, [TaskEpisodeVectorIndex.indexEpisode]
+     * is a documented no-op (its disabled state), so this returns without doing work.
+     *
+     * Exceptions raised while embedding or writing the index propagate to the caller, which decides
+     * how to handle them; this method does not swallow them.
+     */
+    override suspend fun indexSavedEpisode(episodeId: Long, episode: TaskEpisode) {
+        vectorIndex.indexEpisode(episodeId, episodeIndexText(episode))
     }
 
     /**
      * Persist [episode] and then add it to the episode vector index.
      *
      * The episode is saved FIRST so the id returned by ObjectBox is the id used as the vector index
-     * key; the index therefore always refers to a stored episode.
-     *
-     * The indexed text is the documented concatenation of [TaskEpisode.taskSummary],
-     * [TaskEpisode.contextSummary] and [TaskEpisode.resolutionSummary], joined by single spaces.
-     * Those three fields are the "what was the task, in what situation, and how was it resolved"
-     * triple that vector similarity is meant to capture; failure/cause text is deliberately excluded
-     * so a past failure does not pull unrelated failing tasks towards it.
+     * key; the index therefore always refers to a stored episode. Indexing itself is delegated to
+     * [indexSavedEpisode], so there is exactly one text-building implementation
+     * ([episodeIndexText]).
      *
      * When the user has not configured an embedding provider, [TaskEpisodeVectorIndex.indexEpisode]
      * is a documented no-op (its disabled state), so the episode is still saved and simply not
@@ -53,14 +66,14 @@ class TaskEpisodeRepository(
      */
     suspend fun indexEpisode(episode: TaskEpisode): Long {
         val savedId = save(episode)
-        val text = listOf(
-            episode.taskSummary,
-            episode.contextSummary,
-            episode.resolutionSummary
-        ).joinToString(" ")
-        vectorIndex.indexEpisode(savedId, text)
+        indexSavedEpisode(savedId, episode)
         return savedId
     }
+
+    // No `reindexMissing` method is provided on purpose. Before the review scheduler was wired to
+    // indexSavedEpisode, indexEpisode had zero callers, so no production episode was ever indexed
+    // and there is no historical backlog to rebuild. The vector index is a derived cache: it is
+    // populated by future saves through indexSavedEpisode, so there is nothing to re-index.
 
     /**
      * Every stored episode, unordered and unbounded.
@@ -139,5 +152,22 @@ class TaskEpisodeRepository(
          * that bounded set. Trade-off: an older episode outside the recency window is not considered.
          */
         const val MAX_CANDIDATES_EXAMINED = 200
+
+        /**
+         * The text that is embedded for an episode: [TaskEpisode.taskSummary],
+         * [TaskEpisode.contextSummary] and [TaskEpisode.resolutionSummary], joined by single spaces.
+         *
+         * Those three fields are the "what was the task, in what situation, and how was it resolved"
+         * triple that vector similarity is meant to capture; failure/cause text is deliberately
+         * excluded so a past failure does not pull unrelated failing tasks towards it.
+         *
+         * Pure and side-effect free so the documented text is directly unit-testable.
+         */
+        internal fun episodeIndexText(episode: TaskEpisode): String =
+            listOf(
+                episode.taskSummary,
+                episode.contextSummary,
+                episode.resolutionSummary
+            ).joinToString(" ")
     }
 }

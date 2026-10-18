@@ -2,7 +2,9 @@ package com.ai.assistance.operit.api.chat.library
 
 import android.content.Context
 import com.ai.assistance.operit.data.learning.ReviewLessonLanguage
+import com.ai.assistance.operit.data.model.TaskEpisode
 import com.ai.assistance.operit.data.preferences.preferencesManager
+import com.ai.assistance.operit.data.repository.EpisodeStore
 import com.ai.assistance.operit.data.repository.PendingReviewBatchPolicy
 import com.ai.assistance.operit.data.repository.PendingReviewRepository
 import com.ai.assistance.operit.data.repository.TaskEpisodeRepository
@@ -37,10 +39,17 @@ import kotlinx.coroutines.launch
  * `useEnglish` flag passed to [ReflectorCurator.reflect] is derived from the same signal
  * ConversationService uses (`!LocaleUtils.usesChineseContent(context)`), via the pure
  * [ReviewLessonLanguage] so the decision is unit-testable.
+ *
+ * @param episodeStoreFactory the episode write path for a memory space. This is a JVM-testability
+ * seam only: production always uses the default, which builds the real [TaskEpisodeRepository] for
+ * the space being drained.
  */
 class ReviewScheduler(
     private val context: Context,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val episodeStoreFactory: (String) -> EpisodeStore = { profileId ->
+        TaskEpisodeRepository(context, profileId)
+    }
 ) {
     companion object {
         private const val TAG = "ReviewScheduler"
@@ -58,6 +67,39 @@ class ReviewScheduler(
          */
         internal fun memorySpacesToDrain(profileIds: List<String>): List<String> =
             profileIds.filter { it.isNotBlank() }.distinct()
+
+        /**
+         * Save [episode] and then add it to the episode vector index.
+         *
+         * EMBEDDING-FAILURE RULE: indexing is secondary to saving the episode. The episode is saved
+         * first, so it is durable before any embedding request is made. If embedding or index
+         * writing then fails, the failure is reported through [onIndexFailure] with the episode id
+         * and the review is still treated as succeeded: an embedding failure alone must never mark
+         * the review failed or cause it to be retried, because the lesson itself was captured. This
+         * is an explicit rule, not a silent catch: the only exception that is not handled here is
+         * cancellation, which is rethrown so structured concurrency is preserved.
+         *
+         * Extracted into the companion object so the rule is directly unit-testable without an
+         * ObjectBox store or an Android Context.
+         *
+         * @return the stored episode id.
+         */
+        internal suspend fun saveEpisodeAndIndex(
+            episodeStore: EpisodeStore,
+            episode: TaskEpisode,
+            reviewId: Long,
+            onIndexFailure: (Long, Exception) -> Unit
+        ): Long {
+            val savedId = episodeStore.save(episode)
+            try {
+                episodeStore.indexSavedEpisode(savedId, episode)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                onIndexFailure(savedId, error)
+            }
+            return savedId
+        }
     }
 
     private val isRunning = AtomicBoolean(false)
@@ -133,13 +175,39 @@ class ReviewScheduler(
     private fun useEnglishForLessons(): Boolean =
         ReviewLessonLanguage.useEnglishFor(LocaleUtils.getCurrentLanguage(context))
 
+    /**
+     * Save [episode] and then add it to the episode vector index.
+     *
+     * EMBEDDING-FAILURE RULE: indexing is secondary to saving the episode. The episode is saved
+     * first, so it is durable before any embedding request is made. If embedding or index writing
+     * then fails, the failure is logged at error level with the episode id and the review is still
+     * treated as succeeded: an embedding failure alone must never mark the review failed or cause
+     * it to be retried, because the lesson itself was captured. This is an explicit rule, not a
+     * silent catch: the only exception that is not handled here is cancellation, which is
+     * rethrown so structured concurrency is preserved.
+     *
+     * @return the stored episode id.
+     */
+    private suspend fun saveEpisodeAndIndex(
+        episodeStore: EpisodeStore,
+        episode: TaskEpisode,
+        reviewId: Long
+    ): Long =
+        saveEpisodeAndIndex(episodeStore, episode, reviewId) { episodeId, error ->
+            AppLogger.e(
+                TAG,
+                "episode saved but vector indexing failed: episodeId=$episodeId, reviewId=$reviewId",
+                error
+            )
+        }
+
     private suspend fun drainPendingReviewsForSpace(profileId: String) {
         val pendingRepository = PendingReviewRepository(context, profileId)
         val pending = pendingRepository.getPendingAndFailed().take(MAX_REVIEWS_PER_RUN)
         if (pending.isEmpty()) return
         AppLogger.d(TAG, "开始处理待复盘队列: profileId=$profileId, pending=${pending.size}")
         pendingRepository.markProcessing(pending.map { it.id })
-        val episodeRepository = TaskEpisodeRepository(context, profileId)
+        val episodeStore = episodeStoreFactory(profileId)
         val succeededIds = mutableListOf<Long>()
         // B02: the locale does not change mid-batch, so resolve it once for the whole batch.
         val useEnglish = useEnglishForLessons()
@@ -162,7 +230,7 @@ class ReviewScheduler(
                     currentAttemptCount = review.attemptCount
                 )
             if (disposition.deleteAfterProcessing && episode != null) {
-                episodeRepository.save(episode)
+                saveEpisodeAndIndex(episodeStore, episode, review.id)
                 succeededIds.add(review.id)
             } else {
                 val thrown = failure
