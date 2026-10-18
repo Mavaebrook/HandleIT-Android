@@ -68,6 +68,38 @@ object TaskEpisodeRetrieval {
     }
 
     /**
+     * Deterministically decide which of [required] are EVIDENTLY covered by [requestText].
+     *
+     * No model call is made: this is a pure lexical heuristic over the request text.
+     *
+     * Rule (single rule, no fallback chain): a required prerequisite is considered evidently
+     * satisfied when the request text contains the prerequisite's normalized key as a substring
+     * (see [normalizeEvidenceKey]: lowercase, trimmed, internal whitespace collapsed to single
+     * spaces). The prerequisite must normalize to a non-empty key; an empty/blank prerequisite is
+     * never reported as satisfied.
+     *
+     * Tokenization is deliberately NOT duplicated here: the tokenizer used by
+     * [isPrerequisiteApplicable] is the single source of truth for token-level matching, and the
+     * stopword lists / tokenizer introduced by C02 will apply to that helper automatically.
+     *
+     * Limits: a request that merely MENTIONS a prerequisite is treated as covering it. This is a
+     * lexical heuristic and can be wrong (e.g. "we do not have signing continuity" mentions the
+     * prerequisite but does not satisfy it). Callers must therefore still frame every remaining
+     * item as a caution to verify, never as a verified fact.
+     *
+     * @return the subset of [required] whose normalized key occurs in the normalized request text,
+     *         preserving the input order.
+     */
+    fun satisfiedPrerequisites(required: List<String>, requestText: String): List<String> {
+        val requestKey = normalizeEvidenceKey(requestText)
+        if (requestKey.isEmpty()) return emptyList()
+        return required.filter { prerequisite ->
+            val prerequisiteKey = normalizeEvidenceKey(prerequisite)
+            prerequisiteKey.isNotEmpty() && requestKey.contains(prerequisiteKey)
+        }
+    }
+
+    /**
      * Applicability check for a conditional prerequisite. A prerequisite applies only when its
      * condition matches the current task context. Example: signing continuity applies to an
      * in-place APK update, not automatically to every installation.

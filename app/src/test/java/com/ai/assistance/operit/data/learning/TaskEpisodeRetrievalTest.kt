@@ -239,6 +239,57 @@ class TaskEpisodeRetrievalTest {
         )
     }
 
+    // --- C01: satisfiedPrerequisites is a deterministic lexical check over the request text ---
+
+    @Test
+    fun satisfiedPrerequisites_prerequisiteMentionedInRequest_isReturnedAsSatisfied() {
+        // C01: a prerequisite whose normalized key occurs in the request text is evidently covered.
+        val required = listOf("signing continuity", "network access")
+
+        val satisfied = TaskEpisodeRetrieval.satisfiedPrerequisites(
+            required = required,
+            requestText = "Please do an in-place apk update; signing continuity is already configured."
+        )
+
+        assertEquals(listOf("signing continuity"), satisfied)
+    }
+
+    @Test
+    fun satisfiedPrerequisites_prerequisiteNotMentionedInRequest_isNotReturned() {
+        // C01: a prerequisite absent from the request text is NOT reported as satisfied.
+        val required = listOf("signing continuity", "network access")
+
+        val satisfied = TaskEpisodeRetrieval.satisfiedPrerequisites(
+            required = required,
+            requestText = "Please do an in-place apk update of the installed app."
+        )
+
+        assertTrue(satisfied.isEmpty())
+    }
+
+    @Test
+    fun satisfiedPrerequisites_emptyRequest_returnsEmpty() {
+        // C01: an empty/blank request covers nothing.
+        val required = listOf("signing continuity", "network access")
+
+        assertTrue(TaskEpisodeRetrieval.satisfiedPrerequisites(required, "").isEmpty())
+        assertTrue(TaskEpisodeRetrieval.satisfiedPrerequisites(required, "   ").isEmpty())
+        assertTrue(TaskEpisodeRetrieval.satisfiedPrerequisites(required, "\t\n").isEmpty())
+    }
+
+    @Test
+    fun satisfiedPrerequisites_blankPrerequisite_isNeverSatisfied() {
+        // C01: a blank prerequisite normalizes to an empty key and is never reported as satisfied.
+        val required = listOf("", "   ")
+
+        val satisfied = TaskEpisodeRetrieval.satisfiedPrerequisites(
+            required = required,
+            requestText = "anything at all"
+        )
+
+        assertTrue(satisfied.isEmpty())
+    }
+
     private fun episode(
         id: Long = 0L,
         taskSummary: String = "",

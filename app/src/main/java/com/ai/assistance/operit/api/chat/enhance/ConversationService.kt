@@ -66,6 +66,25 @@ class ConversationService(
     companion object {
         private const val TAG = "ConversationService"
         private const val APPLY_FILE_TOOL_NAME = "apply_file"
+
+        /**
+         * Character cap applied to the user request text when it is passed to the bounded
+         * similar-task preflight as `currentTaskContext`. The request is the primary task context;
+         * it is truncated (not summarized) so the preflight stays bounded and deterministic.
+         */
+        private const val PREFLIGHT_TASK_CONTEXT_MAX_CHARS = 800
+
+        /**
+         * Character cap applied to the joined recent-turn excerpt that is appended to the request
+         * text for the preflight `currentTaskContext`. Bounds the extra context to a small window.
+         */
+        private const val PREFLIGHT_RECENT_TURNS_MAX_CHARS = 600
+
+        /**
+         * Number of most recent USER/ASSISTANT turns included in the preflight recent-turn excerpt.
+         * SYSTEM, TOOL_CALL, TOOL_RESULT and SUMMARY turns are skipped.
+         */
+        private const val PREFLIGHT_RECENT_TURN_COUNT = 4
         private val fileRequestContentRegex = Regex(
             """<file-request-content\b[^>]*><!\[CDATA\[(.*?)\]\]></file-request-content>""",
             setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
@@ -401,6 +420,35 @@ class ConversationService(
             .trim()
     }
 
+    /**
+     * Build the `currentTaskContext` string handed to the bounded similar-task preflight.
+     *
+     * Composition (exact):
+     *  1. the actual user request text ([processedInput], the same value used as `taskQuery`),
+     *     trimmed and truncated to [PREFLIGHT_TASK_CONTEXT_MAX_CHARS] characters;
+     *  2. when at least one USER/ASSISTANT turn exists, a newline followed by the last
+     *     [PREFLIGHT_RECENT_TURN_COUNT] USER/ASSISTANT turns of [history], joined with "\n",
+     *     trimmed and truncated to [PREFLIGHT_RECENT_TURNS_MAX_CHARS] characters.
+     *
+     * SYSTEM, TOOL_CALL, TOOL_RESULT and SUMMARY turns are skipped. The result is a plain lexical
+     * context string: it is used only for prerequisite applicability/satisfaction checks and is
+     * never presented to the model as instructions.
+     */
+    private fun buildPreflightTaskContext(
+        processedInput: String,
+        history: List<PromptTurn>
+    ): String {
+        val requestText = processedInput.trim().take(PREFLIGHT_TASK_CONTEXT_MAX_CHARS)
+        val recentTurnsText =
+            history
+                .filter { it.kind == PromptTurnKind.USER || it.kind == PromptTurnKind.ASSISTANT }
+                .takeLast(PREFLIGHT_RECENT_TURN_COUNT)
+                .joinToString("\n") { it.content.trim() }
+                .trim()
+                .take(PREFLIGHT_RECENT_TURNS_MAX_CHARS)
+        return if (recentTurnsText.isEmpty()) requestText else requestText + "\n" + recentTurnsText
+    }
+
     private fun buildSummaryPreparedHistory(
         systemPrompt: String,
         chatHistory: List<PromptTurn>,
@@ -559,14 +607,16 @@ class ConversationService(
 
                 // 获取系统提示词，现在传入workspacePath和识图配置状态
                 // Bounded similar-task preflight: only for development/workspace tasks, pure
-                // retrieval (no model call), top-k clamped to 3-5. Failures are swallowed.
+                // retrieval (no model call), top-k clamped to 3-5. A retrieval failure is logged
+                // by TaskPreflightProvider and yields the defined no-op (empty block).
                 val architectPreflightBlock =
                     if (!workspacePath.isNullOrBlank()) {
                         TaskPreflightProvider.buildPreflightBlock(
                             context = context,
                             profileId = effectiveMemorySpaceId,
                             taskQuery = processedInput,
-                            currentTaskContext = workspacePath,
+                            currentTaskContext =
+                                buildPreflightTaskContext(processedInput, effectiveChatHistory),
                             useEnglish = useEnglish
                         )
                     } else {
