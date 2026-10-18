@@ -57,6 +57,15 @@ object ReviewSignalDeriver {
      *    more specific phrases "that's wrong", "that is wrong", "is wrong" and "was wrong".
      *  - "no," is kept, but it is boundary-matched, so it only matches as a standalone token and
      *    not inside another word.
+     *
+     * R14b changes to the list:
+     *  - the neutral retry phrases "redo", "try again" and the Chinese "重新" were REMOVED. They
+     *    are retry requests, not corrections: a retry is a UI action (regenerate), not a statement
+     *    that the previous reply was wrong, so treating them as correction markers produced
+     *    candidate corrections for turns where the user only asked for the same work again.
+     *  - the genuine corrective phrases are kept, including the Chinese 不对 (not right), 错了
+     *    (wrong), 不是这样 (not like this) and 改一下 (change it a bit). A mixed turn such as
+     *    "that's wrong, try again" still matches on its corrective part.
      */
     val CORRECTION_MARKERS: List<String> = listOf(
         "no,",
@@ -70,12 +79,9 @@ object ReviewSignalDeriver {
         "instead,",
         "you misunderstood",
         "fix that",
-        "redo",
-        "try again",
         "不对",
         "错了",
         "不是这样",
-        "重新",
         "改一下"
     )
 
@@ -186,11 +192,11 @@ object ReviewSignalDeriver {
      * followed by a letter or digit, so "wrong" cannot match inside "wrongly" and "redo" cannot
      * match inside "redone".
      *
-     * For markers containing non-ASCII characters (the CJK markers 不对, 错了, 不是这样, 重新,
-     * 改一下) a plain `contains` on the normalized text is used instead. This is NOT a degraded
-     * path: CJK text has no word separators, so a `\b`-style boundary assertion would never match
-     * and would silently disable every CJK marker. Plain containment is the correct matching rule
-     * for a script without spaces.
+     * For markers containing non-ASCII characters (the CJK markers 不对, 错了, 不是这样, 改一下)
+     * a plain `contains` on the normalized text is used instead. This is NOT a degraded path: CJK
+     * text has no word separators, so a `\b`-style boundary assertion would never match and would
+     * silently disable every CJK marker. Plain containment is the correct matching rule for a
+     * script without spaces.
      */
     private fun containsMarkerAtWordBoundary(normalized: String, marker: String): Boolean {
         val isAsciiMarker = marker.all { it.code < 128 }

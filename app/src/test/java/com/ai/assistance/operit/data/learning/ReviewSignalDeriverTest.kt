@@ -364,4 +364,147 @@ class ReviewSignalDeriverTest {
         assertTrue(decision.shouldReview)
         assertTrue(decision.reason.contains("candidate"))
     }
+
+    // --- R14b acceptance: neutral retry phrases are not correction markers ---
+
+    @Test
+    fun plainRetryTryAgain_doesNotSetCandidate() {
+        // R14b: "try again" is a retry request, not a correction. A retry is a UI action
+        // (regenerate), so it must not be treated as a lexical correction marker.
+        val signals = ReviewSignalDeriver.derive(
+            ReviewSignalDeriver.TurnObservations(
+                previousAssistantTurnContent = "Here is the answer",
+                lastUserTurnContent = "try again"
+            )
+        )
+
+        assertFalse(signals.candidateCorrection)
+        assertEquals("", signals.observed.matchedCorrectionMarker)
+    }
+
+    @Test
+    fun plainRetryRedo_doesNotSetCandidate() {
+        // R14b: "redo" is a retry request, not a correction.
+        val signals = ReviewSignalDeriver.derive(
+            ReviewSignalDeriver.TurnObservations(
+                previousAssistantTurnContent = "Here is the answer",
+                lastUserTurnContent = "redo"
+            )
+        )
+
+        assertFalse(signals.candidateCorrection)
+        assertEquals("", signals.observed.matchedCorrectionMarker)
+    }
+
+    @Test
+    fun plainRetryChineseChongxin_doesNotSetCandidate() {
+        // R14b: the Chinese 重新 means "again/redo" and is a neutral retry phrase, not a
+        // correction. "重新运行一下" asks for the same work again, so no candidate is recorded.
+        val signals = ReviewSignalDeriver.derive(
+            ReviewSignalDeriver.TurnObservations(
+                previousAssistantTurnContent = "Here is the answer",
+                lastUserTurnContent = "重新运行一下"
+            )
+        )
+
+        assertFalse(signals.candidateCorrection)
+        assertEquals("", signals.observed.matchedCorrectionMarker)
+    }
+
+    @Test
+    fun ordinaryInstructionContainingTryAgain_doesNotSetCandidate() {
+        // R14b: an ordinary instruction that happens to contain "try again" is not a correction.
+        val signals = ReviewSignalDeriver.derive(
+            ReviewSignalDeriver.TurnObservations(
+                previousAssistantTurnContent = "Here is the answer",
+                lastUserTurnContent = "please try again after the build finishes"
+            )
+        )
+
+        assertFalse(signals.candidateCorrection)
+    }
+
+    @Test
+    fun ordinaryInstructionContainingRedo_doesNotSetCandidate() {
+        // R14b: an ordinary instruction that happens to contain "redo" is not a correction.
+        val signals = ReviewSignalDeriver.derive(
+            ReviewSignalDeriver.TurnObservations(
+                previousAssistantTurnContent = "Here is the answer",
+                lastUserTurnContent = "redo the migration step"
+            )
+        )
+
+        assertFalse(signals.candidateCorrection)
+    }
+
+    @Test
+    fun clearCorrectionThatsWrong_stillSetsCandidate() {
+        // R14b: genuine corrective phrases are kept, so "that's wrong" still sets the candidate.
+        val signals = ReviewSignalDeriver.derive(
+            ReviewSignalDeriver.TurnObservations(
+                previousAssistantTurnContent = "Here is the answer",
+                lastUserTurnContent = "that's wrong"
+            )
+        )
+
+        assertTrue(signals.candidateCorrection)
+        assertEquals("that's wrong", signals.observed.matchedCorrectionMarker)
+    }
+
+    @Test
+    fun mixedThatsWrongTryAgain_stillSetsCandidate() {
+        // R14b: a mixed turn still fires on its corrective part. "try again" is no longer a
+        // marker, so the matched marker must be the genuine "that's wrong".
+        val signals = ReviewSignalDeriver.derive(
+            ReviewSignalDeriver.TurnObservations(
+                previousAssistantTurnContent = "Here is the answer",
+                lastUserTurnContent = "that's wrong, try again"
+            )
+        )
+
+        assertTrue(signals.candidateCorrection)
+        assertEquals("that's wrong", signals.observed.matchedCorrectionMarker)
+    }
+
+    @Test
+    fun clearCorrectionChineseBudui_stillSetsCandidate() {
+        // R14b: 不对 (not right) is a genuine correction and is kept.
+        val signals = ReviewSignalDeriver.derive(
+            ReviewSignalDeriver.TurnObservations(
+                previousAssistantTurnContent = "Here is the answer",
+                lastUserTurnContent = "不对"
+            )
+        )
+
+        assertTrue(signals.candidateCorrection)
+    }
+
+    @Test
+    fun clearCorrectionChineseGaixia_stillSetsCandidate() {
+        // R14b: 改一下 (change it a bit) is a genuine corrective request and is kept.
+        val signals = ReviewSignalDeriver.derive(
+            ReviewSignalDeriver.TurnObservations(
+                previousAssistantTurnContent = "Here is the answer",
+                lastUserTurnContent = "改一下"
+            )
+        )
+
+        assertTrue(signals.candidateCorrection)
+    }
+
+    @Test
+    fun explicitActionStillAuthoritative() {
+        // R14b: the explicit correction action remains authoritative. It wins regardless of the
+        // retry text, which is not a marker and so leaves the candidate signal clear.
+        val signals = ReviewSignalDeriver.derive(
+            ReviewSignalDeriver.TurnObservations(
+                explicitCorrectionAction = true,
+                previousAssistantTurnContent = "Here is the answer",
+                lastUserTurnContent = "try again"
+            )
+        )
+
+        assertTrue(signals.explicitUserCorrection)
+        assertFalse(signals.candidateCorrection)
+    }
 }
