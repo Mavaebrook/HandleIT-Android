@@ -74,7 +74,9 @@ class SkillRevisionRepository(
                 .build()
                 .find(offset, MIGRATION_BATCH_SIZE.toLong())
             if (batch.isEmpty()) break
-            report += store.runInTx { migrateBatch(batch) }
+            var batchReport = MigrationReport()
+            store.runInTx { batchReport = migrateBatch(batch) }
+            report += batchReport
             offset += batch.size
         }
         AppLogger.i(
