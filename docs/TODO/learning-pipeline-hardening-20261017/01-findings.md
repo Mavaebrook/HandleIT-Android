@@ -107,6 +107,8 @@ Why it matters: without a signature there is no stable way to find "the same tas
 
 Proposed fix: add the six fields as a compatible metadata extension on `TaskEpisode` and `TaskEpisodeEntity` (new columns, defaults, no renumbering of existing fields). Extend both Reflector prompts to emit `omitted_from_request` and `applicability_conditions`, and extend `parseEpisode` to read them. Add a plan-time gap check: retrieve the top 3-5 episodes by signature plus embedding, extract facts from the current request, test the structured conditions (a small model call only when a condition is ambiguous), test whether the request or plan already covers each item, and emit at most three warnings phrased as cautions or questions — never as new user mandates. Record accept/dismiss per warning and retire lessons that are repeatedly dismissed. Attach this to the existing planning call so there is no unconditional extra model call per turn. Precision over recall.
 
+Superseded wording (amended 2026-10-17): the clause "retire lessons that are repeatedly dismissed" above is superseded. Dismissal is not evidence that a lesson is wrong. Record the dismissal reason and scope (not applicable here, already covered, wrong, noisy) and retire a lesson only on repeated reason=wrong or reason=noisy within comparable contexts. Explicit user constraints never decay or retire through dismissal.
+
 Acceptance test: a request that omits a prerequisite that mattered before produces at most three caution-phrased warnings; a request that already covers the item produces none; a lesson dismissed repeatedly stops being surfaced; the planning path issues no additional model call when no condition is ambiguous.
 
 ## Stage D — skill lifecycle and governance
@@ -203,6 +205,8 @@ Why it matters: reported results in the skill-evolution literature indicate that
 
 Proposed fix: make raw trajectories the primary retrieval source and distilled skills a supplement, and gate injection to hard or pattern-matching tasks.
 
+Superseded wording (amended 2026-10-17): the phrase "raw trajectories as the primary retrieval source" above is superseded. The corrected requirement is: preserve full sanitized trajectories, retrieve compact episode indexes first, then expand only the relevant trace segments; raw traces are never fed in by default. Distilled skills remain a supplement, and injection stays gated to hard or pattern-matching tasks.
+
 Acceptance test: a hard task retrieves raw trajectories ahead of skills; an easy task receives no skill injection.
 
 ## Stage F — evaluation
@@ -214,6 +218,8 @@ Evidence: no replay harness, no fixture set and no baseline/with-lesson/without-
 Why it matters: without a replay set there is no way to show that a lesson helps rather than merely exists, and no way to tune retrieval weights without guessing.
 
 Proposed fix: build replay fixtures from real tasks and compare baseline, with-lesson and without-lesson runs before promoting a lesson; later tune retrieval weights and thresholds against the replays with automatic revert on regression. Record only measured numbers; leave unmeasured comparisons marked pending.
+
+Superseded wording (amended 2026-10-17): the tuning clause above is superseded. Tune only against held-out replay cases kept separate from the cases used to generate lessons, use versioned configurations with automatic revert on regression, and never optimize on the same set used to measure.
 
 Acceptance test: a lesson is promoted only after a replay shows it does not regress the baseline; a regression in the replay set automatically reverts the tuned weights.
 
@@ -233,3 +239,102 @@ These are design inputs, not installed frameworks. All are preprints; reported c
 - R01's premise that an `entity12`/`MemoryLedger` exists and could collide with the new entities is wrong at HEAD. No such entity exists in code or in `default.json`; the strings appear only in prose. The real and still-open part of R01 is that the three new entities are absent from the committed model.
 - R07's premise that the Reflector is entirely unwired is partly wrong: `ReflectorCurator.reflect` is called from `ReviewScheduler.kt:73`. It is wired but unreachable because the queue never fills (R02) and the wrong store is drained (R03). The Curator, the lifecycle and the repository remain genuinely unwired.
 - R04's premise that `getPendingAndFailed` includes `PROCESSING` rows is wrong: it queries only `PENDING` and `FAILED`. The real defect is the opposite — rows stuck in `PROCESSING` after a crash are never recovered.
+
+## Stage A review refinements (R14-R16)
+
+These findings come from an independent review of the Stage A work (commits `9afd9627`, `cddaa1e0`, `27a6cef1`, `58bedd67`). Each was re-verified against the code at HEAD before being recorded. Where a point was already handled or wrong at HEAD, that is stated with evidence.
+
+### R14 — Review signals conflate the observed event with its interpreted meaning (confirmed)
+
+Evidence: `data/learning/ReviewSignalDeriver.kt:91-105` derives all four signals inline and returns only the interpreted booleans; the raw observations (`TurnObservations`, lines 59-67) are not retained alongside the derived signals, so nothing downstream can tell an observed event from the meaning assigned to it.
+
+Two specific conflations:
+
+1. `complexSuccessWithReusableLesson` (set at line 103) is computed at lines 95-98 as `turnSucceeded && (modelHopCount >= COMPLEX_TURN_HOP_THRESHOLD || toolResultCount >= COMPLEX_TURN_TOOL_THRESHOLD)` with thresholds 3 and 3 (lines 28, 31). This measures turn complexity and success only. Nothing in the derivation checks for a lesson, a reusable artifact, or any lesson-shaped content. The local variable is honestly named `complexSuccess` (line 95); the field name adds "WithReusableLesson", which the code does not establish. `ReviewTriggerPolicy.decide` then returns the reason string `"complex success with reusable lesson"` (`ReviewTriggerPolicy.kt:36-37`), repeating the unverified claim.
+
+2. Correction detection is purely lexical. `isCorrectionTurn` (lines 111-116) lower-cases and trims the last user turn and returns true when it `contains` any entry of `CORRECTION_MARKERS` (lines 38-56). The markers are raw substrings with no word-boundary or negation handling: `"no,"` (line 39) matches any sentence containing "no,", `"wrong"` (line 47) matches inside "wrongly" and "nothing wrong", `"redo"` (line 49) matches inside "redone". A normal reply beginning with "no," therefore sets `explicitUserCorrection`. A message edit or a retry is not distinguished from a correction at all: the only user-initiated UI action found is `regenerate` (`MessageCoordinationDelegate.kt:394`, `MessageProcessingDelegate.kt:1604`, `ChatHistoryManager.kt:1259`), and it is not wired into `ReviewSignalDeriver` or `ReviewSignals`.
+
+Also confirmed: there is no explicit user-initiated correction signal anywhere in the repository. Searches across `app/src/main/java` for `markWrong`, `markAsWrong`, `userCorrection`, `explicitCorrection`, `reportIncorrect`, `flagWrong`, `thumbsDown`, `dislike`, `isWrong` return zero hits. The field is named `explicitUserCorrection` (`ReviewTriggerPolicy.kt:15`) and the decision reason is `"explicit user correction"` (`ReviewTriggerPolicy.kt:31`), but the value is inferred entirely from user prose. The naming overstates the evidence.
+
+Why it matters: a retry, an edit, or an ordinary reply that happens to start with "no," can enqueue a review as if the user had corrected the assistant, and a merely long successful turn is recorded as if it contained a reusable lesson. Both pollute the review queue with turns that carry no correction and no lesson, and both make the recorded reason strings assert things the code never checked.
+
+Proposed fix: store the raw observed event and its interpreted meaning as separate fields, so a later reader can see what was observed and what was inferred. Rename or re-document the complexity signal so it only claims what it measures: it may trigger a review, but it must not assert that a lesson exists. Add an explicit user-initiated correction signal driven by a deliberate UI action (for example marking a reply wrong), and treat the lexical marker match as a weaker candidate signal rather than as an explicit correction.
+
+Acceptance test: a retry, an edit, and a normal reply beginning with "no," each do not set explicit correction; an explicit user action does set it; a complex-but-unremarkable turn can trigger a review without recording a lesson.
+
+### R15 — ObjectBox schema lineage is recorded but not yet proven for upgrades (confirmed, risk assessed as low)
+
+Facts recorded: the committed model was generated from a fresh CI run. `app/objectbox-models/default.json` carries `modelVersion` 5, `lastEntityId` `14:4269907125077724122` and `lastIndexId` `16:6279691876956123683`; the three new entities are `PendingReviewEntity` = `12:4325003580155501390`, `SkillRevisionEntity` = `13:990099011800972325` and `TaskEpisodeEntity` = `14:4269907125077724122`. `git log -- app/objectbox-models/default.json` shows the file was last changed by `9afd9627`, the same commit that added the entity declarations, so the model and the declarations landed together as R01 required.
+
+Teddy states he has not installed a build containing these entities for several versions. No installed device is therefore known to hold these tables, and the additive risk is low: the change adds entities 12-14 and three indexes without renumbering any existing entity, and no existing install is expected to have a conflicting schema.
+
+Still required, and not satisfied by the above:
+
+- A01 stays unchecked until an update-over-existing-install check runs on a device that has an older build installed.
+- Before any future release, record which release first shipped these entities, and keep `default.json` lineage from that release onward. No such record exists today: a search of `docs/` for "first shipped" or "lineage" returns only unrelated APK V3 signing notes.
+- Clean-CI byte-identical regeneration is necessary but is not proof of upgrade compatibility. It is also not currently enforced: `.github/workflows/objectbox-model.yml` regenerates and uploads the model but contains no `git diff --exit-code` step, so CI does not fail when a regeneration differs from the committed file.
+
+Why it matters: a committed model with stable ids is what prevents per-build id churn, but it says nothing about whether an existing on-device database opens after the update. Only an actual update over an existing install demonstrates that, and only a recorded release lineage keeps the guarantee from that release onward.
+
+Proposed fix: run the update-over-existing-install check on a device with an older build before A01 is checked; record the first release that ships entities 12-14 and treat that release as the lineage anchor; add a CI step that fails when a regeneration is not byte-identical to the committed model.
+
+Acceptance test: an update over an existing install opens the database with existing memories intact; the release that first shipped the entities is recorded in this document; a CI run fails when the regenerated model differs from the committed one.
+
+### R16 — Keep trigger, confidence and promotion evidence separate (design rule)
+
+This is a design rule for every later stage and for the schema, not a defect in a single file. Three concepts must stay distinct and must not be collapsed into one field or one decision:
+
+- Review TRIGGER: a failure or a correction warrants investigation. A trigger establishes only that something is worth looking at; it does not establish why, and it does not establish that a lesson exists. R14 is the concrete case where a trigger was recorded as if it were a lesson.
+- Lesson CONFIDENCE: a teacher or Reflector explanation is only a candidate. It is a hypothesis about cause, not a verified fact, and it must be stored as a candidate with its provenance.
+- PROMOTION EVIDENCE: a successful held-out replay or a measured outcome. Only this can promote a lesson into the retrieval set.
+
+Why it matters: collapsing these three is how a pipeline starts asserting lessons it never verified. R14's `complexSuccessWithReusableLesson` is a trigger recorded as a lesson; `causeIsHypothesis` (`data/model/TaskEpisodeModels.kt`) already exists to mark a cause as a hypothesis, and that distinction must be preserved rather than flattened.
+
+Proposed fix: carry the three concepts as separate fields and separate decisions in the schema and in every stage. A trigger may open a review; a candidate explanation may be stored with confidence and provenance; only promotion evidence may move a lesson into retrieval. Reference this rule from Stages C, D and F.
+
+Acceptance test: a review opened by a trigger alone produces no promoted lesson; a candidate explanation is stored with its provenance and is not retrievable as a lesson until promotion evidence exists; a promotion requires a recorded held-out replay or measured outcome.
+
+## Promoted proposals (G01-G02)
+
+These were previously unrecorded proposals. They are promoted here into the checklist as ordered items, each with finding text, acceptance tests and a stage placement.
+
+### G01 — Per-lesson outcome tracking (confirmed absent)
+
+Evidence: `data/model/SkillRevisionEntity.kt:27,28,44,45` already declares `helpfulCount` and `harmfulCount`, but nothing populates them from a task outcome. No code records which episodes or skills were injected for a given task: a search of `data/learning/` for "trajectory" returns nothing, and there is no injection log. The counters therefore exist as fields with no writer.
+
+Why it matters: without knowing which lessons were actually injected for a task, a helpful or harmful outcome cannot be attributed to any lesson, so promotion and retirement have no measured input and must rely on model self-judgement.
+
+Proposed fix: log which episodes and skills were injected for each task, then update the helpful and harmful counters from the deterministic outcome, not from model self-judgement. The counters inform promotion and retirement but are one input, not the whole decision.
+
+Acceptance test: a task records the exact set of injected episode and skill ids; a deterministic outcome updates the matching counters; a counter change alone does not promote or retire a lesson.
+
+Stage placement: after Stage C and before Stage F, because F depends on it.
+
+### G02 — Dispatch-level action guard (partly present, gap confirmed)
+
+Evidence: there is one central dispatch function, `AIToolHandler.executeTool` (`core/tools/AIToolHandler.kt:363`), through which tool invocations flow, and it already contains a pre-execution interception point, `checkToolInterception` (`AIToolHandler.kt:100`, called at line 365), which can return `AIToolHookDecision.Block`. That is a real hook. It is not, however, a complete hard gate:
+
+- Enforcement is opt-in through registered `AIToolHook`s, and the only shipped hook, `ArchitectRulesSystemPromptHook` (`core/chat/hooks/ArchitectRulesHook.kt`), only injects prompt text. It has no interception and no blocking.
+- Shell execution is reachable through multiple independent low-level paths that bypass the tool-dispatch layer entirely: `core/tools/system/shell/StandardShellExecutor.kt:108,225`, `core/tools/system/shell/RootShellExecutor.kt:307,386`, `core/tools/system/RootAuthorizer.kt:240,270,307,340`, `core/tools/system/Terminal.kt:101,141,157`, `util/PortProcessKiller.kt:32` and `core/tools/defaultTool/debugger/DebuggerUITools.kt:1319`.
+
+So a guard placed only at `executeTool` would cover tool-dispatched calls but leave direct shell callers unguarded. This gap is recorded explicitly rather than claimed as a hard gate.
+
+Why it matters: the project constraint that builds and tests never run on the VPS, local machine or PRoot is currently enforced only as text in the system prompt. A model that ignores the prompt can still reach a shell.
+
+Proposed fix: enforce hard project constraints (never run Gradle or builds on VPS, local machine or PRoot; do not modify protected paths) at tool-dispatch time through the existing `checkToolInterception` hook, and additionally guard the direct shell-execution paths listed above, or record those paths as an accepted gap with a reason. Do not claim a hard gate until every path is covered.
+
+Acceptance test: a tool-dispatched attempt to run a build is blocked at dispatch with a recorded reason; a direct shell-execution attempt through each listed path is either blocked or explicitly recorded as an uncovered gap; the guard is exercised by a test that asserts the block decision.
+
+Stage placement: with Stage D, alongside D05.
+
+## Deferred backlog (not scheduled)
+
+The following are recorded as explicitly deferred. They are not scheduled and must not be started until the basic loop works and is measurable: the review queue fills, reviews are drained from the correct space, episodes are retrieved, and outcomes are tracked (G01).
+
+- Hypergraph subtask and skill links.
+- Multi-attempt sampling with a verifier.
+- GEPA-style prompt optimization.
+- Validity-window facts.
+- Retrieval keyed on the current step or the current error.
+- Duplicate consolidation and pruning.
+- Mem0-style add/update/delete/no-op decisions.

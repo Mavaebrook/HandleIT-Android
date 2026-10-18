@@ -2,6 +2,15 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-17 — Learning pipeline hardening: Stage A review amendments (docs only)
+
+- Recorded R14 (review signals conflate the observed event with its interpreted meaning), R15 (ObjectBox schema lineage recorded but upgrade compatibility not yet proven) and R16 (keep review trigger, lesson confidence and promotion evidence separate) in docs/TODO/learning-pipeline-hardening-20261017/01-findings.md.
+- Promoted G01 (per-lesson outcome tracking) and G02 (dispatch-level action guard) into the ordered checklist with finding text, acceptance tests and stage placement.
+- Amended E02/N03 (retrieve compact episode indexes first, expand only relevant trace segments), C06 (dismissal is not evidence a lesson is wrong) and F02 (tune only on held-out replay cases) by adding superseded-wording notes; no existing text was deleted; the checkpoint Blockers line was extended, not reworded.
+- Recorded an explicitly deferred backlog: hypergraph subtask/skill links, multi-attempt sampling with a verifier, GEPA-style prompt optimization, validity-window facts, retrieval keyed on current step or error, duplicate consolidation and pruning, Mem0-style add/update/delete/no-op decisions.
+- Updated the index.md checkpoint (owner, state, next action Stage B, blocker A01 device verification pending).
+- Documentation only: no source code, workflow or checkbox changed; no build or test run.
+
 ## 2026-10-17 — learning pipeline hardening, Stage A
 
 Implemented Stage A of `docs/TODO/learning-pipeline-hardening-20261017/`: the review queue now fills, and it drains from the memory space the review was written to.
