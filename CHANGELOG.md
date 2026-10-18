@@ -29,7 +29,7 @@ Implemented Stage C part 1 (C01, C02 and C03 parts a, b and c) of `docs/TODO/lea
 - C01 (`07cda3ea`): Android Build run 39122350953 and Android Tests run 39122350976 were cancelled by the concurrency group (superseded by the C02 push); covered by the green run on `55151c83`.
 - C02 (`55151c83`): Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39122619106); Android Build run 39122619089 cancelled by the concurrency group (superseded by the C03 push).
 - C03(a)+(b) (`a364a032`): Android Build run 39123369842 and Android Tests run 39123369812 cancelled by the concurrency group (the latter mid-test-execution); covered by the green run on `b0bd7705`.
-- C03(c) (`b0bd7705`): Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568673); Android Build run 39123568648 was in progress at time of writing, not yet concluded (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568648).
+- C03(c) (`b0bd7705`): both Android Build (run 39123568648, https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568648) and Android Tests (run 39123568673, https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568673) succeeded.
 - The `b0bd7705` tree contains C01, C02, C03(a), C03(b) and C03(c) together, so its green Android Tests run verifies that the whole of Stage C part 1 compiles and its JVM tests pass.
 - All runs are GitHub-hosted Actions. No build or test was run on the VPS or any local machine.
 

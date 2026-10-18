@@ -147,7 +147,7 @@ C03(c) (`b0bd7705`): episodes can be embedded and searched with the existing vec
 
 Tests: `TaskEpisodeRetrievalTest.kt` grew from 18 to 32 tests. C03(b) added 6 (`scoreEpisodes_returnsScoredCandidatesWithoutTopKClamp`, `mergeCandidates_vectorHitReceivesBonusAndOutranksLexicalOnly`, `mergeCandidates_tiesBrokenByCreatedAtMsThenId`, `mergeCandidates_emptyVectorIds_equalsLexicalRanking`, `mergeCandidates_resultIsClampedToTopK`, `maxCandidatesExamined_isAPositiveDocumentedCap`) and C03(c) added 2 (`mergeCandidates_vectorOnlyHitWithZeroLexicalScore_stillSurvivesViaBonus`, `mergeCandidates_lexicalEntryWinsOnDuplicateId`). C03(a) is covered by the previously `@Ignore`d `isPrerequisiteApplicable_chineseUpdateVersusFreshInstall_behavesTheSame`, which now runs and passes.
 
-Status: parts (a), (b) and (c) implemented and CI-verified (Android Tests success on `b0bd7705`, run https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568673; the `a364a032` runs were cancelled by the concurrency group and are covered by that green run). Not device-verified.
+Status: parts (a), (b) and (c) implemented and CI-verified (both Android Build and Android Tests succeeded on `b0bd7705`: Android Build run https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568648 and Android Tests run https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568673; the `a364a032` runs were cancelled by the concurrency group and are covered by those green runs). Not device-verified.
 
 ##### R06 — NOT implemented: graph expansion (C03 part d)
 

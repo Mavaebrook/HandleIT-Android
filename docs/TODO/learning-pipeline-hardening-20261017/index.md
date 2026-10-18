@@ -48,7 +48,7 @@ Documentation only. This job records findings and an ordered plan; it does not c
 
 ## Checkpoint
 Owner: VPS orchestrator via the bridge, at Teddy's explicit request.
-State: Stage A, Stage B, R14, R15 and Stage C part 1 (C01, C02, C03 a/b/c) implemented and CI-verified. C03 part (d) graph expansion is NOT implemented and remains a follow-up.
+State: Stage A, Stage B, R14, R15 and Stage C part 1 (C01, C02, C03 a/b/c) implemented and CI-verified; both Android Build and Android Tests succeeded on `b0bd7705`. C03 part (d) graph expansion is NOT implemented and remains a follow-up.
 Exact commit: `b0bd770547bf6383a6602bd1b67f728b55061a7a`.
 Next: C04-C06 (episode schema extension, Reflector prompt changes, plan-time gap check), which are separate jobs.
 Blockers: none for C04-C06. A01 device update-over-existing-install verification is still PENDING. C03(d) graph expansion is blocked on a schema change. Nothing in this job is device-verified.
@@ -80,9 +80,9 @@ All runs are GitHub-hosted Actions. No build or test was run on the VPS or any l
 | C01 real task context + missingPrerequisites | `07cda3ea` | cancelled by concurrency group (superseded by the C02 push); covered by the green run on `55151c83` | same |
 | C02 stopword-aware applicability | `55151c83` | cancelled by concurrency group (superseded by the C03 push) | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39122619106) |
 | C03(a)+(b) unicode tokenizer, bounded query, merge | `a364a032` | cancelled by concurrency group | cancelled by concurrency group (mid-test-execution); covered by the green run on `b0bd7705` |
-| C03(c) episode vector retrieval | `b0bd7705` | in progress at time of writing (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568648) | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568673) |
+| C03(c) episode vector retrieval | `b0bd7705` | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568648) | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568673) |
 
-The `b0bd7705` tree contains C01, C02, C03(a), C03(b) and C03(c) together, so its green Android Tests run verifies that the whole of Stage C part 1 compiles and its JVM tests pass. All runs are GitHub-hosted Actions; no build or test was run on the VPS or any local machine. Not verified: update-over-existing-install on a real device (A01). No item in this job is device-verified.
+The `b0bd7705` tree contains C01, C02, C03(a), C03(b) and C03(c) together, and both its Android Build run and its Android Tests run succeeded, so the whole of Stage C part 1 is verified to compile and its JVM tests pass. All runs are GitHub-hosted Actions; no build or test was run on the VPS or any local machine. Not verified: update-over-existing-install on a real device (A01). No item in this job is device-verified.
 
 ## Stage A CI evidence
 
