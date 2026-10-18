@@ -209,17 +209,20 @@ class ReviewSignalDeriverTest {
 
     @Test
     fun retry_doesNotSetExplicitCorrection() {
-        // R14 acceptance: a retry is not a correction. A turn with no explicit action and no
-        // lexical marker sets neither the explicit nor the candidate signal.
+        // R14 acceptance: a retry is not a correction. A retry is a UI action (regenerate), not a
+        // phrase, so it can never set the explicit signal: only a deliberate "this reply is wrong"
+        // action does. The recorded text here carries no lexical marker either, so the weaker
+        // candidate signal stays clear too.
         val signals = ReviewSignalDeriver.derive(
             ReviewSignalDeriver.TurnObservations(
                 previousAssistantTurnContent = "Here is the answer",
-                lastUserTurnContent = "try again"
+                lastUserTurnContent = "Please run that again"
             )
         )
 
         assertFalse(signals.explicitUserCorrection)
         assertFalse(signals.candidateCorrection)
+        assertEquals("", signals.observed.matchedCorrectionMarker)
     }
 
     @Test
