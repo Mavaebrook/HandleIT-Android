@@ -127,6 +127,18 @@ Test change required by intentionally changed behaviour: `isPrerequisiteApplicab
 
 Status: implemented and CI-verified (Android Tests success on `55151c83`, run https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39122619106; the `07cda3ea` runs were cancelled by the concurrency group and are covered by that green run). Not device-verified.
 
+##### R05 — cancellation no longer swallowed (commit 4698f77e)
+
+The defect: `TaskPreflightProvider.buildPreflightBlock` wrapped its suspend retrieval in `catch (e: Exception)`, which also caught `kotlinx.coroutines.CancellationException` and broke structured cancellation.
+
+The fix: `CancellationException` is rethrown before the generic handler. The retrieval-and-format core was extracted to `buildPreflightBlockFrom(retrieve = ...)` so the rule is JVM-testable; the public function delegates with the real repository.
+
+The same defect was found and fixed in `ReviewScheduler.runOnce()` (generic catch around the suspend drain) and in the `runCatching { ReflectorCurator.reflect(...) }` block in `drainPendingReviewsForSpace` (`runCatching` catches `Throwable`, including cancellation), which was replaced with an explicit try/catch that rethrows cancellation first.
+
+Audited and confirmed NOT affected: `TaskEpisodeRepository` and `TaskEpisodeVectorIndex` contain only `try/finally` and no `catch`/`runCatching`, so cancellation already propagated; the `ConversationService` preflight call site has no local guard and relies on the provider, which now rethrows correctly. `ReviewScheduler.recoverStaleProcessing` and `drainPendingReviews` already rethrew cancellation and were left unchanged.
+
+CI evidence: Android Build https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121659 and Android Tests https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121763 on commit `4698f77e` — CI run in progress at the time of writing; see the run URLs. Not device-verified.
+
 ### R06 — Latin-only tokenization, full-table scan, no vector or graph retrieval (confirmed)
 
 Evidence: `data/learning/TaskEpisodeRetrieval.kt:99-104` tokenizes with `split(Regex("[^a-z0-9]+"))`, so Chinese, Japanese and Cyrillic text yields an empty token set and `rankRelevantEpisodes` returns an empty list for any non-Latin task. `data/repository/TaskEpisodeRepository.kt:26-35` implements `all()` as `episodeBox.query().build().find()` with no filter and no limit, and `retrieveRelevant` ranks that full list; the "bounded" claim applies only to the output `take(clampTopK(topK))`. Neither `TaskEpisodeRetrieval.kt` nor `TaskEpisodeRepository.kt` references a vector index, an embedding or `MemoryLink`, although `MemoryRepository` has both (`vectorIndexDir()` at `MemoryRepository.kt:363`, graph propagation at 1565-1608) and `docs/TODO/reliable-learning-architect-20261016/01-design.md` section 3 requires vector relevance plus graph links.
@@ -154,6 +166,22 @@ Status: parts (a), (b) and (c) implemented and CI-verified (both Android Build a
 Graph expansion over `MemoryLink` is NOT implemented. `MemoryLink.source` and `MemoryLink.target` are `ToOne<Memory>` (`data/model/Memory.kt`) and `TaskEpisodeEntity` has no link field, so an episode cannot be linked to a memory or to another episode without a schema change. Implementing it requires a new ObjectBox entity (for example `EpisodeLinkEntity` with `sourceEpisodeId`, `targetEpisodeId`, `memoryId`) or new fields on `TaskEpisodeEntity`. Encoding ids into `MemoryLink.description` or `type` strings would give no referential integrity and no indexed traversal, so it is deliberately not faked. It is recorded as a follow-up comment in `TaskEpisodeRepository`. Intended edges: episode -> failure, episode -> fix, episode -> prerequisite.
 
 By contrast, vector retrieval WAS implementable without a schema change: the vector index is a separate file namespace under the existing vector directory, keyed by episode id, and the embedding vector is not persisted on `TaskEpisodeEntity` — the index file is the only store. That is why C03(c) shipped and C03(d) did not.
+
+##### R06 — indexing wiring fixed (commit 31314e1c)
+
+The defect: `ReviewScheduler.drainPendingReviewsForSpace` called `episodeRepository.save(episode)`, the non-indexing save. `TaskEpisodeRepository.indexEpisode` — the only path that reached `TaskEpisodeVectorIndex.indexEpisode` — had zero callers in the repository, so the HNSW index file was never written and `searchEpisodeIds` always returned an empty list at its `if (!file.exists())` guard. The vector candidate generator was therefore permanently empty in production, which meant C03(c) was compiled and CI-verified but not effective.
+
+The fix: the scheduler now saves through a documented helper that saves first and then indexes the saved episode id. `TaskEpisodeRepository` gained `indexSavedEpisode(episodeId, episode)` and a single pure text builder `episodeIndexText(episode)` (`taskSummary` + `" "` + `contextSummary` + `" "` + `resolutionSummary`), so there is exactly one text-building implementation. `indexEpisode` delegates to both.
+
+THE EMBEDDING-FAILURE RULE, stated explicitly: indexing is secondary to saving the episode. The episode is saved first, so it is durable before any embedding request is made. If embedding or index writing then fails, the failure is logged at error level via `AppLogger.e` with the episode id and the review id, and the review is still treated as succeeded and deleted: an embedding failure alone must never mark the review failed or cause it to be retried, because the lesson itself was captured. This is an explicit, documented rule, not a silent catch. Cancellation is the one exception that is not handled there: it is rethrown so structured concurrency is preserved.
+
+The disabled-provider case is the documented defined state of `TaskEpisodeVectorIndex.indexEpisode` (a no-op that returns), not a fallback: the episode is saved and nothing is logged as an error.
+
+No `reindexMissing` method was added, and why: no production episode was ever indexed (`indexEpisode` had zero callers before this fix), so there is no historical backlog; the vector index is a derived cache populated by future saves.
+
+Testability: an `EpisodeStore` interface was added as a JVM-testability seam (the scheduler needs an Android `Context` and ObjectBox, and the project has no Robolectric). `TaskEpisodeRepository` is the only production implementation; the scheduler's default factory preserves production behaviour exactly.
+
+CI evidence: Android Build success https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39126148124 and Android Tests success https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39126148173 on commit `31314e1c`. Not device-verified.
 
 ### N01 — Episode schema lacks signature, omissions, conditions and warning feedback (confirmed absent)
 

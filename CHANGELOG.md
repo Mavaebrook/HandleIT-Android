@@ -2,6 +2,22 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-18 — Learning pipeline hardening: review defects fixed (episode indexing, cancellation) and C03 checklist split
+
+Fixed two defects found in review of the Stage C part 1 work, and corrected the checklist so it no longer overstates what shipped. Documentation and source changes only; no build or test was run on the VPS or any local machine. Nothing here is device-verified.
+
+### Fixed
+- Episodes produced by the review scheduler are now added to the episode vector index (`31314e1c`). Previously the scheduler used the non-indexing save, so the vector index was never written and vector retrieval returned nothing in production. An embedding failure no longer fails or retries the review: the episode stays saved and the failure is logged with the episode id.
+- `CancellationException` is no longer swallowed by the preflight provider or the review scheduler (`4698f77e`); cancellation now propagates so structured concurrency is preserved.
+
+### Changed
+- Docs: split the C03 checklist item into C03a (non-Latin tokenization, bounded query and vector candidate generation — done) and C03d (graph expansion over `MemoryLink` — not implemented, blocked on a schema decision), so the checklist no longer claims graph expansion shipped. The original C03 wording is kept as explicitly superseded text so the history of the item is not lost.
+
+### Verification
+- `31314e1c`: Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39126148124) and Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39126148173). CI-verified.
+- `4698f77e`: Android Build (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121659) and Android Tests (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121763) — CI run in progress at the time of writing; see the run URLs.
+- All runs are GitHub-hosted Actions. No build or test was run on the VPS or any local machine. Nothing in this entry is device-verified; A01 device update-over-existing-install verification remains PENDING.
+
 ## 2026-10-18 — Learning pipeline hardening: Stage C part 1 (C01, C02, C03 a/b/c)
 
 Implemented Stage C part 1 (C01, C02 and C03 parts a, b and c) of `docs/TODO/learning-pipeline-hardening-20261017/`. C03 part (d), graph expansion over `MemoryLink`, is NOT implemented and is recorded as a follow-up.
