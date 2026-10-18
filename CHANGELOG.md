@@ -2,6 +2,29 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-18 — Learning pipeline hardening: Step 1 (baseline harness, typed observations, D07, R14b)
+
+Implemented Step 1 only of the multi-relational memory upgrade, authorized by Teddy. The later architecture (relational entities, graph expansion, structural matching, vector caching, H01, policy-gate expansion, automatic skill promotion) is recorded in `docs/TODO/learning-pipeline-hardening-20261017/03-step1-execution-plan.md` and is NOT implemented. No ObjectBox schema additions were made. Documentation and source changes only; no build or test was run on the VPS or any local machine. Nothing here is device-verified.
+
+### Added
+- Baseline replay harness and evaluation seam (`ReplayFixtures`, `ReplayHarnessTest`, `ReplayEvaluationSeam`): a deterministic, Android-free replay of the existing retrieval/formatter logic over a fixed bounded synthetic fixture set (same entities/different roles, negated prerequisite, partial prerequisites, stale observation, executor mismatch, scope mismatch, analogous structure with different vocabulary, substring satisfaction), split across development and held-out families. Known limitations are asserted as KNOWN LIMITATION, not cemented as desired behaviour. Relates to F01; does NOT complete it.
+- Typed observation models (`ObservationRecord`, `TaskContextSnapshot`, `TypedValue`, `ObservationSource`, `TrustLevel`), a pure three-valued evaluator (`PrerequisiteEvaluator`), a bounded in-memory scoped store (`TaskContextSnapshotStore`, injected clock, TTL, record/payload caps), and a minimal real deterministic producer (`ToolObservationProducer`). Relates to C04-C06 and G02; does NOT complete them.
+- `StringListCodec`: a shared pure versioned JSON string-list codec (envelope `{"v":1,"items":[...]}`) that is lossless for multiline items, empty items, Unicode, quotes, backslashes, delimiters, order and duplicates, with explicit legacy decoding, corruption surfacing and unsupported-version handling. `StringListMigration` and `migrateListFieldsToVersioned()` on both learning repositories provide an explicit, idempotent, batched migration (not auto-invoked).
+
+### Changed
+- `TaskEpisodeEntity` and `SkillRevisionEntity` now encode list fields with `StringListCodec` on write and decode with it on read; existing ObjectBox columns/IDs are unchanged. Legacy untagged rows keep the exact old newline-join decoding; malformed current-format JSON is logged at the entity read boundary and the row is never rewritten; unsupported versions are surfaced.
+- `ReviewSignalDeriver.CORRECTION_MARKERS`: removed the neutral retry phrases `"redo"`, `"try again"` and the Chinese `"重新"`; genuine corrective phrases are kept. The explicit correction UI signal remains authoritative.
+- `EnhancedAIService.processToolResults` records typed observations from actual tool results into a per-execution `TaskContextSnapshotStore`; `ConversationService` passes a `TaskContextSnapshot` through preflight metadata (`taskContextSnapshot`) alongside the bounded text context. Advisory only; no execution authorization gate and no new model call.
+
+### Tests
+- `StringListCodecTest`, `TaskEpisodeEntityCodecTest`, `SkillRevisionEntityCodecTest` (D07 codec and entity round-trip).
+- `ObservationRecordTest` (negative/unknown/expiry with fake clock/scope and executor isolation/conflict/invalidation/source separation/producer-to-snapshot wiring/bounded store).
+- `ReplayHarnessTest` (fixture replay, known-limitation demonstrations, retrieval recall and caution precision).
+- `ReviewSignalDeriverTest` grew with 10 R14b tests (plain retry and ordinary instructions do not set the candidate signal; clear corrections and the mixed "that's wrong, try again" still do; explicit action remains authoritative).
+
+### Verification
+- CI evidence is recorded in `docs/TODO/learning-pipeline-hardening-20261017/index.md` under "Step 1 CI evidence". All runs are GitHub-hosted Actions. Nothing in this entry is device-verified; A01 device update-over-existing-install verification (which now also covers D07 adapter-level ObjectBox upgrade compatibility) remains PENDING.
+
 ## 2026-10-18 — Learning pipeline hardening: review defects fixed (episode indexing, cancellation) and C03 checklist split
 
 Fixed two defects found in review of the Stage C part 1 work, and corrected the checklist so it no longer overstates what shipped. Documentation and source changes only; no build or test was run on the VPS or any local machine. Nothing here is device-verified.
