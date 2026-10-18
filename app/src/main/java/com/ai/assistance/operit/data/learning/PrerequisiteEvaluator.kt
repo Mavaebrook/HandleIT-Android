@@ -30,6 +30,9 @@ object PrerequisiteEvaluator {
      *
      * Only [TrustLevel.OBSERVED] records count: a REPORTED or REQUESTED claim cannot satisfy an
      * observed predicate.
+     *
+     * Only records whose scope/executor/environment/session match the snapshot's coordinates are
+     * considered: a record from a different scope is not applicable and yields UNKNOWN.
      */
     fun evaluate(
         predicate: String,
@@ -41,6 +44,12 @@ object PrerequisiteEvaluator {
             record.predicate == predicate &&
                 record.subject == subject &&
                 record.trust == TrustLevel.OBSERVED &&
+                record.memorySpace == snapshot.memorySpace &&
+                record.projectScope == snapshot.projectScope &&
+                record.taskScope == snapshot.taskScope &&
+                record.executorId == snapshot.executorId &&
+                record.environment == snapshot.environment &&
+                record.sessionId == snapshot.sessionId &&
                 !isExpired(record, nowMs)
         }
         if (matching.isEmpty()) return EvaluationResult.UNKNOWN

@@ -204,12 +204,17 @@ object StringListCodec {
      * substring search for `"v"`, so a legacy item that merely contains the text `"v"` is not
      * mistaken for an envelope, and a truncated envelope is still recognised as an envelope (and
      * therefore reported as corruption instead of being decoded as legacy).
+     *
+     * A value that starts with `{` is envelope-shaped even when it is truncated (no closing `}`),
+     * so a truncated envelope is corruption, not legacy.
      */
     fun looksLikeEnvelope(stored: String): Boolean {
         val start = stored.indexOfFirst { !it.isWhitespace() }
         if (start < 0 || stored[start] != '{') return false
+        // A value that starts with '{' is envelope-shaped even when it is truncated (no closing
+        // '}'), so a truncated envelope is reported as corruption rather than decoded as legacy.
         val end = stored.indexOf('}', startIndex = start)
-        if (end < 0) return false
+        if (end < 0) return true
         for (i in end + 1 until stored.length) {
             if (!stored[i].isWhitespace()) return false
         }
