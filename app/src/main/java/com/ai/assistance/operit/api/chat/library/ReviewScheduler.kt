@@ -123,6 +123,8 @@ class ReviewScheduler(
         if (!isRunning.compareAndSet(false, true)) return
         try {
             drainPendingReviews()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
         } catch (error: Exception) {
             AppLogger.e(TAG, "Review scheduler run failed", error)
         } finally {
@@ -213,16 +215,22 @@ class ReviewScheduler(
         val useEnglish = useEnglishForLessons()
         pending.forEach { review ->
             var failure: Throwable? = null
-            val episode = runCatching {
+            // Explicit try/catch instead of runCatching: runCatching catches Throwable, which would
+            // also swallow CancellationException and break structured concurrency. Cancellation is
+            // rethrown; only a genuine reflector failure is recorded and logged.
+            val episode = try {
                 ReflectorCurator.reflect(
                     context = context,
                     taskDescription = review.taskSummary + "\n" + review.contextSummary,
                     useEnglish = useEnglish
                 )
-            }.onFailure {
-                failure = it
-                AppLogger.e(TAG, "复盘失败: reviewId=${review.id}, profileId=$profileId", it)
-            }.getOrNull()
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                failure = error
+                AppLogger.e(TAG, "复盘失败: reviewId=${review.id}, profileId=$profileId", error)
+                null
+            }
             val disposition =
                 PendingReviewBatchPolicy.dispositionFor(
                     reviewId = review.id,

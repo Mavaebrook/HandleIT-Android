@@ -1,8 +1,10 @@
 package com.ai.assistance.operit.data.learning
 
 import android.content.Context
+import com.ai.assistance.operit.data.model.TaskEpisode
 import com.ai.assistance.operit.data.repository.TaskEpisodeRepository
 import com.ai.assistance.operit.util.AppLogger
+import kotlinx.coroutines.CancellationException
 
 /**
  * Bounded similar-task preflight for development/workspace tasks.
@@ -26,12 +28,16 @@ object TaskPreflightProvider {
      * ids by its documented disabled-state rule and the merge contains exactly the lexical
      * candidates.
      *
+     * This function only wires the real [TaskEpisodeRepository] retrieval into
+     * [buildPreflightBlockFrom], which holds the retrieval-and-format core (and the cancellation
+     * rule) so it is unit-testable without an ObjectBox store or an Android Context.
+     *
      * @param taskQuery the user request text used for retrieval ranking.
      * @param currentTaskContext the actual task context (request text plus a bounded recent-turn
      *        excerpt) used for prerequisite applicability and satisfaction checks.
      * @return the formatted block, or "" when there is nothing to show. An empty string is the
      *         defined "no block produced" result; a retrieval failure is logged via
-     *         [AppLogger.e] and also yields "".
+     *         [AppLogger.e] and also yields "". Cancellation is never converted into "".
      */
     suspend fun buildPreflightBlock(
         context: Context,
@@ -42,10 +48,37 @@ object TaskPreflightProvider {
         topK: Int = DEFAULT_TOP_K
     ): String {
         if (taskQuery.isBlank()) return ""
+        return buildPreflightBlockFrom(
+            retrieve = { query, k -> TaskEpisodeRepository(context, profileId).retrieveRelevant(query, k) },
+            taskQuery = taskQuery,
+            currentTaskContext = currentTaskContext,
+            useEnglish = useEnglish,
+            topK = topK
+        )
+    }
+
+    /**
+     * The retrieval-and-format core of [buildPreflightBlock], with retrieval injected so the
+     * cancellation rule below can be exercised in a plain JVM test (the real repository needs an
+     * ObjectBox store and an Android Context, and this project has no Robolectric).
+     *
+     * CANCELLATION RULE: [CancellationException] is rethrown before the generic handler. Catching
+     * it here would break structured concurrency: the caller's coroutine would keep running after
+     * being cancelled, and the cancellation would be reported as an ordinary retrieval failure.
+     * Only genuine failures are logged and turned into the documented "" no-block result.
+     */
+    internal suspend fun buildPreflightBlockFrom(
+        retrieve: suspend (String, Int) -> List<TaskEpisode>,
+        taskQuery: String,
+        currentTaskContext: String,
+        useEnglish: Boolean,
+        topK: Int
+    ): String {
         return try {
-            val repository = TaskEpisodeRepository(context, profileId)
-            val episodes = repository.retrieveRelevant(taskQuery, topK)
+            val episodes = retrieve(taskQuery, topK)
             TaskPreflightFormatter.buildPreflightBlock(episodes, currentTaskContext, useEnglish)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
         } catch (e: Exception) {
             // The failure is logged here; "" is the explicit "no block produced" result, which is
             // the defined no-op for preflight (no block is injected into the system prompt).
