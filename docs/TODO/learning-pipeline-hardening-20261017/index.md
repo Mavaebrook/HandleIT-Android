@@ -17,9 +17,9 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 - [x] A03 Drain reviews from the active memory space instead of the hardcoded `"default"` profile. (R03) — implemented and CI-verified at commit `27a6cef1`; tests `ReviewSchedulerMemorySpaceTest` (5 tests incl. `reviewEnqueuedInNonDefaultSpace_isDrainedInThatSpace`).
 - [x] B01 Make `drainPendingReviews` delete only the reviews that succeeded, cap retry attempts, and recover rows stuck in `PROCESSING` after a crash. (R04) — implemented and CI-verified at commit `79a17f54`; tests `ReviewSchedulerBatchTest` (9 tests: batchOfThreeWithOneFailure_deletesExactlyTwo, reviewFailingPastMaxAttempts_isDeadLettered, deadLetteredReview_isNotRetried, reviewBelowMaxAttempts_staysRetryable, staleProcessingRow_isRecovered, freshProcessingRow_isLeftAlone, processingRowExactlyAtStalenessBoundary_isNotStale, nonProcessingStatus_isNeverStale, succeededReview_isDeleted).
 - [x] B02 Stop hardcoding `useEnglish = true` in the scheduler; follow the user's locale. (R04) — implemented and CI-verified at commit `68931d45`; tests `ReviewLessonLanguageTest` (7 tests: chineseLocale_requestsChinese, chineseRegionVariant_requestsChinese, englishLocale_requestsEnglish, otherSupportedLocale_requestsEnglish, uppercaseChineseCode_isStillChinese, blankCode_requestsEnglish, lessonLanguage_matchesUseEnglish).
-- [ ] C01 Pass a real task description as `currentTaskContext` instead of `workspacePath`, and call `missingPrerequisites` in production. (R05)
-- [ ] C02 Replace single-token prerequisite matching with a stopword-aware, threshold-based match. (R05)
-- [ ] C03 Tokenize non-Latin text correctly and use the vector index plus the `MemoryLink` graph for episode retrieval. (R06)
+- [x] C01 Pass a real task description as `currentTaskContext` instead of `workspacePath`, and call `missingPrerequisites` in production. (R05) — implemented and CI-verified at commit `07cda3ea` (Android Tests success on `55151c83`, run https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39122619106; the `07cda3ea` runs were cancelled by the concurrency group and are covered by that green run). Tests: `TaskPreflightFormatterTest` (6 tests) and 4 `satisfiedPrerequisites` tests in `TaskEpisodeRetrievalTest`.
+- [x] C02 Replace single-token prerequisite matching with a stopword-aware, threshold-based match. (R05) — implemented and CI-verified at commit `55151c83` (Android Tests success, run https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39122619106). Tests: 6 added to `TaskEpisodeRetrievalTest` (fresh-install vs in-place-update with deliberately shared tokens, path-like context, all-stopword condition, Chinese update-vs-fresh-install, stopword-only relevance).
+- [x] C03 Tokenize non-Latin text correctly and use the vector index plus the `MemoryLink` graph for episode retrieval. (R06) — parts (a), (b) and (c) implemented and CI-verified at commits `a364a032` (a+b) and `b0bd7705` (c); Android Tests success on `b0bd7705`, run https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568673. Part (d), graph expansion over `MemoryLink`, is NOT implemented and remains a follow-up: `MemoryLink.source`/`target` are `ToOne<Memory>` and `TaskEpisodeEntity` has no link field, so episode-to-memory and episode-to-episode edges need a new ObjectBox entity or new fields. See the follow-up comment in `TaskEpisodeRepository`.
 - [ ] C04 Extend `TaskEpisode` with `taskSignature`, `omittedFromRequest`, `applicabilityConditions`, `trajectoryRef`, `warningsHelpful`, `warningsDismissed`. (N01)
 - [ ] C05 Extend the Reflector prompt to emit `omitted_from_request` and `applicability_conditions`. (N01)
 - [ ] C06 Add the plan-time gap check: retrieve 3-5 episodes, test conditions, emit at most 3 cautions, record accept/dismiss, retire repeatedly dismissed lessons. (N01)
@@ -48,10 +48,10 @@ Documentation only. This job records findings and an ordered plan; it does not c
 
 ## Checkpoint
 Owner: VPS orchestrator via the bridge, at Teddy's explicit request.
-State: Stage A and Stage B implemented and CI-verified. A01 model committed (`9afd9627`), A02 signals derived (`cddaa1e0`), A03 multi-space drain (`27a6cef1`), A03 per-space error isolation (`58bedd67`). Stage B: B01 (`79a17f54`), B02 (`68931d45`). R14 (`72c98edc`, test fix `d3535a5a`) and R15 (`2703b216`) implemented. Final green CI on `d3535a5a`: Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39095530659), Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39095530635). A01 device update-over-existing-install verification is PENDING and its checkbox remains unchecked. Nothing in this job is device-verified.
-Exact commit: `f2547e57fe625ce8e8588cfc305b60660b64c1f9` (the docs commit that carries this checkpoint is the one after it).
-Next: start Stage C (C01: pass a real task description as `currentTaskContext` instead of `workspacePath`, and call `missingPrerequisites` in production; C02: stopword-aware prerequisite matching), unless the user reprioritizes H01 (dedicated reviewer/teacher model) ahead of it.
-Blockers: none for Stage C. A01 device verification needs a real device with an older build installed and cannot be performed from CI. The R14 explicit-user-action UI (R14-UI) and the R14b marker-list follow-up are open follow-ups, not blockers for Stage C. H01 is recorded and unchecked; the Stage F baseline/same-model/stronger-model comparison stays UNMEASURED until replays exist.
+State: Stage A, Stage B, R14, R15 and Stage C part 1 (C01, C02, C03 a/b/c) implemented and CI-verified. C03 part (d) graph expansion is NOT implemented and remains a follow-up.
+Exact commit: `b0bd770547bf6383a6602bd1b67f728b55061a7a`.
+Next: C04-C06 (episode schema extension, Reflector prompt changes, plan-time gap check), which are separate jobs.
+Blockers: none for C04-C06. A01 device update-over-existing-install verification is still PENDING. C03(d) graph expansion is blocked on a schema change. Nothing in this job is device-verified.
 
 ## Stage B and R14/R15 CI evidence
 
@@ -70,6 +70,19 @@ The `d3535a5a` tree contains B01, B02, R14, R15 and the R14 test fix together, s
 ObjectBox Model: run 39096814734 (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39096814734) succeeded on `d3535a5a`. The new step `Verify committed ObjectBox model is byte-identical` concluded success and printed `ObjectBox model is byte-identical to the committed file.` at runtime, which proves `git diff --exit-code` returned 0 and the committed `default.json` is exactly what a clean regeneration produces.
 
 Not verified: update-over-existing-install on a real device (A01). This cannot be performed from CI and remains PENDING. No item in this job is device-verified.
+
+## Stage C part 1 CI evidence
+
+All runs are GitHub-hosted Actions. No build or test was run on the VPS or any local machine.
+
+| Item | Commit | Android Build | Android Tests |
+| --- | --- | --- | --- |
+| C01 real task context + missingPrerequisites | `07cda3ea` | cancelled by concurrency group (superseded by the C02 push); covered by the green run on `55151c83` | same |
+| C02 stopword-aware applicability | `55151c83` | cancelled by concurrency group (superseded by the C03 push) | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39122619106) |
+| C03(a)+(b) unicode tokenizer, bounded query, merge | `a364a032` | cancelled by concurrency group | cancelled by concurrency group (mid-test-execution); covered by the green run on `b0bd7705` |
+| C03(c) episode vector retrieval | `b0bd7705` | in progress at time of writing (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568648) | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39123568673) |
+
+The `b0bd7705` tree contains C01, C02, C03(a), C03(b) and C03(c) together, so its green Android Tests run verifies that the whole of Stage C part 1 compiles and its JVM tests pass. All runs are GitHub-hosted Actions; no build or test was run on the VPS or any local machine. Not verified: update-over-existing-install on a real device (A01). No item in this job is device-verified.
 
 ## Stage A CI evidence
 
