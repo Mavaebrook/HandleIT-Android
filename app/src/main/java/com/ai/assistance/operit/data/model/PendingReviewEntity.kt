@@ -27,5 +27,12 @@ data class PendingReviewEntity(
         const val STATUS_PENDING = "pending"
         const val STATUS_PROCESSING = "processing"
         const val STATUS_FAILED = "failed"
+
+        /**
+         * Terminal status for a review that has failed [PendingReviewBatchPolicy.MAX_ATTEMPTS]
+         * times. A dead-lettered review is never retried and never deleted, so it stays in the
+         * store and remains inspectable (see `PendingReviewRepository.getDeadLettered()`).
+         */
+        const val STATUS_DEAD_LETTER = "dead_letter"
     }
 }

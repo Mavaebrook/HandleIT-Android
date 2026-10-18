@@ -2,6 +2,7 @@ package com.ai.assistance.operit.api.chat.library
 
 import android.content.Context
 import com.ai.assistance.operit.data.preferences.preferencesManager
+import com.ai.assistance.operit.data.repository.PendingReviewBatchPolicy
 import com.ai.assistance.operit.data.repository.PendingReviewRepository
 import com.ai.assistance.operit.data.repository.TaskEpisodeRepository
 import com.ai.assistance.operit.util.AppLogger
@@ -24,6 +25,11 @@ import kotlinx.coroutines.launch
  *
  * A03: drains every memory space that has pending reviews, not just the hardcoded "default" space.
  * Each resulting episode is saved into the SAME space the review was enqueued in.
+ *
+ * B01: a batch is processed per review. Only the reviews that actually produced an episode are
+ * deleted; the rest are marked failed (and eventually dead-lettered) so a partial failure never
+ * discards work that still needs another attempt. The per-review decision is delegated to
+ * [PendingReviewBatchPolicy] so it is unit-testable.
  */
 class ReviewScheduler(
     private val context: Context,
@@ -54,6 +60,9 @@ class ReviewScheduler(
         instance = this
         if (loopJob?.isActive == true) return
         loopJob = scope.launch(Dispatchers.IO) {
+            // B01: recover rows abandoned in PROCESSING by a crashed run before the first drain,
+            // so a crash mid-batch cannot strand a review forever.
+            recoverStaleProcessing()
             while (isActive) {
                 delay(LOOP_TICK_MS)
                 runOnce()
@@ -69,6 +78,27 @@ class ReviewScheduler(
             AppLogger.e(TAG, "Review scheduler run failed", error)
         } finally {
             isRunning.set(false)
+        }
+    }
+
+    /**
+     * B01 startup sweep: returns rows abandoned in PROCESSING by a crashed run to PENDING so they
+     * are picked up again. Each memory space is an independent ObjectBox store, so a failure in one
+     * store is logged with its space id and the remaining spaces are still swept.
+     */
+    suspend fun recoverStaleProcessing() {
+        val profileIds = memorySpacesToDrain(preferencesManager.memorySpaceListFlow.first())
+        for (profileId in profileIds) {
+            try {
+                val recovered = PendingReviewRepository(context, profileId).recoverStaleProcessing()
+                if (recovered > 0) {
+                    AppLogger.i(TAG, "恢复滞留复盘: profileId=$profileId, recovered=$recovered")
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                AppLogger.e(TAG, "滞留复盘恢复失败: profileId=$profileId", error)
+            }
         }
     }
 
@@ -93,27 +123,43 @@ class ReviewScheduler(
         val pending = pendingRepository.getPendingAndFailed().take(MAX_REVIEWS_PER_RUN)
         if (pending.isEmpty()) return
         AppLogger.d(TAG, "开始处理待复盘队列: profileId=$profileId, pending=${pending.size}")
-        val ids = pending.map { it.id }
-        pendingRepository.markProcessing(ids)
+        pendingRepository.markProcessing(pending.map { it.id })
         val episodeRepository = TaskEpisodeRepository(context, profileId)
-        var processedAny = false
+        val succeededIds = mutableListOf<Long>()
         pending.forEach { review ->
+            var failure: Throwable? = null
             val episode = runCatching {
                 ReflectorCurator.reflect(
                     context = context,
                     taskDescription = review.taskSummary + "\n" + review.contextSummary,
                     useEnglish = true
                 )
+            }.onFailure {
+                failure = it
+                AppLogger.e(TAG, "复盘失败: reviewId=${review.id}, profileId=$profileId", it)
             }.getOrNull()
-            if (episode != null) {
+            val disposition =
+                PendingReviewBatchPolicy.dispositionFor(
+                    reviewId = review.id,
+                    producedEpisode = episode != null,
+                    currentAttemptCount = review.attemptCount
+                )
+            if (disposition.deleteAfterProcessing && episode != null) {
                 episodeRepository.save(episode)
-                processedAny = true
+                succeededIds.add(review.id)
+            } else {
+                val thrown = failure
+                val errorMessage =
+                    if (thrown != null) {
+                        "reflector threw: ${thrown.message ?: thrown.javaClass.simpleName}"
+                    } else {
+                        "reflector produced no episode"
+                    }
+                pendingRepository.markFailedSingle(review.id, errorMessage)
             }
         }
-        if (processedAny) {
-            pendingRepository.delete(ids)
-        } else {
-            pendingRepository.markFailed(ids, "reflector produced no episode")
-        }
+        // Delete ONLY the reviews that actually produced an episode. A partial failure must not
+        // discard the reviews that still need another attempt.
+        pendingRepository.delete(succeededIds)
     }
 }
