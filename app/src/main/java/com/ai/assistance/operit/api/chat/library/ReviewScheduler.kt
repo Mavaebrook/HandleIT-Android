@@ -1,11 +1,13 @@
 package com.ai.assistance.operit.api.chat.library
 
 import android.content.Context
+import com.ai.assistance.operit.data.learning.ReviewLessonLanguage
 import com.ai.assistance.operit.data.preferences.preferencesManager
 import com.ai.assistance.operit.data.repository.PendingReviewBatchPolicy
 import com.ai.assistance.operit.data.repository.PendingReviewRepository
 import com.ai.assistance.operit.data.repository.TaskEpisodeRepository
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.LocaleUtils
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +32,11 @@ import kotlinx.coroutines.launch
  * deleted; the rest are marked failed (and eventually dead-lettered) so a partial failure never
  * discards work that still needs another attempt. The per-review decision is delegated to
  * [PendingReviewBatchPolicy] so it is unit-testable.
+ *
+ * B02: lessons are generated in the user's locale language, not always English. The
+ * `useEnglish` flag passed to [ReflectorCurator.reflect] is derived from the same signal
+ * ConversationService uses (`!LocaleUtils.usesChineseContent(context)`), via the pure
+ * [ReviewLessonLanguage] so the decision is unit-testable.
  */
 class ReviewScheduler(
     private val context: Context,
@@ -118,6 +125,14 @@ class ReviewScheduler(
         }
     }
 
+    /**
+     * B02: the language lessons are generated in, derived from the user's locale exactly as
+     * ConversationService does (`!LocaleUtils.usesChineseContent(context)`). The decision itself is
+     * delegated to the pure [ReviewLessonLanguage] so it is unit-testable.
+     */
+    private fun useEnglishForLessons(): Boolean =
+        ReviewLessonLanguage.useEnglishFor(LocaleUtils.getCurrentLanguage(context))
+
     private suspend fun drainPendingReviewsForSpace(profileId: String) {
         val pendingRepository = PendingReviewRepository(context, profileId)
         val pending = pendingRepository.getPendingAndFailed().take(MAX_REVIEWS_PER_RUN)
@@ -126,13 +141,15 @@ class ReviewScheduler(
         pendingRepository.markProcessing(pending.map { it.id })
         val episodeRepository = TaskEpisodeRepository(context, profileId)
         val succeededIds = mutableListOf<Long>()
+        // B02: the locale does not change mid-batch, so resolve it once for the whole batch.
+        val useEnglish = useEnglishForLessons()
         pending.forEach { review ->
             var failure: Throwable? = null
             val episode = runCatching {
                 ReflectorCurator.reflect(
                     context = context,
                     taskDescription = review.taskSummary + "\n" + review.contextSummary,
-                    useEnglish = true
+                    useEnglish = useEnglish
                 )
             }.onFailure {
                 failure = it
