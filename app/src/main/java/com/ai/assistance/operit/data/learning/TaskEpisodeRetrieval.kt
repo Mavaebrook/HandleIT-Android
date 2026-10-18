@@ -88,6 +88,47 @@ object TaskEpisodeRetrieval {
      */
     private const val MIN_MATCHED_FRACTION = 0.5
 
+    /**
+     * CJK Unified Ideographs (U+4E00..U+9FFF): the main Han ideograph block used by Chinese,
+     * Japanese kanji and Korean hanja.
+     */
+    private val CJK_UNIFIED_IDEOGRAPHS = '\u4E00'..'\u9FFF'
+
+    /**
+     * CJK Unified Ideographs Extension A (U+3400..U+4DBF): rarer Han ideographs.
+     */
+    private val CJK_EXTENSION_A = '\u3400'..'\u4DBF'
+
+    /** Hiragana (U+3040..U+309F): Japanese syllabary. */
+    private val HIRAGANA = '\u3040'..'\u309F'
+
+    /** Katakana (U+30A0..U+30FF): Japanese syllabary. */
+    private val KATAKANA = '\u30A0'..'\u30FF'
+
+    /** Hangul Syllables (U+AC00..U+D7AF): Korean precomposed syllables. */
+    private val HANGUL_SYLLABLES = '\uAC00'..'\uD7AF'
+
+    /**
+     * Minimum number of CONSECUTIVE meaningful CJK bigrams from the condition that must appear as a
+     * contiguous run in the context for the condition to be applicable.
+     *
+     * Rationale: CJK conditions are conjunctions of clauses (e.g. "就地更新安装包" + "时的签名连续性").
+     * A set-overlap fraction punishes a condition for containing a clause the context does not
+     * mention, even when another clause matches perfectly. Requiring a contiguous run of at least
+     * this many bigrams instead asks "does the context contain a real phrase from the condition",
+     * which is the question applicability is actually trying to answer.
+     *
+     * WHY 3 AND NOT 2: the tokenizer emits OVERLAPPING bigrams, so k consecutive bigrams correspond
+     * to a k+1 character phrase. With k = 2 the required phrase is only 3 characters long, which is
+     * short enough to be shared by unrelated clauses: the condition "就地更新安装包时的签名连续性"
+     * contains the run (新安, 安装) — the 3-character phrase "新安装" — which also occurs inside
+     * "全新安装" in a FRESH-install context, so a fresh install would be wrongly declared an
+     * in-place update. With k = 3 the required phrase is 4 characters ("更新安装", "新安装包"), which
+     * is specific enough to distinguish an update clause from a fresh-install clause while still
+     * tolerating a condition that contains an extra clause the context never mentions.
+     */
+    private const val MIN_CONTIGUOUS_CJK_BIGRAMS = 3
+
     /** Clamp a requested top-k into the bounded [1, MAX_TOP_K] range. */
     fun clampTopK(requested: Int): Int {
         if (requested <= 0) return DEFAULT_TOP_K
@@ -100,16 +141,102 @@ object TaskEpisodeRetrieval {
      *
      * C02: both the query and each episode are reduced to MEANINGFUL tokens (see
      * [meaningfulTokens]) before scoring, so stopwords cannot create relevance on their own.
+     *
+     * Delegates to [scoreEpisodes] so the scoring and tie-break rules have a single definition.
      */
     fun rankRelevantEpisodes(query: String, episodes: List<TaskEpisode>, topK: Int = DEFAULT_TOP_K): List<TaskEpisode> {
+        return scoreEpisodes(query, episodes).take(clampTopK(topK)).map { it.first }
+    }
+
+    /**
+     * Score [episodes] against [query] and return the positively-scored ones, sorted by descending
+     * relevance with the documented deterministic tie-break (higher createdAtMs, then higher id).
+     *
+     * Unlike [rankRelevantEpisodes] this does NOT apply the top-k clamp, so callers that merge several
+     * candidate sources (for example lexical plus vector candidates) can combine the full scored lists
+     * before clamping once at the end.
+     */
+    fun scoreEpisodes(query: String, episodes: List<TaskEpisode>): List<Pair<TaskEpisode, Double>> {
         val queryTokens = meaningfulTokens(query)
         if (queryTokens.isEmpty()) return emptyList()
         return episodes
             .map { episode -> episode to relevanceScore(queryTokens, episode) }
             .filter { (_, score) -> score > 0.0 }
-            .sortedWith(compareByDescending<Pair<TaskEpisode, Double>> { it.second }
-                .thenByDescending { it.first.createdAtMs }
-                .thenByDescending { it.first.id })
+            .sortedWith(
+                compareByDescending<Pair<TaskEpisode, Double>> { it.second }
+                    .thenByDescending { it.first.createdAtMs }
+                    .thenByDescending { it.first.id }
+            )
+    }
+
+    /**
+     * Bonus added to an episode's lexical score when the episode was also returned by vector search.
+     *
+     * Rationale: the two candidate generators answer different questions. Lexical scoring measures
+     * word overlap; vector search measures embedding similarity. An episode found by BOTH is stronger
+     * evidence than one found by either alone, so it receives a fixed additive bonus. The bonus is
+     * smaller than 1.0 so a strong lexical match still outranks a weak vector-only match.
+     */
+    const val VECTOR_CANDIDATE_BONUS = 0.5
+
+    /**
+     * Merge lexical and vector candidates into one ranked list.
+     *
+     * MERGE RULE (single explicit rule, no fallback):
+     *  1. UNION the two candidate sets by episode id. The lexical path is a DEFINED MEMBER of the
+     *     union, not a fallback: every lexical candidate is always present in the result set.
+     *  2. Each episode's combined score is its lexical score plus [VECTOR_CANDIDATE_BONUS] when its id
+     *     is in [vectorIds]. An episode found only by vector search has its lexical score computed
+     *     over its own text (which may be 0.0) plus the bonus.
+     *  3. Sort by combined score descending, then by createdAtMs descending, then by id descending.
+     *     This tie-break is deterministic and identical to [scoreEpisodes].
+     *  4. Take at most clampTopK(topK).
+     *
+     * When vector search is disabled the caller passes an empty [vectorIds] set; the union then
+     * contains exactly the lexical candidates and the result equals [rankRelevantEpisodes]. That is
+     * the defined behaviour of this rule with no vector candidates, not a separate code path.
+     *
+     * DUPLICATE IDS: an id present in both [lexical] and [vectorCandidates] is stored ONCE and the
+     * lexical entry wins. This is not a preference between two different episodes: both entries
+     * describe the same stored episode, so the text used for scoring is identical either way. Keeping
+     * the lexical entry simply avoids re-deriving a score that has already been computed.
+     *
+     * EMPTY QUERY: if [query] reduces to no meaningful tokens (see [meaningfulTokens]) there is
+     * nothing to score against, so the result is empty — the same rule [scoreEpisodes] applies.
+     *
+     * @param lexical scored lexical candidates, normally from [scoreEpisodes].
+     * @param vectorIds ids returned by vector search.
+     * @param vectorCandidates episodes fetched for [vectorIds]; used to score vector-only hits.
+     */
+    fun mergeCandidates(
+        query: String,
+        lexical: List<Pair<TaskEpisode, Double>>,
+        vectorIds: Set<Long>,
+        vectorCandidates: List<TaskEpisode>,
+        topK: Int = DEFAULT_TOP_K
+    ): List<TaskEpisode> {
+        val queryTokens = meaningfulTokens(query)
+        if (queryTokens.isEmpty()) return emptyList()
+
+        // Union by id. Lexical entries are inserted first and win on collision (same episode).
+        val episodesById = LinkedHashMap<Long, TaskEpisode>()
+        lexical.forEach { (episode, _) -> episodesById.putIfAbsent(episode.id, episode) }
+        vectorCandidates.forEach { episode -> episodesById.putIfAbsent(episode.id, episode) }
+
+        val lexicalScores = lexical.associate { (episode, score) -> episode.id to score }
+
+        return episodesById.values
+            .map { episode ->
+                val lexicalScore = lexicalScores[episode.id] ?: relevanceScore(queryTokens, episode)
+                val bonus = if (episode.id in vectorIds) VECTOR_CANDIDATE_BONUS else 0.0
+                episode to (lexicalScore + bonus)
+            }
+            .filter { (_, combined) -> combined > 0.0 }
+            .sortedWith(
+                compareByDescending<Pair<TaskEpisode, Double>> { it.second }
+                    .thenByDescending { it.first.createdAtMs }
+                    .thenByDescending { it.first.id }
+            )
             .take(clampTopK(topK))
             .map { it.first }
     }
@@ -181,29 +308,108 @@ object TaskEpisodeRetrieval {
      * condition matches the current task context. Example: signing continuity applies to an
      * in-place APK update, not automatically to every installation.
      *
-     * Rule (C02, single rule, no fallback chain):
-     *  1. Both sides are reduced to MEANINGFUL tokens ([meaningfulTokens]): stopwords and
-     *     numeric-only tokens are dropped.
-     *  2. A condition that reduces to NO meaningful tokens (empty, blank, or made only of
-     *     stopwords such as "the and of to") is NOT applicable — there is nothing to match on.
-     *  3. A context that reduces to no meaningful tokens is NOT applicable either.
-     *  4. The condition is applicable only when BOTH thresholds are met:
-     *     at least [MIN_DISTINCT_MATCHED_TOKENS] distinct meaningful tokens are shared, AND the
-     *     shared count is at least [MIN_MATCHED_FRACTION] of the condition's meaningful tokens.
+     * Rule (single documented rule, no fallback chain). Both sides are first reduced to MEANINGFUL
+     * tokens ([meaningfulTokens]): stopwords and numeric-only tokens are dropped. A condition that
+     * reduces to NO meaningful tokens (empty, blank, or made only of stopwords such as "the and of
+     * to") is NOT applicable — there is nothing to match on — and a context that reduces to no
+     * meaningful tokens is NOT applicable either. The condition is then matched by ONE of two
+     * branches, selected by the SCRIPT of the condition, not by whether the other branch failed:
      *
-     * There is deliberately NO loosening fallback: if the thresholds are not met the answer is
-     * `false`. A single shared common token such as "app", "install", "apk" or "update" must never
-     * make a condition applicable.
+     *  - CJK BRANCH (chosen when the condition contains any CJK token, see [isCjkToken]): the
+     *    condition is applicable when the context contains a contiguous run of at least
+     *    [MIN_CONTIGUOUS_CJK_BIGRAMS] consecutive meaningful CJK bigrams from the condition (see
+     *    [hasContiguousCjkRun]). CJK text has no spaces, so a set-overlap fraction would punish a
+     *    condition for containing a clause the context never mentions even when another clause
+     *    matches perfectly; contiguous phrase containment asks the question applicability is
+     *    actually trying to answer.
+     *  - NON-CJK BRANCH (chosen when the condition contains no CJK token): the C02 rule — the
+     *    condition is applicable only when BOTH thresholds are met: at least
+     *    [MIN_DISTINCT_MATCHED_TOKENS] distinct meaningful tokens are shared, AND the shared count
+     *    is at least [MIN_MATCHED_FRACTION] of the condition's meaningful tokens.
+     *
+     * These are two branches of ONE rule, selected deterministically by the condition's script.
+     * There is deliberately NO loosening fallback: if the selected branch's test is not met the
+     * answer is `false`. A single shared common token such as "app", "install", "apk" or "update"
+     * must never make a condition applicable.
      */
     fun isPrerequisiteApplicable(prerequisiteCondition: String, currentTaskContext: String): Boolean {
         val conditionTokens = meaningfulTokens(prerequisiteCondition)
         if (conditionTokens.isEmpty()) return false
         val contextTokens = meaningfulTokens(currentTaskContext)
         if (contextTokens.isEmpty()) return false
+
+        // CJK conditions are matched by contiguous phrase containment; see hasContiguousCjkRun.
+        if (conditionTokens.any { isCjkToken(it) }) {
+            return hasContiguousCjkRun(prerequisiteCondition, currentTaskContext)
+        }
+
+        // Non-CJK conditions keep the documented distinct-token + fraction rule from C02.
         val matched = conditionTokens.count { it in contextTokens }
         return matched >= MIN_DISTINCT_MATCHED_TOKENS &&
             matched.toDouble() / conditionTokens.size.toDouble() >= MIN_MATCHED_FRACTION
     }
+
+    /**
+     * True when the condition's meaningful CJK bigrams contain a run of at least
+     * [MIN_CONTIGUOUS_CJK_BIGRAMS] consecutive bigrams that also appear consecutively in the context.
+     *
+     * Both sides are reduced to their ORDERED sequence of meaningful CJK bigrams (the tokenizer
+     * emits overlapping bigrams, so consecutive bigrams in the sequence overlap by one character).
+     * A run of k consecutive condition bigrams corresponds to a k+1 character phrase; the rule asks
+     * whether that phrase occurs in the context.
+     *
+     * Limits: the phrase must appear verbatim. A paraphrase will not match, which is the
+     * conservative direction for a caution that the model is told to verify.
+     */
+    private fun hasContiguousCjkRun(conditionText: String, contextText: String): Boolean {
+        val conditionBigrams = orderedCjkBigrams(conditionText)
+        if (conditionBigrams.size < MIN_CONTIGUOUS_CJK_BIGRAMS) return false
+        val contextBigrams = orderedCjkBigrams(contextText)
+        if (contextBigrams.size < MIN_CONTIGUOUS_CJK_BIGRAMS) return false
+
+        val lastStart = contextBigrams.size - MIN_CONTIGUOUS_CJK_BIGRAMS
+        return conditionBigrams.windowed(MIN_CONTIGUOUS_CJK_BIGRAMS).any { window ->
+            (0..lastStart).any { start ->
+                contextBigrams.subList(start, start + MIN_CONTIGUOUS_CJK_BIGRAMS) == window
+            }
+        }
+    }
+
+    /**
+     * The ORDERED sequence of meaningful CJK bigrams in [text].
+     *
+     * Walks the text the same way [tokenize] does but keeps only CJK runs and preserves order, then
+     * drops bigrams whose two characters are both Chinese stopwords (the same rule as
+     * [isAllStopwordCjkBigram]) and single-character runs that are Chinese stopwords.
+     */
+    private fun orderedCjkBigrams(text: String): List<String> {
+        val lowered = text.lowercase()
+        val result = ArrayList<String>()
+        var index = 0
+        while (index < lowered.length) {
+            val ch = lowered[index]
+            if (isCjk(ch)) {
+                var end = index
+                while (end < lowered.length && isCjk(lowered[end])) end++
+                val run = lowered.substring(index, end)
+                if (run.length == 1) {
+                    if (run !in CHINESE_STOPWORDS) result.add(run)
+                } else {
+                    for (i in 0 until run.length - 1) {
+                        val bigram = run.substring(i, i + 2)
+                        if (!isAllStopwordCjkBigram(bigram)) result.add(bigram)
+                    }
+                }
+                index = end
+            } else {
+                index++
+            }
+        }
+        return result
+    }
+
+    /** True when every character of [token] is CJK. */
+    private fun isCjkToken(token: String): Boolean = token.all { isCjk(it) }
 
     /**
      * Relevance of one episode to an already-tokenized query.
@@ -234,11 +440,13 @@ object TaskEpisodeRetrieval {
     /**
      * Tokens of [text] that carry task-specific meaning.
      *
-     * Starts from [tokenize] (unchanged in C02 — the tokenizer itself is replaced in C03) and then
-     * removes:
+     * Starts from [tokenize] (the tokenizer is the Unicode-aware one described in [tokenize]) and
+     * then removes:
      *  - tokens listed in [ENGLISH_STOPWORDS] or [CHINESE_STOPWORDS];
      *  - purely numeric tokens (all digits, e.g. "0" from a path such as
-     *    "/storage/emulated/0/...").
+     *    "/storage/emulated/0/...");
+     *  - CJK bigrams whose two characters are BOTH Chinese stopwords (see
+     *    [isAllStopwordCjkBigram]).
      *
      * Numeric-only tokens are not meaningful for applicability: a version number, a path segment
      * or a port is not evidence that a conditional prerequisite applies to the present task.
@@ -247,15 +455,104 @@ object TaskEpisodeRetrieval {
         return tokenize(text).filterNot { token ->
             token in ENGLISH_STOPWORDS ||
                 token in CHINESE_STOPWORDS ||
-                token.all { it in '0'..'9' }
+                token.all { it in '0'..'9' } ||
+                isAllStopwordCjkBigram(token)
         }.toSet()
     }
 
+    /**
+     * True when [token] is a CJK bigram whose two characters are BOTH Chinese stopwords.
+     *
+     * CJK BIGRAM RULE (C03): a token is a CJK bigram iff it has exactly two characters and both are
+     * CJK (see [isCjk]). Such a bigram is dropped when BOTH of its characters are Chinese
+     * stopwords, because a bigram made only of function words carries no meaning.
+     *
+     * SINGLE-CHARACTER CJK STOPWORDS: a CJK run of exactly one character is emitted as that single
+     * character by [tokenize], so the `token in CHINESE_STOPWORDS` check in [meaningfulTokens] now
+     * actually fires for it.
+     */
+    private fun isAllStopwordCjkBigram(token: String): Boolean {
+        if (token.length != 2) return false
+        if (!token.all { isCjk(it) }) return false
+        return token[0].toString() in CHINESE_STOPWORDS && token[1].toString() in CHINESE_STOPWORDS
+    }
+
+    /**
+     * Token set for [text], exposed for tests and diagnostics. Delegates to the same tokenizer used
+     * by ranking and applicability, so tests exercise the production rule.
+     */
+    fun tokens(text: String): Set<String> = tokenize(text)
+
+    /**
+     * Unicode-aware, dependency-free tokenizer (C03).
+     *
+     * The text is lower-cased and walked once, grouping characters into maximal runs of CJK
+     * characters (see [isCjk]) and maximal runs of non-CJK word characters
+     * (`Character.isLetterOrDigit`, which is Unicode-aware so accented Latin works):
+     *  - a NON-CJK run is emitted as ONE token when its length is at least 2, preserving the
+     *    previous behaviour for Latin words;
+     *  - a CJK run is emitted as every OVERLAPPING BIGRAM (characters i..i+1 for each i); a run of
+     *    exactly one character is emitted as that single character.
+     *
+     * WHY BIGRAMS: CJK text is written without spaces, so there is no whitespace to split on.
+     * Overlapping character bigrams are a standard deterministic segmentation that needs no
+     * dictionary, no model and no Android dependency (no `android.icu`, no
+     * `java.text.BreakIterator`), and they preserve partial matches: a phrase that appears inside a
+     * longer sentence still produces the same bigrams.
+     */
     private fun tokenize(text: String): Set<String> {
-        return text.lowercase()
-            .split(Regex("[^a-z0-9]+"))
-            .filter { it.length >= 2 }
-            .toSet()
+        val lowered = text.lowercase()
+        val result = LinkedHashSet<String>()
+        var index = 0
+        while (index < lowered.length) {
+            val ch = lowered[index]
+            if (isCjk(ch)) {
+                var end = index
+                while (end < lowered.length && isCjk(lowered[end])) end++
+                emitCjkRun(lowered.substring(index, end), result)
+                index = end
+            } else if (Character.isLetterOrDigit(ch)) {
+                var end = index
+                while (end < lowered.length &&
+                    !isCjk(lowered[end]) &&
+                    Character.isLetterOrDigit(lowered[end])
+                ) {
+                    end++
+                }
+                val run = lowered.substring(index, end)
+                if (run.length >= 2) result.add(run)
+                index = end
+            } else {
+                index++
+            }
+        }
+        return result
+    }
+
+    /**
+     * Emit the tokens of one maximal CJK [run]: every overlapping bigram, or the single character
+     * when the run has length 1. See [tokenize] for the rationale.
+     */
+    private fun emitCjkRun(run: String, into: MutableSet<String>) {
+        if (run.length == 1) {
+            into.add(run)
+            return
+        }
+        for (i in 0 until run.length - 1) {
+            into.add(run.substring(i, i + 2))
+        }
+    }
+
+    /**
+     * True when [ch] belongs to one of the documented CJK blocks: [CJK_UNIFIED_IDEOGRAPHS],
+     * [CJK_EXTENSION_A], [HIRAGANA], [KATAKANA] or [HANGUL_SYLLABLES].
+     */
+    private fun isCjk(ch: Char): Boolean {
+        return ch in CJK_UNIFIED_IDEOGRAPHS ||
+            ch in CJK_EXTENSION_A ||
+            ch in HIRAGANA ||
+            ch in KATAKANA ||
+            ch in HANGUL_SYLLABLES
     }
 
     private fun normalizeEvidenceKey(raw: String): String {

@@ -1,10 +1,10 @@
 package com.ai.assistance.operit.data.learning
 
 import com.ai.assistance.operit.data.model.TaskEpisode
+import com.ai.assistance.operit.data.repository.TaskEpisodeRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 
 /**
@@ -347,13 +347,11 @@ class TaskEpisodeRetrievalTest {
         )
     }
 
-    // Requires the C03 Unicode-aware tokenizer; enabled with C03.
-    @Ignore("Requires the C03 Unicode-aware tokenizer")
     @Test
     fun isPrerequisiteApplicable_chineseUpdateVersusFreshInstall_behavesTheSame() {
-        // C02: the Chinese case mirrors the English update-vs-fresh-install case. It cannot pass
-        // with the current `[^a-z0-9]+` tokenizer, which does not split CJK text at all (the whole
-        // Chinese string becomes one token), so it is ignored until C03 lands the Unicode tokenizer.
+        // C02/C03: the Chinese case mirrors the English update-vs-fresh-install case. The C03
+        // Unicode-aware tokenizer segments CJK runs into overlapping bigrams, so the Chinese
+        // condition and context are compared on the same footing as English words.
         val condition = "就地更新安装包时的签名连续性"
 
         assertTrue(
@@ -384,6 +382,156 @@ class TaskEpisodeRetrievalTest {
 
         assertTrue(ranked.contains(relevant))
         assertFalse(ranked.contains(allStopwords))
+    }
+
+    // --- C03 (b): scoreEpisodes returns the full scored list, without the top-k clamp ---
+
+    @Test
+    fun scoreEpisodes_returnsScoredCandidatesWithoutTopKClamp() {
+        // C03 (b): scoreEpisodes is the unclamped primitive; rankRelevantEpisodes clamps on top of it.
+        val episodes = (1L..8L).map { id ->
+            episode(id = id, taskSummary = "signing failed on in-place apk update")
+        }
+
+        val scored = TaskEpisodeRetrieval.scoreEpisodes(
+            query = "signing failed in-place apk update",
+            episodes = episodes
+        )
+        val ranked = TaskEpisodeRetrieval.rankRelevantEpisodes(
+            query = "signing failed in-place apk update",
+            episodes = episodes,
+            topK = 10
+        )
+
+        // All 8 episodes match, so the unclamped scorer returns all 8 ...
+        assertEquals(8, scored.size)
+        // ... while the ranking entry point still clamps to MAX_TOP_K (5).
+        assertEquals(TaskEpisodeRetrieval.MAX_TOP_K, ranked.size)
+        assertEquals(5, ranked.size)
+        // The clamped list is exactly the head of the unclamped list.
+        assertEquals(scored.take(5).map { it.first }, ranked)
+    }
+
+    // --- C03 (b): mergeCandidates applies the vector bonus ---
+
+    @Test
+    fun mergeCandidates_vectorHitReceivesBonusAndOutranksLexicalOnly() {
+        // C03 (b): two episodes with the SAME lexical score; only one is also a vector hit.
+        val lexicalOnly = episode(id = 1L, taskSummary = "signing failed", createdAtMs = 1_000L)
+        val vectorHit = episode(id = 2L, taskSummary = "signing failed", createdAtMs = 1_000L)
+
+        val lexical = TaskEpisodeRetrieval.scoreEpisodes(
+            query = "signing failed",
+            episodes = listOf(lexicalOnly, vectorHit)
+        )
+        // Precondition: the two lexical scores really are equal, so only the bonus can separate them.
+        assertEquals(2, lexical.size)
+        assertEquals(lexical[0].second, lexical[1].second, 0.0)
+
+        val merged = TaskEpisodeRetrieval.mergeCandidates(
+            query = "signing failed",
+            lexical = lexical,
+            vectorIds = setOf(vectorHit.id),
+            vectorCandidates = listOf(vectorHit),
+            topK = 5
+        )
+
+        assertEquals(listOf(vectorHit, lexicalOnly), merged)
+    }
+
+    // --- C03 (b): mergeCandidates tie-break is deterministic ---
+
+    @Test
+    fun mergeCandidates_tiesBrokenByCreatedAtMsThenId() {
+        // C03 (b): equal combined scores -> higher createdAtMs first, then higher id.
+        val older = episode(id = 100L, taskSummary = "signing failed", createdAtMs = 1_000L)
+        val newerLowId = episode(id = 1L, taskSummary = "signing failed", createdAtMs = 2_000L)
+        val newerHighId = episode(id = 2L, taskSummary = "signing failed", createdAtMs = 2_000L)
+
+        val lexical = TaskEpisodeRetrieval.scoreEpisodes(
+            query = "signing failed",
+            episodes = listOf(older, newerLowId, newerHighId)
+        )
+
+        val merged = TaskEpisodeRetrieval.mergeCandidates(
+            query = "signing failed",
+            lexical = lexical,
+            vectorIds = emptySet(),
+            vectorCandidates = emptyList(),
+            topK = 5
+        )
+
+        assertEquals(listOf(newerHighId, newerLowId, older), merged)
+    }
+
+    // --- C03 (b): with no vector candidates the merge equals the lexical ranking ---
+
+    @Test
+    fun mergeCandidates_emptyVectorIds_equalsLexicalRanking() {
+        // C03 (b): empty vectorIds is the DEFINED no-vector behaviour, not a separate code path.
+        val episodes = listOf(
+            episode(id = 1L, taskSummary = "signing failed on in-place apk update", createdAtMs = 1_000L),
+            episode(id = 2L, taskSummary = "signing", createdAtMs = 2_000L),
+            episode(id = 3L, taskSummary = "unrelated database migration", createdAtMs = 3_000L),
+            episode(id = 4L, taskSummary = "apk update signing", createdAtMs = 4_000L)
+        )
+        val query = "signing failed in-place apk update"
+        val topK = 3
+
+        val lexical = TaskEpisodeRetrieval.scoreEpisodes(query, episodes)
+        val merged = TaskEpisodeRetrieval.mergeCandidates(
+            query = query,
+            lexical = lexical,
+            vectorIds = emptySet(),
+            vectorCandidates = emptyList(),
+            topK = topK
+        )
+
+        assertEquals(
+            TaskEpisodeRetrieval.rankRelevantEpisodes(query, episodes, topK),
+            merged
+        )
+    }
+
+    // --- C03 (b): mergeCandidates clamps once at the end ---
+
+    @Test
+    fun mergeCandidates_resultIsClampedToTopK() {
+        // C03 (b): 10 candidates, topK 10 requested -> clampTopK caps the result at MAX_TOP_K (5).
+        val episodes = (1L..10L).map { id ->
+            episode(id = id, taskSummary = "signing failed on in-place apk update", createdAtMs = id)
+        }
+
+        val lexical = TaskEpisodeRetrieval.scoreEpisodes(
+            query = "signing failed in-place apk update",
+            episodes = episodes
+        )
+        assertEquals(10, lexical.size)
+
+        val merged = TaskEpisodeRetrieval.mergeCandidates(
+            query = "signing failed in-place apk update",
+            lexical = lexical,
+            vectorIds = emptySet(),
+            vectorCandidates = emptyList(),
+            topK = 10
+        )
+
+        assertEquals(TaskEpisodeRetrieval.MAX_TOP_K, merged.size)
+        assertEquals(5, merged.size)
+    }
+
+    // --- C03 (b): the bounded candidate cap is a documented positive constant ---
+
+    @Test
+    fun maxCandidatesExamined_isAPositiveDocumentedCap() {
+        // C03 (b): retrieval must not load the whole table, so the candidate window is capped.
+        //
+        // HONEST LIMITATION: the bounded ObjectBox query itself (order by createdAt DESC + find(0, N))
+        // CANNOT be unit-tested on the JVM, because ObjectBox requires an Android runtime and a native
+        // store. Only the cap constant is asserted here; the query is verified by code inspection of
+        // TaskEpisodeRepository.recentCandidates().
+        assertTrue(TaskEpisodeRepository.MAX_CANDIDATES_EXAMINED > 0)
+        assertTrue(TaskEpisodeRepository.MAX_CANDIDATES_EXAMINED <= 1000)
     }
 
     private fun episode(
