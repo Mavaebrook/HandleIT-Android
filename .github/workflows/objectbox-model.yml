@@ -1,5 +1,7 @@
 # This workflow exists only to regenerate and upload `app/objectbox-models/default.json`
 # so the ObjectBox model file can be committed without running Gradle locally.
+# It also enforces that the committed model is byte-identical to a clean regeneration:
+# if `git diff` shows any change to the model after annotation processing, the job fails.
 # It is a separate, manually-triggered workflow and does not affect the behavior of
 # `Android Build` or `Android Tests`.
 name: ObjectBox Model
@@ -177,6 +179,37 @@ jobs:
           gradle_task="${DISPATCH_GRADLE_TASK:-:app:kaptDebugKotlin}"
           chmod +x ./gradlew
           ./gradlew "$gradle_task" --stacktrace --no-daemon
+
+      # R15: enforce byte-identical regeneration of the committed ObjectBox model.
+      # No `if:` is set on purpose, so this step only runs when the annotation
+      # processing step above succeeded; a genuine generation failure is reported by
+      # that step instead of being masked here. `continue-on-error` is intentionally
+      # absent so a stale/hand-edited model fails the workflow.
+      #
+      # Note on `fetch-depth: 1` + `persist-credentials: false` in the checkout step:
+      # `git diff -- <path>` compares HEAD (or the index) against the working tree and
+      # needs no commit history, so a shallow single-commit clone is sufficient. HEAD
+      # is always present after checkout, and `git diff` is a local operation that does
+      # not require credentials, so neither setting weakens this check.
+      - name: Verify committed ObjectBox model is byte-identical
+        shell: bash
+        run: |
+          set -euo pipefail
+          model_path="app/objectbox-models/default.json"
+          if [ ! -f "$model_path" ]; then
+            echo "::error::ObjectBox model was not generated at $model_path"
+            exit 1
+          fi
+          # R15: the committed model must be exactly what a clean regeneration produces.
+          # A non-byte-identical regeneration means the committed file is stale or was
+          # hand-edited, which would let entity ids/UIDs drift between builds.
+          if ! git diff --exit-code -- "$model_path"; then
+            echo "::error::Regenerated ObjectBox model differs from the committed file. Do not hand-edit default.json; regenerate it through this workflow and commit the result."
+            echo "--- committed vs regenerated diff ---"
+            git diff -- "$model_path"
+            exit 1
+          fi
+          echo "ObjectBox model is byte-identical to the committed file."
 
       - name: Print generated ObjectBox model
         if: always()
