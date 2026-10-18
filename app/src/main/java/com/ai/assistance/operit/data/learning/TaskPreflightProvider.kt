@@ -20,6 +20,12 @@ object TaskPreflightProvider {
     /**
      * Build the bounded preflight block for the current task.
      *
+     * Suspending because retrieval now merges two candidate generators: the lexical path and the
+     * episode vector index ([TaskEpisodeVectorIndex]), and the vector path performs a suspending
+     * embedding request. When no embedding provider is configured the vector generator returns no
+     * ids by its documented disabled-state rule and the merge contains exactly the lexical
+     * candidates.
+     *
      * @param taskQuery the user request text used for retrieval ranking.
      * @param currentTaskContext the actual task context (request text plus a bounded recent-turn
      *        excerpt) used for prerequisite applicability and satisfaction checks.
@@ -27,7 +33,7 @@ object TaskPreflightProvider {
      *         defined "no block produced" result; a retrieval failure is logged via
      *         [AppLogger.e] and also yields "".
      */
-    fun buildPreflightBlock(
+    suspend fun buildPreflightBlock(
         context: Context,
         profileId: String,
         taskQuery: String,

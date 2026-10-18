@@ -609,6 +609,8 @@ class ConversationService(
                 // Bounded similar-task preflight: only for development/workspace tasks, pure
                 // retrieval (no model call), top-k clamped to 3-5. A retrieval failure is logged
                 // by TaskPreflightProvider and yields the defined no-op (empty block).
+                // buildPreflightBlock is suspend because retrieval merges the lexical candidates
+                // with the episode vector index; this function is already suspend.
                 val architectPreflightBlock =
                     if (!workspacePath.isNullOrBlank()) {
                         TaskPreflightProvider.buildPreflightBlock(

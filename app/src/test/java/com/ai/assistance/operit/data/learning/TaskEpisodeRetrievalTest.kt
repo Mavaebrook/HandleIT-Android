@@ -534,6 +534,85 @@ class TaskEpisodeRetrievalTest {
         assertTrue(TaskEpisodeRepository.MAX_CANDIDATES_EXAMINED <= 1000)
     }
 
+    // --- C03 (c): vector retrieval as an ADDITIONAL candidate generator ---
+    //
+    // HONEST LIMITATION: TaskEpisodeVectorIndex requires an Android runtime (Context, SharedPreferences,
+    // the HNSW native library and an HTTP embedding provider), so it CANNOT be unit-tested on the JVM.
+    // It is verified by inspection plus CI compilation. The tests below exercise only the pure merge
+    // rule in TaskEpisodeRetrieval.mergeCandidates, which is what the vector generator feeds.
+
+    @Test
+    fun mergeCandidates_vectorOnlyHitWithZeroLexicalScore_stillSurvivesViaBonus() {
+        // C03 (c): an episode found ONLY by vector search, whose text shares no meaningful token with
+        // the query, still appears in the result because of VECTOR_CANDIDATE_BONUS.
+        //
+        // HAND TRACE:
+        //  query = "signing failed" -> meaningfulTokens = {signing, failed} (size 2).
+        //  vectorOnly = episode(id=7, taskSummary="database migration rollback", createdAtMs=1_000).
+        //    meaningfulTokens(vectorOnly) = {database, migration, rollback}; overlap with the query is
+        //    0, so relevanceScore = 0 / 2 = 0.0.
+        //  lexical = scoreEpisodes(query, listOf(vectorOnly)) -> the 0.0 score is filtered out, so
+        //    lexical = [] (the episode is NOT a lexical candidate at all).
+        //  vectorIds = {7}, vectorCandidates = [vectorOnly].
+        //  mergeCandidates:
+        //    union by id -> {7 -> vectorOnly} (from vectorCandidates; lexical contributed nothing).
+        //    lexicalScores has no entry for 7, so lexicalScore = relevanceScore(queryTokens, vectorOnly)
+        //      = 0.0.
+        //    bonus = VECTOR_CANDIDATE_BONUS (0.5) because 7 is in vectorIds.
+        //    combined = 0.0 + 0.5 = 0.5 > 0.0, so the filter keeps it.
+        //    result = [vectorOnly].
+        val query = "signing failed"
+        val vectorOnly = episode(id = 7L, taskSummary = "database migration rollback", createdAtMs = 1_000L)
+
+        val lexical = TaskEpisodeRetrieval.scoreEpisodes(query, listOf(vectorOnly))
+        // Precondition: the episode is not a lexical candidate at all (score 0.0 is filtered out).
+        assertTrue(lexical.isEmpty())
+
+        val merged = TaskEpisodeRetrieval.mergeCandidates(
+            query = query,
+            lexical = lexical,
+            vectorIds = setOf(vectorOnly.id),
+            vectorCandidates = listOf(vectorOnly),
+            topK = 3
+        )
+
+        // The vector-only hit survives purely on the bonus.
+        assertEquals(listOf(vectorOnly), merged)
+    }
+
+    @Test
+    fun mergeCandidates_lexicalEntryWinsOnDuplicateId() {
+        // C03 (c): the same id in both lexical and vectorCandidates yields ONE entry (no duplicate).
+        //
+        // HAND TRACE:
+        //  query = "signing failed" -> meaningfulTokens = {signing, failed} (size 2).
+        //  shared = episode(id=3, taskSummary="signing failed", createdAtMs=1_000).
+        //    relevanceScore = 2 / 2 = 1.0, so lexical = [(shared, 1.0)].
+        //  vectorIds = {3}, vectorCandidates = [shared] (the same stored episode).
+        //  mergeCandidates:
+        //    union by id -> lexical inserts 3 first; putIfAbsent for the vector entry is a no-op,
+        //      so episodesById has exactly ONE entry.
+        //    lexicalScore = 1.0 (taken from lexicalScores), bonus = 0.5, combined = 1.5.
+        //    result = [shared] with size 1.
+        val query = "signing failed"
+        val shared = episode(id = 3L, taskSummary = "signing failed", createdAtMs = 1_000L)
+
+        val lexical = TaskEpisodeRetrieval.scoreEpisodes(query, listOf(shared))
+        assertEquals(1, lexical.size)
+
+        val merged = TaskEpisodeRetrieval.mergeCandidates(
+            query = query,
+            lexical = lexical,
+            vectorIds = setOf(shared.id),
+            vectorCandidates = listOf(shared),
+            topK = 3
+        )
+
+        // Exactly one entry: the duplicate id is collapsed, not repeated.
+        assertEquals(1, merged.size)
+        assertEquals(listOf(shared), merged)
+    }
+
     private fun episode(
         id: Long = 0L,
         taskSummary: String = "",
