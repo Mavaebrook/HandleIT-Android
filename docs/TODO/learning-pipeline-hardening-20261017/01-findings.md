@@ -137,7 +137,7 @@ The same defect was found and fixed in `ReviewScheduler.runOnce()` (generic catc
 
 Audited and confirmed NOT affected: `TaskEpisodeRepository` and `TaskEpisodeVectorIndex` contain only `try/finally` and no `catch`/`runCatching`, so cancellation already propagated; the `ConversationService` preflight call site has no local guard and relies on the provider, which now rethrows correctly. `ReviewScheduler.recoverStaleProcessing` and `drainPendingReviews` already rethrew cancellation and were left unchanged.
 
-CI evidence: Android Build https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121659 and Android Tests https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121763 on commit `4698f77e` — CI run in progress at the time of writing; see the run URLs. Not device-verified.
+CI evidence: Android Build success https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121659 and Android Tests success https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121763 on commit `4698f77e`. Not device-verified.
 
 ### R06 — Latin-only tokenization, full-table scan, no vector or graph retrieval (confirmed)
 

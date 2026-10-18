@@ -15,7 +15,7 @@ Fixed two defects found in review of the Stage C part 1 work, and corrected the 
 
 ### Verification
 - `31314e1c`: Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39126148124) and Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39126148173). CI-verified.
-- `4698f77e`: Android Build (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121659) and Android Tests (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121763) — CI run in progress at the time of writing; see the run URLs.
+- `4698f77e`: Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121659) and Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39127121763). CI-verified.
 - All runs are GitHub-hosted Actions. No build or test was run on the VPS or any local machine. Nothing in this entry is device-verified; A01 device update-over-existing-install verification remains PENDING.
 
 ## 2026-10-18 — Learning pipeline hardening: Stage C part 1 (C01, C02, C03 a/b/c)
