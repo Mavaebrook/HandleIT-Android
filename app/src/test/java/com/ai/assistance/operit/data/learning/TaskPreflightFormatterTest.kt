@@ -13,6 +13,10 @@ class TaskPreflightFormatterTest {
 
     // --- C01: an applicable prerequisite NOT evident in the request is rendered as a caution ---
 
+    // C02 tightened applicability to require at least two DISTINCT matched meaningful tokens, so a
+    // prerequisite of "signing continuity" is only applicable when the context contains BOTH
+    // "signing" and "continuity". The context below contains both tokens but NOT the contiguous
+    // phrase "signing continuity", so the prerequisite is applicable yet not satisfied -> caution.
     @Test
     fun buildPreflightBlock_applicablePrerequisiteNotEvident_rendersVerifyCaution() {
         val episode = episode(
@@ -23,7 +27,7 @@ class TaskPreflightFormatterTest {
 
         val block = TaskPreflightFormatter.buildPreflightBlock(
             episodes = listOf(episode),
-            currentTaskContext = "perform an in-place apk update; the signing key may have changed",
+            currentTaskContext = "perform an in-place apk update; verify signing and continuity of the release key",
             useEnglish = true
         )
 
@@ -87,7 +91,7 @@ class TaskPreflightFormatterTest {
 
         val block = TaskPreflightFormatter.buildPreflightBlock(
             episodes = episodes,
-            currentTaskContext = "perform an in-place apk update; signing key may have changed",
+            currentTaskContext = "perform an in-place apk update; verify signing and continuity of the release key",
             useEnglish = true
         )
 
@@ -144,7 +148,7 @@ class TaskPreflightFormatterTest {
         )
         val block = TaskPreflightFormatter.buildPreflightBlock(
             episodes = listOf(episode),
-            currentTaskContext = "perform an in-place apk update; the signing key may have changed",
+            currentTaskContext = "perform an in-place apk update; verify signing and continuity of the release key",
             useEnglish = false
         )
         assertTrue(block.contains("依赖前请先核实:"))

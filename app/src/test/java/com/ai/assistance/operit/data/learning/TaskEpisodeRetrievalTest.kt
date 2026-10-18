@@ -4,6 +4,7 @@ import com.ai.assistance.operit.data.model.TaskEpisode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
 
 /**
@@ -288,6 +289,101 @@ class TaskEpisodeRetrievalTest {
         )
 
         assertTrue(satisfied.isEmpty())
+    }
+
+    // --- C02: stopword-aware, threshold-based applicability ---
+
+    @Test
+    fun isPrerequisiteApplicable_freshInstallation_doesNotMatchUpdateOnlyPrerequisite() {
+        // C02: the condition and the context deliberately share "the", "app", "install" and "apk",
+        // but a fresh install is not an in-place update, so the condition must NOT apply.
+        assertFalse(
+            TaskEpisodeRetrieval.isPrerequisiteApplicable(
+                prerequisiteCondition = "signing continuity for the in-place apk update of the app",
+                currentTaskContext = "install the app fresh on a clean device and verify the apk"
+            )
+        )
+    }
+
+    @Test
+    fun isPrerequisiteApplicable_inPlaceUpdate_matchesUpdateOnlyPrerequisite() {
+        // C02: condition meaningful = {signing, continuity, place, apk, update, app} (6);
+        // context meaningful = {perform, place, apk, update, app, device} (6);
+        // matched = {place, apk, update, app} = 4 >= 2 and 4/6 = 0.667 >= 0.5 -> applicable.
+        assertTrue(
+            TaskEpisodeRetrieval.isPrerequisiteApplicable(
+                prerequisiteCondition = "signing continuity for the in-place apk update of the app",
+                currentTaskContext = "perform the in-place apk update of the app on the device"
+            )
+        )
+    }
+
+    @Test
+    fun isPrerequisiteApplicable_pathLikeContext_doesNotMatchOnComOrStorage() {
+        // C02: a path-like context shares "storage" and "app" with the condition, but that is only
+        // 2 of the condition's 5 meaningful tokens (0.4 < 0.5), so the condition must NOT apply.
+        assertFalse(
+            TaskEpisodeRetrieval.isPrerequisiteApplicable(
+                prerequisiteCondition = "storage permission for the app data directory",
+                currentTaskContext = "/storage/emulated/0/com.example.app/files"
+            )
+        )
+    }
+
+    @Test
+    fun isPrerequisiteApplicable_allStopwordCondition_isNotApplicable() {
+        // C02: a condition that reduces to no meaningful tokens is never applicable.
+        assertFalse(
+            TaskEpisodeRetrieval.isPrerequisiteApplicable(
+                prerequisiteCondition = "the and of to in for with",
+                currentTaskContext = "perform the in-place apk update of the app on the device"
+            )
+        )
+        assertFalse(
+            TaskEpisodeRetrieval.isPrerequisiteApplicable(
+                prerequisiteCondition = "的了和与或在",
+                currentTaskContext = "对已安装的应用执行就地更新安装包"
+            )
+        )
+    }
+
+    // Requires the C03 Unicode-aware tokenizer; enabled with C03.
+    @Ignore("Requires the C03 Unicode-aware tokenizer")
+    @Test
+    fun isPrerequisiteApplicable_chineseUpdateVersusFreshInstall_behavesTheSame() {
+        // C02: the Chinese case mirrors the English update-vs-fresh-install case. It cannot pass
+        // with the current `[^a-z0-9]+` tokenizer, which does not split CJK text at all (the whole
+        // Chinese string becomes one token), so it is ignored until C03 lands the Unicode tokenizer.
+        val condition = "就地更新安装包时的签名连续性"
+
+        assertTrue(
+            TaskEpisodeRetrieval.isPrerequisiteApplicable(
+                prerequisiteCondition = condition,
+                currentTaskContext = "对已安装的应用执行就地更新安装包"
+            )
+        )
+        assertFalse(
+            TaskEpisodeRetrieval.isPrerequisiteApplicable(
+                prerequisiteCondition = condition,
+                currentTaskContext = "在干净的设备上全新安装应用"
+            )
+        )
+    }
+
+    @Test
+    fun rankRelevantEpisodes_stopwordsDoNotCreateRelevance() {
+        // C02: an episode made only of stopwords has no meaningful tokens and must not be returned.
+        val relevant = episode(id = 1L, taskSummary = "the app update")
+        val allStopwords = episode(id = 2L, taskSummary = "the of and to")
+
+        val ranked = TaskEpisodeRetrieval.rankRelevantEpisodes(
+            query = "the app update",
+            episodes = listOf(relevant, allStopwords),
+            topK = 3
+        )
+
+        assertTrue(ranked.contains(relevant))
+        assertFalse(ranked.contains(allStopwords))
     }
 
     private fun episode(
