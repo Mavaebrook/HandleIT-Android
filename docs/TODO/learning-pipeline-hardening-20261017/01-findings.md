@@ -255,7 +255,7 @@ These are design inputs, not installed frameworks. All are preprints; reported c
 - R07's premise that the Reflector is entirely unwired is partly wrong: `ReflectorCurator.reflect` is called from `ReviewScheduler.kt:73`. It is wired but unreachable because the queue never fills (R02) and the wrong store is drained (R03). The Curator, the lifecycle and the repository remain genuinely unwired.
 - R04's premise that `getPendingAndFailed` includes `PROCESSING` rows is wrong: it queries only `PENDING` and `FAILED`. The real defect is the opposite — rows stuck in `PROCESSING` after a crash are never recovered.
 
-## Stage A review refinements (R14-R16)
+## Stage A review refinements (R14-R17)
 
 These findings come from an independent review of the Stage A work (commits `9afd9627`, `cddaa1e0`, `27a6cef1`, `58bedd67`). Each was re-verified against the code at HEAD before being recorded. Where a point was already handled or wrong at HEAD, that is stated with evidence.
 
@@ -334,6 +334,34 @@ Why it matters: collapsing these three is how a pipeline starts asserting lesson
 Proposed fix: carry the three concepts as separate fields and separate decisions in the schema and in every stage. A trigger may open a review; a candidate explanation may be stored with confidence and provenance; only promotion evidence may move a lesson into retrieval. Reference this rule from Stages C, D and F.
 
 Acceptance test: a review opened by a trigger alone produces no promoted lesson; a candidate explanation is stored with its provenance and is not retrievable as a lesson until promotion evidence exists; a promotion requires a recorded held-out replay or measured outcome.
+
+### R14b — Neutral retry phrases still set the candidate correction signal (confirmed)
+
+Evidence: `data/learning/ReviewSignalDeriver.kt:61-80` still lists `"redo"` (line 73) and `"try again"` (line 74) in `CORRECTION_MARKERS`. Commit `d3535a5a` ("test(learning): use marker-free text for the retry correction test") changed only the test input — `ReviewSignalDeriverTest.retry_doesNotSetExplicitCorrection` now uses `"Please run that again"` instead of `"try again"` — and left the marker list untouched (`git show --stat d3535a5a` shows exactly one file changed, the test). So a user who types a plain retry request such as "try again" or "redo" is still flagged as a candidate correction whenever an assistant turn precedes it. That is the retry-versus-correction conflation R14 set out to remove: the signal is candidate-only and bounded (it requires a preceding assistant turn and a word-boundary match), but it can still open a review for a turn that carries no correction.
+
+Why it matters: a retry is a UI action (regenerate), not a statement that the previous answer was wrong. Treating the words "try again" or "redo" as a correction marker pollutes the review queue with turns where the user simply wanted another attempt, and it makes the candidate signal fire on ordinary instructions that happen to contain those words.
+
+Proposed fix: remove or justify `"try again"` and `"redo"` and any similarly neutral request phrases from `CORRECTION_MARKERS`, keeping genuinely corrective phrases (for example "that's wrong", "that is wrong", "is wrong", "was wrong", "incorrect", "not what i asked", "you misunderstood"). Add tests that a plain retry request and an ordinary instruction containing those words do not set the candidate signal, while a clear push-back such as "that's wrong" still does.
+
+Acceptance test: a turn whose last user text is a plain retry request ("try again", "redo") does not set `candidateCorrection`; an ordinary instruction containing those words does not set it; a clear push-back ("that's wrong") still sets it. This item is recorded only; the marker list and the test are not changed in this job.
+
+### R17 — Reviews run on the MEMORY and SUMMARY models; there is no dedicated reviewer/teacher model (confirmed)
+
+Evidence: `api/chat/library/ReflectorCurator.kt` calls `EnhancedAIService.callFunctionModel` with `FunctionType.MEMORY` for the Reflector (`ReflectorCurator.kt:42`) and `FunctionType.SUMMARY` for the Curator (`ReflectorCurator.kt:69`). Reviews therefore run on whatever model is mapped to those two function types, and there is no review-specific model setting anywhere: a search of `data/preferences/` and `ui/features/settings/` for "review" finds only the unrelated summary-dialogue-review prompt feature, and `FunctionalConfigManager` defines exactly one preference key, `function_config_mapping`.
+
+Supporting facts verified at HEAD:
+
+- `data/model/FunctionType.kt` is the enum (11 values: `CHAT`, `SUMMARY`, `TITLE_GENERATION`, `MEMORY`, `UI_CONTROLLER`, `TRANSLATION`, `GREP`, `ROLE_RESPONSE_PLANNER`, `IMAGE_RECOGNITION`, `AUDIO_RECOGNITION`, `VIDEO_RECOGNITION`).
+- `data/preferences/FunctionalConfigManager.kt` maps each `FunctionType` to a model config id and index. `normalizeMapping` (lines 120-130) seeds the result from `defaultMapping()` (line 133), which assigns `FunctionConfigMapping(DEFAULT_CONFIG_ID, 0)` to every `FunctionType.values()` entry, then overlays saved entries and skips any saved key that is not a current enum name (`functionTypesByName[key] ?: return@forEach`, line 126). A new enum value is therefore safe for existing installs: it loads with the default config and index 0.
+- `ui/features/settings/screens/FunctionalConfigScreen.kt` lists `FunctionType.values()` automatically (line 165), BUT contains three exhaustive `when (functionType)` expressions with no `else` branch: the connection-test `when` (starts line 496), `getFunctionDisplayName` (lines 975-987) and `getFunctionDescription` (lines 993-1005). A new enum value fails to compile until each has a branch, and string resources are needed for the display name and description.
+- `ROLE_RESPONSE_PLANNER` is the precedent for adding a function type: commit `633fd366` added the enum value, the `FunctionalConfigScreen` branches, the string resources and a consumer in `services/core/MessageCoordinationDelegate.kt` (used at lines 1043 and 1047).
+- `data/model/ModelConfigData.kt` holds `apiEndpoint`, `apiKey`, a key pool (`apiKeyPool`, `useMultipleApiKeys`, `currentKeyIndex`, `keyRotationMode`) and `modelName` per config, and `ApiProviderType` has 38 provider types (OpenAI, Anthropic, Google, DeepSeek, OpenRouter, Mistral, Ollama, LM Studio, generic OpenAI-compatible and others), so a stronger reviewer can be any configured provider.
+
+Why it matters: the Reflector and Curator are the "teacher" of the learning loop, and today they silently inherit the memory-processing and summarisation models. A user who wants a stronger reviewer has no way to select one, and the Stage F baseline-versus-same-model-versus-stronger-model comparison cannot be measured because the model used for a review is not recorded.
+
+Proposed fix: add a `REVIEW` function type; route `ReflectorCurator.reflect` and `ReflectorCurator.curate` through it instead of `MEMORY` and `SUMMARY`; add its branches to all three exhaustive `when` expressions and its string resources (including translations where the app ships them); give it a meaningful test-connection branch; and make the settings text state plainly that until the user picks a config the reviewer uses the DEFAULT config, and that review text (task summaries and context) is sent to whichever provider is selected. Do NOT build a separate API url or key store: reuse the existing model configs. Record the model config id, model name and provider type used on every review (on the episode or the pending-review record, using a compatible metadata extension and a status or metadata string rather than renumbering anything) so the Stage F baseline-versus-same-model-versus-stronger-model comparison can be measured; leave that comparison explicitly UNMEASURED until replays exist. A reviewer may propose lessons but can never override explicit user constraints.
+
+Acceptance test: an upgrade from a saved function mapping that has no `REVIEW` key loads and gives `REVIEW` the default config; a review made after selecting a different config records that config's id and model; the Reflector and Curator no longer reference `MEMORY` or `SUMMARY`; the settings screen compiles with every `FunctionType` covered; the privacy text is present.
 
 ## Promoted proposals (G01-G02)
 

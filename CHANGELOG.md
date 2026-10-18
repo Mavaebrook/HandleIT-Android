@@ -2,6 +2,24 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-18 — Learning pipeline hardening: R17 (dedicated reviewer model) and R14b (retry markers) recorded (docs only)
+
+Recorded two new findings and their checklist items in `docs/TODO/learning-pipeline-hardening-20261017/`. Documentation only: no source code, resource, workflow or checkbox changed; no build or test run.
+
+### Added
+- R17 in `01-findings.md`: reviews run on the `MEMORY` and `SUMMARY` models (`ReflectorCurator.kt:42` and `:69`) and there is no dedicated reviewer/teacher model. Records the proposed `REVIEW` function type, the three exhaustive `when` branches in `FunctionalConfigScreen.kt` that must gain a branch, the string resources, the settings privacy text, and the requirement to record the model config id/name/provider on every review so the Stage F baseline/same-model/stronger-model comparison can be measured (left UNMEASURED until replays exist).
+- R14b in `01-findings.md`: `"try again"` and `"redo"` remain in `ReviewSignalDeriver.CORRECTION_MARKERS` (`ReviewSignalDeriver.kt:73-74`); `d3535a5a` changed only the retry test input, not the marker list, so a plain retry request is still flagged as a candidate correction.
+- Checklist items H01 (R17) and R14b (R14 follow-up) in `index.md`, both unchecked.
+- Stage H01 text in `02-implementation.md`, placed after Stage B and before Stage D because Stage D's Curator wiring depends on it.
+
+### Changed
+- `index.md` checkpoint refreshed: exact commit `f2547e57`, next action Stage C unless the user reprioritizes H01, blockers unchanged (A01 device verification pending; R14-UI and R14b open follow-ups).
+
+### Notes
+- Verified at HEAD `f2547e57`: the Reflector/Curator routing, the absence of a review-specific model setting, `normalizeMapping` defaulting and unknown-key skipping, the three exhaustive `when` expressions, the `ROLE_RESPONSE_PLANNER` precedent, and the `CORRECTION_MARKERS` contents. One claim was corrected: `ApiProviderType` has 38 provider types, not "about 40".
+- Known unresolved security item (unchanged): earlier signing-document redaction does not erase exposed passwords from git history. No rotation or history rewrite is performed under this task.
+
+
 ## 2026-10-18 — Learning pipeline hardening: Stage B, R14 and R15
 
 Implemented Stage B (B01, B02) and the Stage A review refinements R14 and R15 of `docs/TODO/learning-pipeline-hardening-20261017/`.
