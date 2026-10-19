@@ -12,19 +12,24 @@ import java.util.concurrent.atomic.AtomicLong
  *
  * ## Session generation
  *
- * The coordinator also owns a monotonic session generation. When the workspace, chat, memory space,
- * or the underlying shell executor changes (or a PRoot/SSH session is restarted or replaced), the
- * generation is rotated and the store is cleared, so a late tool result from an old generation is
- * rejected rather than attributed to the new scope.
+ * The coordinator also owns a monotonic session generation. The intent is that whenever the
+ * workspace, chat, memory space, or the underlying shell executor changes (or a PRoot/SSH session is
+ * restarted or replaced), the generation is rotated and the store is cleared, so a late tool result
+ * from an old generation is rejected rather than attributed to the new scope. Today the generation is
+ * only rotated at the session boundaries that are actually wired: execution invalidation (via
+ * `cancelConversation`) and chat-instance release *if* a caller invokes it. The other lifecycles
+ * (workspace change, shell executor replacement, PRoot/SSH restart) are NOT yet wired.
  *
  * ## What is wired today, and what is not
  *
- * Generation rotation is wired to chat-instance release and execution invalidation in
- * `EnhancedAIService`. It is NOT yet wired to `ShellExecutorFactory.clearCache` (executor
- * replacement) because no caller of that method has access to this coordinator, and it is NOT wired
- * to PRoot/SSH restart/disconnect/replacement because those lifecycles do not exist in this codebase
- * today. The rotation seam is provided here and must be extended when those lifecycles are added.
- * This is a documented limitation, not a claim that every lifecycle is covered.
+ * Generation rotation is wired to execution invalidation (`invalidateAllExecutionContexts`, reached
+ * from `cancelConversation`) in `EnhancedAIService`. `releaseChatInstance` also calls
+ * `rotateGeneration()`, but that method currently has no callers, so chat-instance release is not yet
+ * a live rotation point. It is NOT wired to `ShellExecutorFactory.clearCache` (executor replacement)
+ * because no caller of that method has access to this coordinator, and it is NOT wired to PRoot/SSH
+ * restart/disconnect/replacement because those lifecycles do not exist in this codebase today. The
+ * rotation seam is provided here and must be extended when those lifecycles are added. This is a
+ * documented limitation, not a claim that every lifecycle is covered.
  *
  * ## Thread safety
  *
@@ -39,9 +44,10 @@ class ObservationCoordinator(
     fun currentGeneration(): Long = generation.get()
 
     /**
-     * Rotate the session generation and clear the store. Called when the workspace, chat, memory
-     * space, or shell executor changes, or a PRoot/SSH session is restarted or replaced. Returns the
-     * new generation.
+     * Rotate the session generation and clear the store. Called at the session boundaries that are
+     * wired today (execution invalidation via `cancelConversation`), and available for the other
+     * boundaries (workspace change, shell executor replacement, PRoot/SSH restart) once they are
+     * wired. Returns the new generation.
      */
     fun rotateGeneration(): Long {
         store.clear()

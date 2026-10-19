@@ -44,7 +44,7 @@ data class ObservationRecord(
     val value: TypedValue,
     /** When the fact was observed, in epoch milliseconds. */
     val observedAtMs: Long,
-    /** When the fact stops being valid, in epoch milliseconds; 0 means no expiry. */
+    /** When the fact stops being valid, in epoch milliseconds. A producer may pass 0 to mean "no explicit expiry"; TaskContextSnapshotStore rewrites 0 to a bounded default before storing, so a stored record never carries 0. */
     val validUntilMs: Long,
     /** Where the observation came from. */
     val source: ObservationSource,

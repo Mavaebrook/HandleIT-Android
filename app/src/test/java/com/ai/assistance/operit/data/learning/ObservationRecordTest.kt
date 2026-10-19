@@ -99,6 +99,31 @@ class ObservationRecordTest {
         assertEquals(EvaluationResult.SATISFIED, result)
     }
 
+    @Test
+    fun expiryBoundary_nowEqualsValidUntil_isIgnored_returnsUnknown() {
+        val record = obs(value = TypedValue.BooleanValue(true), validUntilMs = 2000L)
+        val result = PrerequisiteEvaluator.evaluate("p", "s", snapshot(record), nowMs = 2000L)
+        assertEquals(EvaluationResult.UNKNOWN, result)
+    }
+
+    @Test
+    fun futureObservationTime_isIgnored_returnsUnknown() {
+        val record = obs(
+            value = TypedValue.BooleanValue(true),
+            observedAtMs = 3000L,
+            validUntilMs = 4000L
+        )
+        val result = PrerequisiteEvaluator.evaluate("p", "s", snapshot(record), nowMs = 2000L)
+        assertEquals(EvaluationResult.UNKNOWN, result)
+    }
+
+    @Test
+    fun zeroValidUntil_isTreatedAsExpired_returnsUnknown() {
+        val record = obs(value = TypedValue.BooleanValue(true), validUntilMs = 0L)
+        val result = PrerequisiteEvaluator.evaluate("p", "s", snapshot(record), nowMs = 1000L)
+        assertEquals(EvaluationResult.UNKNOWN, result)
+    }
+
     // --- evaluator: scope isolation ---
 
     @Test

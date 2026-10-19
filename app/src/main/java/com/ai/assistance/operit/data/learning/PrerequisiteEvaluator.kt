@@ -25,7 +25,9 @@ object PrerequisiteEvaluator {
      *  - all matching observations agree on BooleanValue(false) -> [EvaluationResult.CONTRADICTED];
      *  - contradictory equally-applicable evidence (both true and false present) -> UNKNOWN (a
      *    conflict is not resolved by newest-wins);
-     *  - expired observations (validUntilMs != 0 && nowMs > validUntilMs) are ignored;
+     *  - expired observations (nowMs >= validUntilMs, or a future observedAtMs) are ignored; a
+     *    stored record never carries validUntilMs == 0 because the store rewrites it to a bounded
+     *    value;
      *  - non-boolean or [TypedValue.Unknown] values -> UNKNOWN.
      *
      * Only [TrustLevel.OBSERVED] records count: a REPORTED or REQUESTED claim cannot satisfy an
@@ -72,6 +74,13 @@ object PrerequisiteEvaluator {
         }
     }
 
-    private fun isExpired(record: ObservationRecord, nowMs: Long): Boolean =
-        record.validUntilMs != 0L && nowMs > record.validUntilMs
+    private fun isExpired(record: ObservationRecord, nowMs: Long): Boolean {
+        // Match TaskContextSnapshotStore's boundary exactly so the evaluator cannot reauthorize a
+        // record the store already treats as stale: expired when now >= validUntilMs, and fail
+        // closed for a future observation time (now < observedAt). A stored record never carries
+        // validUntilMs == 0 (the store rewrites it to a bounded value), so 0 is treated as expired
+        // here rather than as "never expires".
+        if (record.observedAtMs > nowMs) return true
+        return nowMs >= record.validUntilMs
+    }
 }

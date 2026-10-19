@@ -169,10 +169,30 @@ class ObservationCoordinatorTest {
     fun inFlightOldSessionCompletion_isRejected() {
         val coordinator = coordinator()
         val writeGeneration = coordinator.currentGeneration()
+        val oldSession = writeGeneration.toString()
+        // A result produced in the old session is recorded before rotation.
+        coordinator.store.record(record(memorySpace = "ms1", taskScope = "chat1", sessionId = oldSession))
 
+        // The session rotates while a result is still in flight.
         coordinator.rotateGeneration()
+        val newSession = coordinator.currentGeneration().toString()
 
+        // The in-flight result is stamped with the OLD generation, so the production guard
+        // (isCurrent(writeGeneration)) rejects it: it must not be recorded into the new session.
         assertFalse(coordinator.isCurrent(writeGeneration))
+        if (coordinator.isCurrent(writeGeneration)) {
+            coordinator.store.record(record(memorySpace = "ms1", taskScope = "chat1", sessionId = oldSession, eventId = "late"))
+        }
+
+        val snapshot = coordinator.store.snapshotFor(
+            memorySpace = "ms1",
+            projectScope = "",
+            taskScope = "chat1",
+            executorId = "",
+            environment = "",
+            sessionId = newSession
+        )
+        assertTrue(snapshot.observations.isEmpty())
     }
 
     @Test
