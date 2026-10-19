@@ -70,7 +70,7 @@ class ObservationRecordTest {
     @Test
     fun negativeValue_returnsContradicted() {
         val result = PrerequisiteEvaluator.evaluate(
-            "p", "s", snapshot(obs(value = TypedValue.BooleanValue(false))), nowMs = 1000L
+            "p", "s", snapshot(obs(value = TypedValue.BooleanValue(false), validUntilMs = 2000L)), nowMs = 1000L
         )
         assertEquals(EvaluationResult.CONTRADICTED, result)
     }
@@ -128,7 +128,7 @@ class ObservationRecordTest {
 
     @Test
     fun differentMemorySpace_returnsUnknown() {
-        val record = obs(value = TypedValue.BooleanValue(true), memorySpace = "space-b")
+        val record = obs(value = TypedValue.BooleanValue(true), validUntilMs = 2000L, memorySpace = "space-b")
         val result = PrerequisiteEvaluator.evaluate("p", "s", snapshot(record), nowMs = 1000L)
         assertEquals(EvaluationResult.UNKNOWN, result)
     }
@@ -137,7 +137,7 @@ class ObservationRecordTest {
 
     @Test
     fun differentExecutor_returnsUnknown() {
-        val record = obs(value = TypedValue.BooleanValue(true), executorId = "exec-2")
+        val record = obs(value = TypedValue.BooleanValue(true), validUntilMs = 2000L, executorId = "exec-2")
         val result = PrerequisiteEvaluator.evaluate("p", "s", snapshot(record), nowMs = 1000L)
         assertEquals(EvaluationResult.UNKNOWN, result)
     }
@@ -146,8 +146,8 @@ class ObservationRecordTest {
 
     @Test
     fun conflictingEvidence_returnsUnknown() {
-        val t = obs(eventId = "e1", value = TypedValue.BooleanValue(true), observedAtMs = 1000L)
-        val f = obs(eventId = "e2", value = TypedValue.BooleanValue(false), observedAtMs = 2000L)
+        val t = obs(eventId = "e1", value = TypedValue.BooleanValue(true), observedAtMs = 1000L, validUntilMs = 4000L)
+        val f = obs(eventId = "e2", value = TypedValue.BooleanValue(false), observedAtMs = 2000L, validUntilMs = 4000L)
         val result = PrerequisiteEvaluator.evaluate("p", "s", snapshot(t, f), nowMs = 3000L)
         assertEquals(EvaluationResult.UNKNOWN, result)
     }
@@ -156,7 +156,7 @@ class ObservationRecordTest {
 
     @Test
     fun reportedClaim_doesNotSatisfyObservedPredicate() {
-        val record = obs(value = TypedValue.BooleanValue(true), trust = TrustLevel.REPORTED)
+        val record = obs(value = TypedValue.BooleanValue(true), validUntilMs = 2000L, trust = TrustLevel.REPORTED)
         val result = PrerequisiteEvaluator.evaluate("p", "s", snapshot(record), nowMs = 1000L)
         assertEquals(EvaluationResult.UNKNOWN, result)
     }
