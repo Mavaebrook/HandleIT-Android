@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.data.model
 
+import com.ai.assistance.operit.data.learning.ListFieldIntegrity
+import com.ai.assistance.operit.data.learning.RowListIntegrity
 import com.ai.assistance.operit.data.learning.StringListCodec
 import com.ai.assistance.operit.util.AppLogger
 import io.objectbox.annotation.Entity
@@ -43,30 +45,46 @@ data class TaskEpisodeEntity(
      * Read behaviour, stated explicitly:
      *  - a versioned value decodes to its stored items verbatim;
      *  - a legacy value decodes with the old newline-join semantics (trim + drop empty);
-     *  - a corrupt or unsupported-version value is LOGGED at error level with the row id and the
-     *    field name, and contributes an empty list to the returned domain object. It is never
-     *    silently swallowed, and the stored row is never rewritten or deleted by a read, so the
-     *    original bytes remain available for inspection and for
+     *  - a corrupt, unsupported-version or ambiguous value is LOGGED at error level with the row id
+     *    and the field name, and contributes an empty list to the returned domain object. It is
+     *    never silently swallowed, and the stored row is never rewritten or deleted by a read, so
+     *    the original bytes remain available for inspection and for
      *    `TaskEpisodeRepository.migrateListFieldsToVersioned()`.
+     *
+     * The returned [TaskEpisode.listIntegrity] records, per list field, whether the decode was
+     * healthy or unresolved. That is what lets a consumer tell a genuine empty list apart from a
+     * field whose bytes could not be resolved. The integrity metadata is NOT persisted.
      *
      * Use [decodeListField] to obtain the typed [StringListCodec.DecodedList] for a single field
      * without logging, and [rawListField] to inspect the stored string.
      */
-    fun toEpisode(): TaskEpisode = TaskEpisode(
-        id = id,
-        taskSummary = taskSummary,
-        contextSummary = contextSummary,
-        outcome = outcome,
-        failureSummary = failureSummary,
-        causeSummary = causeSummary,
-        causeIsHypothesis = causeIsHypothesis,
-        resolutionSummary = resolutionSummary,
-        requiredPrerequisites = readListField(FIELD_REQUIRED_PREREQUISITES, requiredPrerequisitesJoined),
-        applicableConstraints = readListField(FIELD_APPLICABLE_CONSTRAINTS, applicableConstraintsJoined),
-        evidenceKeys = readListField(FIELD_EVIDENCE_KEYS, evidenceKeysJoined),
-        relatedSkillVersion = relatedSkillVersion,
-        createdAtMs = createdAt.time
-    )
+    fun toEpisode(): TaskEpisode {
+        val requiredPrerequisites = decodeField(FIELD_REQUIRED_PREREQUISITES, requiredPrerequisitesJoined)
+        val applicableConstraints = decodeField(FIELD_APPLICABLE_CONSTRAINTS, applicableConstraintsJoined)
+        val evidenceKeys = decodeField(FIELD_EVIDENCE_KEYS, evidenceKeysJoined)
+        return TaskEpisode(
+            id = id,
+            taskSummary = taskSummary,
+            contextSummary = contextSummary,
+            outcome = outcome,
+            failureSummary = failureSummary,
+            causeSummary = causeSummary,
+            causeIsHypothesis = causeIsHypothesis,
+            resolutionSummary = resolutionSummary,
+            requiredPrerequisites = requiredPrerequisites.first,
+            applicableConstraints = applicableConstraints.first,
+            evidenceKeys = evidenceKeys.first,
+            relatedSkillVersion = relatedSkillVersion,
+            createdAtMs = createdAt.time,
+            listIntegrity = RowListIntegrity(
+                mapOf(
+                    FIELD_REQUIRED_PREREQUISITES to requiredPrerequisites.second,
+                    FIELD_APPLICABLE_CONSTRAINTS to applicableConstraints.second,
+                    FIELD_EVIDENCE_KEYS to evidenceKeys.second
+                )
+            )
+        )
+    }
 
     /**
      * The raw stored string of one list column, for diagnostics and migration. Never decoded, never
@@ -81,17 +99,27 @@ data class TaskEpisodeEntity(
 
     /**
      * Typed decode of one list column, without logging. The caller decides how to surface a
-     * [StringListCodec.DecodedList.Corrupt] or [StringListCodec.DecodedList.UnsupportedVersion].
+     * [StringListCodec.DecodedList.Corrupt], [StringListCodec.DecodedList.UnsupportedVersion] or
+     * [StringListCodec.DecodedList.Ambiguous].
      */
     fun decodeListField(fieldName: String): StringListCodec.DecodedList =
         StringListCodec.decode(rawListField(fieldName))
 
     /**
-     * Decode one list column for [toEpisode]. Corruption is logged here, at the entity read
-     * boundary, and only then does the field contribute an empty list.
+     * Decode one list column for [toEpisode].
+     *
+     * Returns the decoded items (empty for an unresolved field) paired with the field's
+     * [ListFieldIntegrity]. Corruption is logged here, at the entity read boundary, and only then
+     * does the field contribute an empty list. The log line carries the field name, the row id and
+     * the short non-sensitive reason — NEVER the raw stored value, which is untrusted.
      */
-    private fun readListField(fieldName: String, stored: String): List<String> =
-        when (val decoded = StringListCodec.decode(stored)) {
+    private fun decodeField(
+        fieldName: String,
+        stored: String
+    ): Pair<List<String>, ListFieldIntegrity> {
+        val decoded = StringListCodec.decode(stored)
+        val integrity = ListFieldIntegrity.fromDecoded(fieldName, decoded)
+        val items = when (decoded) {
             is StringListCodec.DecodedList.Versioned -> decoded.items
             is StringListCodec.DecodedList.Legacy -> decoded.items
             is StringListCodec.DecodedList.Corrupt -> {
@@ -110,7 +138,17 @@ data class TaskEpisodeEntity(
                 )
                 emptyList()
             }
+            is StringListCodec.DecodedList.Ambiguous -> {
+                AppLogger.e(
+                    TAG,
+                    "Ambiguous list field '$fieldName' on TaskEpisodeEntity id=$id " +
+                        "(stored value left untouched): ${decoded.reason}"
+                )
+                emptyList()
+            }
         }
+        return items to integrity
+    }
 
     companion object {
         private const val TAG = "TaskEpisodeEntity"
@@ -134,8 +172,24 @@ data class TaskEpisodeEntity(
         /**
          * Write path. Encodes the three list columns with [StringListCodec.encode], which is
          * lossless: no trimming, no filtering, no de-duplication.
+         *
+         * ## Preservation of unresolved fields
+         *
+         * An episode read from a row with an unresolved list field carries `emptyList()` for that
+         * field, because the bytes could not be decoded. Blindly re-encoding it would write
+         * `{"v":1,"items":[]}` and DESTROY the original bytes. Therefore, for any field whose
+         * [TaskEpisode.listIntegrity] entry is unresolved AND whose name is present in
+         * [originalRaw], the original raw stored string is written back VERBATIM (no re-encode).
+         *
+         * The caller must supply [originalRaw] (typically built from
+         * [TaskEpisodeEntity.rawListField] for each field of the row that was read) when re-saving a
+         * row that was read with unresolved integrity. Use [hasUnresolvedFields] to detect such a
+         * row and refuse an unsafe write when the original bytes are not available.
          */
-        fun fromEpisode(episode: TaskEpisode): TaskEpisodeEntity = TaskEpisodeEntity(
+        fun fromEpisode(
+            episode: TaskEpisode,
+            originalRaw: Map<String, String> = emptyMap()
+        ): TaskEpisodeEntity = TaskEpisodeEntity(
             id = episode.id,
             taskSummary = episode.taskSummary,
             contextSummary = episode.contextSummary,
@@ -144,11 +198,46 @@ data class TaskEpisodeEntity(
             causeSummary = episode.causeSummary,
             causeIsHypothesis = episode.causeIsHypothesis,
             resolutionSummary = episode.resolutionSummary,
-            requiredPrerequisitesJoined = StringListCodec.encode(episode.requiredPrerequisites),
-            applicableConstraintsJoined = StringListCodec.encode(episode.applicableConstraints),
-            evidenceKeysJoined = StringListCodec.encode(episode.evidenceKeys),
+            requiredPrerequisitesJoined = encodeField(
+                FIELD_REQUIRED_PREREQUISITES,
+                episode.requiredPrerequisites,
+                episode.listIntegrity,
+                originalRaw
+            ),
+            applicableConstraintsJoined = encodeField(
+                FIELD_APPLICABLE_CONSTRAINTS,
+                episode.applicableConstraints,
+                episode.listIntegrity,
+                originalRaw
+            ),
+            evidenceKeysJoined = encodeField(
+                FIELD_EVIDENCE_KEYS,
+                episode.evidenceKeys,
+                episode.listIntegrity,
+                originalRaw
+            ),
             relatedSkillVersion = episode.relatedSkillVersion,
             createdAt = Date(if (episode.createdAtMs > 0L) episode.createdAtMs else System.currentTimeMillis())
         )
+
+        /**
+         * Encode one list column for [fromEpisode], preserving the original raw bytes when the field
+         * is unresolved and the caller supplied them.
+         */
+        private fun encodeField(
+            fieldName: String,
+            values: List<String>,
+            integrity: RowListIntegrity,
+            originalRaw: Map<String, String>
+        ): String {
+            val unresolved = integrity.fields[fieldName]?.isUnresolved == true
+            if (unresolved && originalRaw.containsKey(fieldName)) {
+                return originalRaw.getValue(fieldName)
+            }
+            return StringListCodec.encode(values)
+        }
+
+        /** True when [episode] carries any unresolved list field; such a row must not be blindly re-saved. */
+        fun hasUnresolvedFields(episode: TaskEpisode): Boolean = episode.listIntegrity.hasUnresolved
     }
 }

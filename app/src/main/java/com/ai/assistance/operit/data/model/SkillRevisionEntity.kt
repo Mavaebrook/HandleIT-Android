@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.data.model
 
+import com.ai.assistance.operit.data.learning.ListFieldIntegrity
+import com.ai.assistance.operit.data.learning.RowListIntegrity
 import com.ai.assistance.operit.data.learning.SkillRevision
 import com.ai.assistance.operit.data.learning.StringListCodec
 import com.ai.assistance.operit.util.AppLogger
@@ -46,32 +48,54 @@ data class SkillRevisionEntity(
      * Read behaviour, stated explicitly:
      *  - a versioned value decodes to its stored items verbatim;
      *  - a legacy value decodes with the old newline-join semantics (trim + drop empty);
-     *  - a corrupt or unsupported-version value is LOGGED at error level with the row id and the
-     *    field name, and contributes an empty list to the returned domain object. It is never
-     *    silently swallowed, and the stored row is never rewritten or deleted by a read, so the
-     *    original bytes remain available for inspection and for
+     *  - a corrupt, unsupported-version or ambiguous value is LOGGED at error level with the row id
+     *    and the field name, and contributes an empty list to the returned domain object. It is
+     *    never silently swallowed, and the stored row is never rewritten or deleted by a read, so
+     *    the original bytes remain available for inspection and for
      *    `SkillRevisionRepository.migrateListFieldsToVersioned()`.
+     *
+     * The returned [SkillRevision.listIntegrity] records, per list field, whether the decode was
+     * healthy or unresolved. That is what lets a consumer tell a genuine empty list apart from a
+     * field whose bytes could not be resolved. The integrity metadata is NOT persisted.
      *
      * Use [decodeListField] to obtain the typed [StringListCodec.DecodedList] for a single field
      * without logging, and [rawListField] to inspect the stored string.
      */
-    fun toRevision(): SkillRevision = SkillRevision(
-        id = id,
-        skillId = skillId,
-        version = version,
-        parentVersion = parentVersion,
-        scope = scope,
-        prerequisites = readListField(FIELD_PREREQUISITES, prerequisitesJoined),
-        steps = readListField(FIELD_STEPS, stepsJoined),
-        checks = readListField(FIELD_CHECKS, checksJoined),
-        pitfalls = readListField(FIELD_PITFALLS, pitfallsJoined),
-        evidenceKeys = readListField(FIELD_EVIDENCE_KEYS, evidenceKeysJoined),
-        userConstraints = readListField(FIELD_USER_CONSTRAINTS, userConstraintsJoined),
-        status = status,
-        helpfulCount = helpfulCount,
-        harmfulCount = harmfulCount,
-        createdAtMs = createdAt.time
-    )
+    fun toRevision(): SkillRevision {
+        val prerequisites = decodeField(FIELD_PREREQUISITES, prerequisitesJoined)
+        val steps = decodeField(FIELD_STEPS, stepsJoined)
+        val checks = decodeField(FIELD_CHECKS, checksJoined)
+        val pitfalls = decodeField(FIELD_PITFALLS, pitfallsJoined)
+        val evidenceKeys = decodeField(FIELD_EVIDENCE_KEYS, evidenceKeysJoined)
+        val userConstraints = decodeField(FIELD_USER_CONSTRAINTS, userConstraintsJoined)
+        return SkillRevision(
+            id = id,
+            skillId = skillId,
+            version = version,
+            parentVersion = parentVersion,
+            scope = scope,
+            prerequisites = prerequisites.first,
+            steps = steps.first,
+            checks = checks.first,
+            pitfalls = pitfalls.first,
+            evidenceKeys = evidenceKeys.first,
+            userConstraints = userConstraints.first,
+            status = status,
+            helpfulCount = helpfulCount,
+            harmfulCount = harmfulCount,
+            createdAtMs = createdAt.time,
+            listIntegrity = RowListIntegrity(
+                mapOf(
+                    FIELD_PREREQUISITES to prerequisites.second,
+                    FIELD_STEPS to steps.second,
+                    FIELD_CHECKS to checks.second,
+                    FIELD_PITFALLS to pitfalls.second,
+                    FIELD_EVIDENCE_KEYS to evidenceKeys.second,
+                    FIELD_USER_CONSTRAINTS to userConstraints.second
+                )
+            )
+        )
+    }
 
     /**
      * The raw stored string of one list column, for diagnostics and migration. Never decoded, never
@@ -89,17 +113,27 @@ data class SkillRevisionEntity(
 
     /**
      * Typed decode of one list column, without logging. The caller decides how to surface a
-     * [StringListCodec.DecodedList.Corrupt] or [StringListCodec.DecodedList.UnsupportedVersion].
+     * [StringListCodec.DecodedList.Corrupt], [StringListCodec.DecodedList.UnsupportedVersion] or
+     * [StringListCodec.DecodedList.Ambiguous].
      */
     fun decodeListField(fieldName: String): StringListCodec.DecodedList =
         StringListCodec.decode(rawListField(fieldName))
 
     /**
-     * Decode one list column for [toRevision]. Corruption is logged here, at the entity read
-     * boundary, and only then does the field contribute an empty list.
+     * Decode one list column for [toRevision].
+     *
+     * Returns the decoded items (empty for an unresolved field) paired with the field's
+     * [ListFieldIntegrity]. Corruption is logged here, at the entity read boundary, and only then
+     * does the field contribute an empty list. The log line carries the field name, the row id and
+     * the short non-sensitive reason — NEVER the raw stored value, which is untrusted.
      */
-    private fun readListField(fieldName: String, stored: String): List<String> =
-        when (val decoded = StringListCodec.decode(stored)) {
+    private fun decodeField(
+        fieldName: String,
+        stored: String
+    ): Pair<List<String>, ListFieldIntegrity> {
+        val decoded = StringListCodec.decode(stored)
+        val integrity = ListFieldIntegrity.fromDecoded(fieldName, decoded)
+        val items = when (decoded) {
             is StringListCodec.DecodedList.Versioned -> decoded.items
             is StringListCodec.DecodedList.Legacy -> decoded.items
             is StringListCodec.DecodedList.Corrupt -> {
@@ -118,7 +152,17 @@ data class SkillRevisionEntity(
                 )
                 emptyList()
             }
+            is StringListCodec.DecodedList.Ambiguous -> {
+                AppLogger.e(
+                    TAG,
+                    "Ambiguous list field '$fieldName' on SkillRevisionEntity id=$id " +
+                        "(stored value left untouched): ${decoded.reason}"
+                )
+                emptyList()
+            }
         }
+        return items to integrity
+    }
 
     companion object {
         private const val TAG = "SkillRevisionEntity"
@@ -154,23 +198,89 @@ data class SkillRevisionEntity(
         /**
          * Write path. Encodes the six list columns with [StringListCodec.encode], which is
          * lossless: no trimming, no filtering, no de-duplication.
+         *
+         * ## Preservation of unresolved fields
+         *
+         * A revision read from a row with an unresolved list field carries `emptyList()` for that
+         * field, because the bytes could not be decoded. Blindly re-encoding it would write
+         * `{"v":1,"items":[]}` and DESTROY the original bytes. Therefore, for any field whose
+         * [SkillRevision.listIntegrity] entry is unresolved AND whose name is present in
+         * [originalRaw], the original raw stored string is written back VERBATIM (no re-encode).
+         *
+         * The caller must supply [originalRaw] (typically built from
+         * [SkillRevisionEntity.rawListField] for each field of the row that was read) when re-saving
+         * a row that was read with unresolved integrity. Use [hasUnresolvedFields] to detect such a
+         * row and refuse an unsafe write when the original bytes are not available.
          */
-        fun fromRevision(revision: SkillRevision): SkillRevisionEntity = SkillRevisionEntity(
+        fun fromRevision(
+            revision: SkillRevision,
+            originalRaw: Map<String, String> = emptyMap()
+        ): SkillRevisionEntity = SkillRevisionEntity(
             id = revision.id,
             skillId = revision.skillId,
             version = revision.version,
             parentVersion = revision.parentVersion,
             scope = revision.scope,
-            prerequisitesJoined = StringListCodec.encode(revision.prerequisites),
-            stepsJoined = StringListCodec.encode(revision.steps),
-            checksJoined = StringListCodec.encode(revision.checks),
-            pitfallsJoined = StringListCodec.encode(revision.pitfalls),
-            evidenceKeysJoined = StringListCodec.encode(revision.evidenceKeys),
-            userConstraintsJoined = StringListCodec.encode(revision.userConstraints),
+            prerequisitesJoined = encodeField(
+                FIELD_PREREQUISITES,
+                revision.prerequisites,
+                revision.listIntegrity,
+                originalRaw
+            ),
+            stepsJoined = encodeField(
+                FIELD_STEPS,
+                revision.steps,
+                revision.listIntegrity,
+                originalRaw
+            ),
+            checksJoined = encodeField(
+                FIELD_CHECKS,
+                revision.checks,
+                revision.listIntegrity,
+                originalRaw
+            ),
+            pitfallsJoined = encodeField(
+                FIELD_PITFALLS,
+                revision.pitfalls,
+                revision.listIntegrity,
+                originalRaw
+            ),
+            evidenceKeysJoined = encodeField(
+                FIELD_EVIDENCE_KEYS,
+                revision.evidenceKeys,
+                revision.listIntegrity,
+                originalRaw
+            ),
+            userConstraintsJoined = encodeField(
+                FIELD_USER_CONSTRAINTS,
+                revision.userConstraints,
+                revision.listIntegrity,
+                originalRaw
+            ),
             status = revision.status,
             helpfulCount = revision.helpfulCount,
             harmfulCount = revision.harmfulCount,
             createdAt = Date(if (revision.createdAtMs > 0L) revision.createdAtMs else System.currentTimeMillis())
         )
+
+        /**
+         * Encode one list column for [fromRevision], preserving the original raw bytes when the
+         * field is unresolved and the caller supplied them.
+         */
+        private fun encodeField(
+            fieldName: String,
+            values: List<String>,
+            integrity: RowListIntegrity,
+            originalRaw: Map<String, String>
+        ): String {
+            val unresolved = integrity.fields[fieldName]?.isUnresolved == true
+            if (unresolved && originalRaw.containsKey(fieldName)) {
+                return originalRaw.getValue(fieldName)
+            }
+            return StringListCodec.encode(values)
+        }
+
+        /** True when [revision] carries any unresolved list field; such a row must not be blindly re-saved. */
+        fun hasUnresolvedFields(revision: SkillRevision): Boolean = revision.listIntegrity.hasUnresolved
     }
 }

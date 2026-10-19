@@ -11,6 +11,12 @@ package com.ai.assistance.operit.data.learning
  *  - no reviewer may weaken or override user constraints;
  *  - promotion lifecycle: draft -> evaluate -> promote or reject, with prior version retained
  *    and explicit rollback.
+ *
+ * @property listIntegrity Non-persisted integrity metadata for the list fields of the row this
+ *   revision was read from. It is NOT written to ObjectBox and does NOT change the entity schema; it
+ *   exists only so a consumer can distinguish a genuine empty list from a field whose stored bytes
+ *   could not be resolved (corrupt, unsupported version, or ambiguous provenance). It defaults to
+ *   [RowListIntegrity.HEALTHY] for revisions that were not read from storage.
  */
 data class SkillRevision(
     val id: Long = 0L,
@@ -27,7 +33,8 @@ data class SkillRevision(
     val status: String = STATUS_DRAFT,
     val helpfulCount: Int = 0,
     val harmfulCount: Int = 0,
-    val createdAtMs: Long = 0L
+    val createdAtMs: Long = 0L,
+    val listIntegrity: RowListIntegrity = RowListIntegrity.HEALTHY
 ) {
     companion object {
         const val STATUS_DRAFT = "draft"
