@@ -4,6 +4,7 @@ import android.content.Context
 import com.ai.assistance.operit.data.db.ObjectBoxManager
 import com.ai.assistance.operit.data.learning.MigrationReport
 import com.ai.assistance.operit.data.learning.RowMigrationPlanner
+import com.ai.assistance.operit.data.learning.StringListMigration
 import com.ai.assistance.operit.data.learning.TaskEpisodeRetrieval
 import com.ai.assistance.operit.data.learning.TaskEpisodeVectorIndex
 import com.ai.assistance.operit.data.model.TaskEpisode

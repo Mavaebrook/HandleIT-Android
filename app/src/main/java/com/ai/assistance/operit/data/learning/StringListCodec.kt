@@ -42,11 +42,10 @@ import kotlinx.serialization.json.Json
  *
  * A stored value is treated as LEGACY — decoded with the exact old newline-join semantics — if and
  * only if it does NOT look like the version envelope. "Looks like the version envelope" is defined
- * structurally by [looksLikeEnvelope]: after stripping leading whitespace the value starts with `{`
- * and the value is a single JSON object — the matching closing `}` is found by a JSON-aware scan
- * that respects string literals, backslash escapes and nested braces/brackets. Trailing
- * non-whitespace after that closing `}` does NOT make the value legacy: a value that starts with
- * `{` is envelope-shaped, so trailing junk is corruption, not legacy text.
+ * by [looksLikeEnvelope] as a cheap shape pre-check: after stripping leading whitespace the value
+ * starts with `{`. That pre-check does NOT locate a closing brace; the authoritative decision is the
+ * strict JSON parse in [decode], which rejects truncated input and trailing junk as
+ * [DecodedList.Corrupt]. A value that does not start with `{` is legacy by definition.
  *
  * Consequences, all deliberate:
  *
@@ -55,7 +54,7 @@ import kotlinx.serialization.json.Json
  *  - `"  a  \n\n b "` is legacy → `["a","b"]` (old trim + drop-empty semantics).
  *  - `"{\"v\":1,\"items\":[\"a\"]}"` looks like the envelope → parsed as current format.
  *  - `"{\"v\":1,\"items\":[\"a}b\"]}"` (a `}` inside a string item) looks like the envelope → the
- *    scan is JSON-aware, so the brace inside the string literal does not end the object.
+ *    strict JSON parse handles the brace inside the string literal correctly.
  *  - `"{\"v\":1,\"items\":[\"a\""` (truncated) looks like the envelope → [DecodedList.Corrupt]. It is
  *    NEVER reinterpreted as legacy and NEVER returned as an empty list.
  *  - `"{\"v\":1,\"items\":[\"a\"]}garbage"` (trailing junk) looks like the envelope → [DecodedList.Corrupt].
@@ -230,66 +229,15 @@ object StringListCodec {
         stored.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
 
     /**
-     * True when [stored] is envelope-shaped: after stripping leading whitespace it starts with `{`.
+     * True when [stored] starts with `{` after leading whitespace.
      *
-     * This is the whole legacy-detection rule, and it is deliberately structural rather than a
-     * substring search for `"v"`, so a legacy item that merely contains the text `"v"` is not
-     * mistaken for an envelope.
-     *
-     * A value that starts with `{` is envelope-shaped even when it is truncated (no matching
-     * closing `}`) or followed by trailing junk, so such a value is reported as
-     * [DecodedList.Corrupt] by [decode] instead of being decoded as legacy. Only values that do not
-     * start with `{` (after leading whitespace) are legacy.
-     *
-     * The closing brace is located by [findEndOfSingleJsonObject], a JSON-aware scan, so a `}` or
-     * `{` inside a string literal (e.g. `{"v":1,"items":["a}b"]}`) does not end the object early.
+     * This is only a cheap shape pre-check; the authoritative decision is the strict JSON parse in
+     * [decode], which rejects truncated input and trailing junk as [DecodedList.Corrupt]. A value
+     * that does not start with `{` is legacy by definition.
      */
     fun looksLikeEnvelope(stored: String): Boolean {
         val start = stored.indexOfFirst { !it.isWhitespace() }
         return start >= 0 && stored[start] == '{'
-    }
-
-    /**
-     * Locate the index of the `}` that closes the single JSON object starting at [start] (which must
-     * point at a `{`), or `-1` when the object is truncated / unbalanced.
-     *
-     * The scan is JSON-aware:
-     *
-     *  - inside a string literal, `{`, `}`, `[`, `]` and `:` are ordinary characters;
-     *  - a backslash inside a string literal escapes the next character (so `\"` does not close the
-     *    string and `\\` is a literal backslash);
-     *  - outside string literals, `{`/`[` increase and `}`/`]` decrease the nesting depth, and the
-     *    object ends at the `}` that brings the depth back to zero.
-     *
-     * Trailing content after that index is NOT inspected here; [looksLikeEnvelope] treats any value
-     * starting with `{` as envelope-shaped, and [decode]'s strict parse rejects trailing junk as
-     * [DecodedList.Corrupt].
-     */
-    private fun findEndOfSingleJsonObject(stored: String, start: Int): Int {
-        var depth = 0
-        var inString = false
-        var escaped = false
-        for (i in start until stored.length) {
-            val c = stored[i]
-            if (inString) {
-                when {
-                    escaped -> escaped = false
-                    c == '\\' -> escaped = true
-                    c == '"' -> inString = false
-                }
-                continue
-            }
-            when (c) {
-                '"' -> inString = true
-                '{', '[' -> depth++
-                '}', ']' -> {
-                    depth--
-                    if (depth == 0) return i
-                    if (depth < 0) return -1
-                }
-            }
-        }
-        return -1
     }
 }
 
