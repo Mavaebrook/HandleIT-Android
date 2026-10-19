@@ -134,4 +134,10 @@ Base: `f39e4358d22bb2afc8cfebde47564066554a7b8e` (the historical Step 1 green SH
 - ObjectBox migration-on-device and upgrade testing cannot be performed from CI; A01 remains PENDING. Nothing in this repair is device-verified.
 
 ### Repair CI evidence
-All runs are GitHub-hosted Actions. No build or test was run on the VPS or any local machine. This is DISTINCT from the historical Step 1 CI above: the historical `f39e4358` green runs proved the original Step 1 compiled and its JVM tests passed, but did NOT prove the acceptance criteria of this repair. The repair CI runs are recorded here once the repair commit is pushed and both workflows conclude.
+All runs are GitHub-hosted Actions. No build or test was run on the VPS or any local machine. This is DISTINCT from the historical Step 1 CI above: the historical `f39e4358` green runs proved the original Step 1 compiled and its JVM tests passed, but did NOT prove the acceptance criteria of this repair.
+
+| Item | Commit | Android Build | Android Tests |
+| --- | --- | --- | --- |
+| Step 1 relational-memory repair | `c65a9bed` | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39275365002) | success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39275365424) |
+
+The repair code is at `c65a9bed045de2893d58ee115adacab4a39349e8` (base `f39e4358d22bb2afc8cfebde47564066554a7b8e`). The first repair commit `8ab19c8249c5a6858f8081d012202b357d0dfb54` failed Android Tests (run 39273220451) at `:app:compileDebugKotlin` because `TaskEpisodeRepository` used `StringListMigration` without importing it; the JVM test task never ran. `c65a9bed` adds the missing import and corrects the codec KDoc, and is green on both Android Build and Android Tests. This is JVM/source evidence only: it proves the repair compiles and its JVM unit tests pass. It does NOT prove ObjectBox migration-on-device or upgrade behavior, which cannot be performed from CI and remains PENDING (A01). Nothing in this repair is device-verified.
