@@ -2,7 +2,6 @@ package com.ai.assistance.operit.data.learning
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 
 /**
  * Lossless, versioned codec for the `List<String>` fields that ObjectBox entities persist in a
@@ -53,13 +52,15 @@ import kotlinx.serialization.json.JsonObject
  *      - parse succeeds and `v` is in [SUPPORTED_VERSIONS] → [DecodedList.Versioned];
  *      - parse succeeds and `v` is not supported → [DecodedList.UnsupportedVersion];
  *      - parse fails → step 3.
- *  3. **Lenient structural probe.** When the strict parse fails, the value is re-parsed leniently as
- *     a generic JSON element to decide whether it was *intended* as an envelope:
- *      - it is a [JsonObject] that HAS a `"v"` key → [DecodedList.Corrupt]. This covers truncated
- *        input, trailing junk, a non-integer `v`, a missing or wrongly-typed `items`, and extra
- *        keys: all of them clearly intended to be an envelope, so none of them may become Legacy.
- *      - it is a [JsonObject] WITHOUT a `"v"` key, or a non-object JSON value (array, number,
- *        string, boolean, null), or it does not parse as JSON at all → [DecodedList.Ambiguous].
+ *  3. **Prefix-based classification.** When the strict parse fails, the value is classified by a
+ *     cheap, parse-independent prefix test ([looksLikeEnvelopePrefix]) rather than by re-parsing it:
+ *      - it starts with an envelope-shaped prefix — `{`, optional whitespace, `"v"`, optional
+ *        whitespace, `:` — → [DecodedList.Corrupt]. This covers truncated input, trailing junk, a
+ *        non-integer `v`, a missing or wrongly-typed `items`, and extra keys: all of them clearly
+ *        intended to be an envelope, so none of them may become Legacy or Ambiguous.
+ *      - it is brace-starting but does NOT start with that prefix → [DecodedList.Ambiguous]. Its
+ *        provenance (legacy literal vs envelope) cannot be proven, so the bytes are preserved
+ *        verbatim.
  *
  * Consequences, all deliberate:
  *
@@ -69,23 +70,25 @@ import kotlinx.serialization.json.JsonObject
  *  - `"{\"v\":1,\"items\":[\"a\"]}"` looks like the envelope → parsed as current format.
  *  - `"{\"v\":1,\"items\":[\"a}b\"]}"` (a `}` inside a string item) looks like the envelope → the
  *    strict JSON parse handles the brace inside the string literal correctly.
- *  - `"{\"v\":1,\"items\":[\"a\""` (truncated) looks like the envelope → [DecodedList.Corrupt]. It is
- *    NEVER reinterpreted as legacy and NEVER returned as an empty list.
- *  - `"{\"v\":1,\"items\":[\"a\"]}garbage"` (trailing junk) looks like the envelope → [DecodedList.Corrupt].
+ *  - `"{\"v\":1,\"items\":[\"a\""` (truncated) starts with the envelope prefix → [DecodedList.Corrupt].
+ *    It is NEVER reinterpreted as legacy and NEVER returned as an empty list.
+ *  - `"{\"v\":1,\"items\":[\"a\"]}garbage"` (trailing junk) starts with the envelope prefix →
+ *    [DecodedList.Corrupt].
  *  - `"{\"v\":999,\"items\":[]}"` parses but the version is unknown → [DecodedList.UnsupportedVersion].
- *  - `"{\"v\":\"1\",\"items\":[]}"` (non-integer `v`) → [DecodedList.Corrupt]: it intended to be an
- *    envelope.
- *  - `"{\"a\":1}"` (a legacy item that happens to be a JSON object, with no `v`) → [DecodedList.Ambiguous].
- *    It is brace-starting and JSON-shaped, but it carries no recognized envelope shape, so its
- *    provenance cannot be proven. The bytes are preserved verbatim and the caller must not treat it
- *    as healthy-empty and must not rewrite it.
- *  - `"{not json"` (brace-starting, not JSON at all) → [DecodedList.Ambiguous], preserved verbatim.
+ *  - `"{\"v\":\"1\",\"items\":[]}"` (non-integer `v`) starts with the envelope prefix →
+ *    [DecodedList.Corrupt]: it intended to be an envelope.
+ *  - `"{\"a\":1}"` (a legacy item that happens to be a JSON object, with no `v`) is brace-starting
+ *    but does NOT start with the envelope prefix → [DecodedList.Ambiguous]. Its provenance cannot be
+ *    proven. The bytes are preserved verbatim and the caller must not treat it as healthy-empty and
+ *    must not rewrite it.
+ *  - `"{not json"` (brace-starting, not envelope-shaped) → [DecodedList.Ambiguous], preserved
+ *    verbatim.
  *
  * ## Compatibility policy (what the discriminator can and cannot prove)
  *
- * The discriminator is STRUCTURAL, not a magic prefix: a value is an envelope when it starts with
- * `{` and parses as a single JSON object carrying a recognized `v`. There is no sentinel string
- * that legacy rows could never contain.
+ * The discriminator is STRUCTURAL, not a magic sentinel: a value is an envelope when it starts with
+ * `{` and parses as a single JSON object carrying a recognized `v`. There is no sentinel string that
+ * legacy rows could never contain.
  *
  * A magic prefix alone could not prove collision-free separation from arbitrary preexisting legacy
  * text either — any prefix can in principle appear in legacy content — and, more concretely, the
@@ -95,11 +98,15 @@ import kotlinx.serialization.json.JsonObject
  * The honest statement of the limit: **strict JSON proves syntax, not historical intent.** A value
  * that parses as an envelope is treated as an envelope; that is a structural inference, not proof
  * that the old writer never produced those bytes. Likewise **a newline does not prove legacy** — it
- * is merely consistent with the old join. And **brace-starting legacy text is preserved as
- * [DecodedList.Ambiguous] rather than guessed**: when the bytes are brace-starting and JSON-shaped
- * but carry no recognized envelope shape, the codec refuses to decide between "legacy literal that
- * happens to be JSON-shaped" and "versioned envelope whose provenance cannot be proven". It keeps
- * the bytes verbatim and reports the ambiguity.
+ * is merely consistent with the old join.
+ *
+ * When the strict parse fails, the Corrupt-vs-Ambiguous split is decided by a parse-independent
+ * prefix test, not by a lenient re-parse: a value that starts with the envelope-shaped prefix
+ * (`{` … `"v"` … `:`) is a recognized-but-malformed versioned payload and is reported as
+ * [DecodedList.Corrupt]; a brace-starting value that does not start with that prefix is preserved as
+ * [DecodedList.Ambiguous] rather than guessed. This is deterministic and does not depend on any JSON
+ * parse succeeding, so truncated input and trailing junk are reliably Corrupt instead of falling
+ * through to Ambiguous.
  *
  * [StringListMigration] leaves Corrupt, UnsupportedVersion and Ambiguous rows untouched and reports
  * [StringListMigration.Outcome.NEEDS_ATTENTION], so nothing is destroyed or guessed at.
@@ -185,10 +192,9 @@ object StringListCodec {
         data class UnsupportedVersion(val version: Int, val stored: String) : DecodedList()
 
         /**
-         * The stored bytes are brace-starting and parse as JSON but do NOT carry a recognized
-         * envelope shape (no integer `v` + string-list `items`), so they could be either a legacy
-         * literal string that happens to be JSON-shaped OR a versioned envelope whose provenance
-         * cannot be proven.
+         * The stored bytes are brace-starting but do NOT start with the envelope-shaped prefix
+         * (`{` … `"v"` … `:`), so they could be either a legacy literal string that happens to be
+         * brace-starting OR a versioned envelope whose provenance cannot be proven.
          *
          * The bytes are preserved verbatim in [stored]; [reason] is a short, non-sensitive
          * description for logging. The caller must NOT treat this as healthy-empty and must NOT
@@ -210,16 +216,6 @@ object StringListCodec {
     }
 
     /**
-     * Lenient JSON used only for the structural probe in [decode]: it answers "does this
-     * brace-starting value parse as JSON at all, and is it an object carrying a `v` key?" without
-     * imposing the strict envelope schema. It never produces a decoded list.
-     */
-    private val probeJson = Json {
-        isLenient = true
-        ignoreUnknownKeys = true
-    }
-
-    /**
      * Encode [values] losslessly into the version envelope.
      *
      * No trimming, no filtering, no de-duplication: multiline items, empty items, Unicode, quotes,
@@ -235,9 +231,10 @@ object StringListCodec {
      *
      * Order of checks: shape ([looksLikeEnvelope]) → strict JSON parse → version check
      * ([DecodedList.UnsupportedVersion]) → [DecodedList.Versioned]; on strict-parse failure, a
-     * lenient structural probe decides between [DecodedList.Corrupt] (recognized-but-malformed
-     * versioned payload: a JSON object carrying a `v` key) and [DecodedList.Ambiguous]
-     * (brace-starting text whose provenance cannot be proven).
+     * parse-independent prefix test ([looksLikeEnvelopePrefix]) decides between
+     * [DecodedList.Corrupt] (recognized-but-malformed versioned payload: starts with the
+     * envelope-shaped prefix `{` … `"v"` … `:`) and [DecodedList.Ambiguous] (brace-starting text
+     * whose provenance cannot be proven).
      *
      * Never throws for malformed input. A value that does not look like the envelope is legacy by
      * definition and is decoded with the old semantics.
@@ -268,38 +265,48 @@ object StringListCodec {
      * Decide between [DecodedList.Corrupt] and [DecodedList.Ambiguous] for a brace-starting value
      * that failed the strict [Envelope] parse.
      *
-     * A lenient structural probe parses the value as a generic JSON element:
-     *  - a [JsonObject] that HAS a `"v"` key intended to be an envelope → [DecodedList.Corrupt]
+     * The decision is a cheap, parse-independent prefix test ([looksLikeEnvelopePrefix]); it does
+     * NOT depend on any JSON parse succeeding, so truncated input and trailing junk are reliably
+     * classified:
+     *  - starts with the envelope-shaped prefix (`{` … `"v"` … `:`) → [DecodedList.Corrupt]
      *    (truncated, trailing junk, non-integer `v`, missing/wrong `items`, extra keys, ...);
-     *  - a [JsonObject] WITHOUT a `"v"` key, a non-object JSON value, or non-JSON text →
-     *    [DecodedList.Ambiguous], preserved verbatim.
+     *  - brace-starting but not envelope-shaped → [DecodedList.Ambiguous], preserved verbatim.
      */
     private fun classifyUnparseable(stored: String, strictReason: String): DecodedList {
-        val element = try {
-            probeJson.parseToJsonElement(stored)
-        } catch (e: kotlinx.serialization.SerializationException) {
-            return DecodedList.Ambiguous(
+        return if (looksLikeEnvelopePrefix(stored)) {
+            // It clearly intended to be an envelope (starts with {"v"...): a malformed recognized
+            // versioned payload. Truncated, trailing junk, wrong item types, extra keys, non-integer v,
+            // missing items all land here. Never reinterpreted as legacy or ambiguous.
+            DecodedList.Corrupt(stored = stored, reason = strictReason)
+        } else {
+            // Brace-starting but not envelope-shaped: provenance (legacy literal vs envelope) cannot be
+            // proven. Preserve verbatim.
+            DecodedList.Ambiguous(
                 stored = stored,
-                reason = "brace-starting value is not JSON; provenance unprovable"
-            )
-        } catch (e: IllegalArgumentException) {
-            return DecodedList.Ambiguous(
-                stored = stored,
-                reason = "brace-starting value is not JSON; provenance unprovable"
+                reason = "brace-starting value is not envelope-shaped; provenance unprovable"
             )
         }
-        if (element is JsonObject && element.containsKey("v")) {
-            // It clearly intended to be an envelope: a malformed recognized versioned payload.
-            return DecodedList.Corrupt(stored = stored, reason = strictReason)
-        }
-        val shape = when (element) {
-            is JsonObject -> "JSON object without a \"v\" key"
-            else -> "non-object JSON value"
-        }
-        return DecodedList.Ambiguous(
-            stored = stored,
-            reason = "brace-starting $shape; provenance unprovable"
-        )
+    }
+
+    /**
+     * True when [stored], after leading whitespace, starts with an envelope-shaped prefix:
+     * `{` then optional whitespace then `"v"` then optional whitespace then `:`.
+     * This is a cheap, parse-independent test used only to distinguish a malformed recognized
+     * versioned payload (Corrupt) from brace-starting text of unprovable provenance (Ambiguous).
+     */
+    private fun looksLikeEnvelopePrefix(stored: String): Boolean {
+        var i = stored.indexOfFirst { !it.isWhitespace() }
+        if (i < 0 || stored[i] != '{') return false
+        i++
+        while (i < stored.length && stored[i].isWhitespace()) i++
+        if (i >= stored.length || stored[i] != '"') return false
+        i++
+        if (i >= stored.length || stored[i] != 'v') return false
+        i++
+        if (i >= stored.length || stored[i] != '"') return false
+        i++
+        while (i < stored.length && stored[i].isWhitespace()) i++
+        return i < stored.length && stored[i] == ':'
     }
 
     /**
