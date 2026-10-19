@@ -9,20 +9,43 @@ package com.ai.assistance.operit.data.learning
  *  - teacher-generated inferences remain candidates until evaluated and promoted;
  *  - promotion requires independent evidence and no harmful outcomes;
  *  - prior versions are retained and rollback is always possible.
+ *
+ * FAIL-CLOSED ON UNRESOLVED STORAGE (Step 1, Area C): a revision read from a row whose list fields
+ * could not be decoded carries `emptyList()` for those fields. An empty list is indistinguishable
+ * from a genuinely empty one at the domain level, so a candidate with an unresolved field could
+ * otherwise appear to "preserve" constraints it never had. Every entry point here therefore refuses
+ * to evaluate a revision with any unresolved list field.
  */
 object SkillRevisionLifecycle {
 
     const val MIN_INDEPENDENT_EVIDENCE = 1
 
     /**
+     * The list fields whose integrity must be resolved before a revision may be evaluated.
+     * Any unresolved field (corrupt, unsupported version, ambiguous) makes the revision ineligible.
+     */
+    private val REQUIRED_RESOLVED_FIELDS = listOf(
+        "prerequisitesJoined", "stepsJoined", "checksJoined",
+        "pitfallsJoined", "evidenceKeysJoined", "userConstraintsJoined"
+    )
+
+    /** True when [revision] has any unresolved list field. */
+    fun hasUnresolvedFields(revision: SkillRevision): Boolean = revision.listIntegrity.hasUnresolved
+
+    /**
      * True when [candidate] preserves every user constraint present in [authoritativeConstraints].
      * A constraint is preserved when it still appears (normalized) in the candidate's
      * userConstraints. Missing constraints mean the candidate weakened/overrode them.
+     *
+     * FAIL CLOSED: a candidate with ANY unresolved list field returns `false`. Its userConstraints
+     * list may be empty only because the stored bytes could not be decoded, so constraint
+     * preservation cannot be demonstrated. Healthy candidates keep the exact behaviour above.
      */
     fun preservesUserConstraints(
         authoritativeConstraints: List<String>,
         candidate: SkillRevision
     ): Boolean {
+        if (candidate.listIntegrity.hasUnresolved) return false
         if (authoritativeConstraints.isEmpty()) return true
         val candidateKeys = candidate.userConstraints.map { normalize(it) }.toHashSet()
         return authoritativeConstraints.all { normalize(it) in candidateKeys }
@@ -32,6 +55,9 @@ object SkillRevisionLifecycle {
      * Evaluate a candidate revision against observed outcomes. A candidate passes only when it
      * preserves user constraints, has at least MIN_INDEPENDENT_EVIDENCE independent evidence
      * sources, and has no harmful outcomes.
+     *
+     * FAIL CLOSED: a candidate with any unresolved list field is rejected before any
+     * constraint/evidence logic runs, with an explicit reason naming the unresolved fields.
      */
     fun evaluate(
         candidate: SkillRevision,
@@ -40,6 +66,18 @@ object SkillRevisionLifecycle {
         helpfulCount: Int,
         harmfulCount: Int
     ): SkillRevisionEvaluation {
+        if (candidate.listIntegrity.hasUnresolved) {
+            val fields = candidate.listIntegrity.unresolvedFields.joinToString(", ") { it.fieldName }
+            return SkillRevisionEvaluation(
+                revisionId = candidate.id,
+                independentEvidenceCount = independentEvidenceCount,
+                helpfulCount = helpfulCount,
+                harmfulCount = harmfulCount,
+                preservesUserConstraints = false,
+                passed = false,
+                reason = "rejected: revision has unresolved list field(s) [$fields]; integrity must be resolved before evaluation"
+            )
+        }
         val preserves = preservesUserConstraints(authoritativeConstraints, candidate)
         val hasEvidence = independentEvidenceCount >= MIN_INDEPENDENT_EVIDENCE
         val noHarm = harmfulCount <= 0
@@ -59,6 +97,37 @@ object SkillRevisionLifecycle {
             passed = passed,
             reason = reason
         )
+    }
+
+    /**
+     * Evaluate [candidate] against the constraints of [authoritativeRevision] (the baseline).
+     *
+     * This overload exists because the plain-list form above cannot tell whether the BASELINE was
+     * itself read with unresolved list fields: an unresolved baseline yields an empty
+     * userConstraints list, which would make every candidate look constraint-preserving. When the
+     * authoritative revision has any unresolved list field the evaluation fails closed with an
+     * explicit reason instead of silently comparing against an empty constraint set.
+     */
+    fun evaluate(
+        candidate: SkillRevision,
+        authoritativeRevision: SkillRevision,
+        independentEvidenceCount: Int,
+        helpfulCount: Int,
+        harmfulCount: Int
+    ): SkillRevisionEvaluation {
+        if (authoritativeRevision.listIntegrity.hasUnresolved) {
+            val fields = authoritativeRevision.listIntegrity.unresolvedFields.joinToString(", ") { it.fieldName }
+            return SkillRevisionEvaluation(
+                revisionId = candidate.id,
+                independentEvidenceCount = independentEvidenceCount,
+                helpfulCount = helpfulCount,
+                harmfulCount = harmfulCount,
+                preservesUserConstraints = false,
+                passed = false,
+                reason = "rejected: authoritative revision has unresolved list field(s) [$fields]; cannot verify constraint preservation"
+            )
+        }
+        return evaluate(candidate, authoritativeRevision.userConstraints, independentEvidenceCount, helpfulCount, harmfulCount)
     }
 
     /**

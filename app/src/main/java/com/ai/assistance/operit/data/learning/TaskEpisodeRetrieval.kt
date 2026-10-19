@@ -3,6 +3,15 @@ package com.ai.assistance.operit.data.learning
 import com.ai.assistance.operit.data.model.TaskEpisode
 
 /**
+ * Machine-readable applicability of a past episode to the present task.
+ *
+ * INELIGIBLE_UNRESOLVED_INTEGRITY: the episode's requiredPrerequisites or applicableConstraints
+ * could not be resolved from storage, so applicability cannot be established. The episode must not
+ * be presented as applicable; the formatter emits a fixed caution instead.
+ */
+enum class EpisodeApplicability { APPLICABLE, INELIGIBLE_UNRESOLVED_INTEGRITY }
+
+/**
  * Pure, bounded similar-task retrieval, independent-evidence deduplication, and
  * missing-prerequisite applicability checks.
  *
@@ -133,6 +142,23 @@ object TaskEpisodeRetrieval {
     fun clampTopK(requested: Int): Int {
         if (requested <= 0) return DEFAULT_TOP_K
         return requested.coerceAtMost(MAX_TOP_K)
+    }
+
+    /**
+     * Machine-readable applicability of [episode] to the present task.
+     *
+     * FAIL CLOSED: when the episode's `requiredPrerequisitesJoined` or
+     * `applicableConstraintsJoined` field could not be resolved from storage, the decoded list is
+     * empty for a reason that has nothing to do with the task, so applicability cannot be
+     * established. Such an episode is reported as [EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY]
+     * and must not be presented as applicable. Only those two fields matter here: they are the ones
+     * the applicability and constraint checks read.
+     */
+    fun episodeApplicability(episode: TaskEpisode): EpisodeApplicability {
+        val unresolved = episode.listIntegrity.fields.filterKeys {
+            it == "requiredPrerequisitesJoined" || it == "applicableConstraintsJoined"
+        }.values.any { it.isUnresolved }
+        return if (unresolved) EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY else EpisodeApplicability.APPLICABLE
     }
 
     /**

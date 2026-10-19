@@ -10,6 +10,11 @@ import com.ai.assistance.operit.data.model.TaskEpisode
  * R16: retrieval relevance is NOT lesson confidence and NOT promotion evidence. Retrieved
  * episodes are prior similar-task lessons whose applicability must be verified by the model;
  * they are never presented as verified facts, and the block never issues new user mandates.
+ *
+ * FAIL CLOSED ON UNRESOLVED STORAGE (Step 1, Area C): an episode whose prerequisite/constraint
+ * record could not be decoded from storage is not presented as applicable. It gets a FIXED caution
+ * line instead, and its per-prerequisite caution computation is skipped because the prerequisite
+ * list is empty for a reason unrelated to the present task.
  */
 object TaskPreflightFormatter {
 
@@ -32,10 +37,26 @@ object TaskPreflightFormatter {
     private const val MAX_BLOCK_CHARS = 2000
 
     /**
+     * Fixed caution emitted for an episode whose prerequisite/constraint record could not be
+     * resolved from storage. Deliberately a CONSTANT: no field name, no reason text and no raw
+     * stored bytes are interpolated, because the stored value is untrusted.
+     */
+    private const val UNRESOLVED_RECORD_NOTE_EN =
+        "    note: this lesson's prerequisite/constraint record is incomplete and needs verification before relying on it"
+
+    /** Chinese counterpart of [UNRESOLVED_RECORD_NOTE_EN]; also a fixed constant. */
+    private const val UNRESOLVED_RECORD_NOTE_ZH =
+        "    注意: 该经验的前置条件/约束记录不完整，依赖前请先核实"
+
+    /**
      * Build a compact preflight block from retrieved episodes and the current task context.
      * Returns an empty string when there is nothing useful to show.
      *
      * Prerequisite handling (deterministic, no model call):
+     *  - an episode whose prerequisite/constraint record is unresolved
+     *    ([TaskEpisodeRetrieval.episodeApplicability] ==
+     *    [EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY]) is NOT presented as applicable:
+     *    a fixed caution line is emitted and the per-prerequisite computation is skipped;
      *  - a prerequisite that does NOT apply to the present task is not rendered;
      *  - a prerequisite that applies AND is evidently covered by the request text
      *    ([TaskEpisodeRetrieval.satisfiedPrerequisites]) is not rendered as a caution;
@@ -64,6 +85,12 @@ object TaskPreflightFormatter {
             lines.add("- [$outcome] $task" + if (resolution.isNotEmpty()) " -> $resolution" else "")
             if (cause.isNotEmpty()) {
                 lines.add("    $causeLabel: $cause")
+            }
+            val applicability = TaskEpisodeRetrieval.episodeApplicability(episode)
+            if (applicability == EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY) {
+                // Fixed, bounded caution. No raw stored value, field name or reason is rendered.
+                lines.add(if (useEnglish) UNRESOLVED_RECORD_NOTE_EN else UNRESOLVED_RECORD_NOTE_ZH)
+                return@forEach
             }
             val applicablePrereqs = episode.requiredPrerequisites.filter { prereq ->
                 TaskEpisodeRetrieval.isPrerequisiteApplicable(prereq, currentTaskContext)
