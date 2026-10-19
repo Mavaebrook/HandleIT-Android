@@ -3,7 +3,7 @@ package com.ai.assistance.operit.data.repository
 import android.content.Context
 import com.ai.assistance.operit.data.db.ObjectBoxManager
 import com.ai.assistance.operit.data.learning.MigrationReport
-import com.ai.assistance.operit.data.learning.StringListMigration
+import com.ai.assistance.operit.data.learning.RowMigrationPlanner
 import com.ai.assistance.operit.data.learning.TaskEpisodeRetrieval
 import com.ai.assistance.operit.data.learning.TaskEpisodeVectorIndex
 import com.ai.assistance.operit.data.model.TaskEpisode
@@ -150,9 +150,14 @@ class TaskEpisodeRepository(
      *    [MigrationReport.alreadyVersioned];
      *  - at least one legacy field and no corrupt field → the row is rewritten with the migrated
      *    content, counted in [MigrationReport.migrated];
-     *  - any corrupt or unsupported-version field → the row is NOT written at all (so a partially
-     *    migrated row cannot exist), counted in [MigrationReport.skippedCorrupt] and logged with the
+     *  - any corrupt or unsupported-version field → the row is left ENTIRELY untouched, both in
+     *    memory and on disk: no field of it is mutated and it is not written, so a partially
+     *    migrated row cannot exist. Counted in [MigrationReport.skippedCorrupt] and logged with the
      *    row id and field name.
+     *
+     * The per-row decision is made up front by the pure [RowMigrationPlanner], which returns either
+     * the complete set of values to write or nothing at all; the entity is therefore only mutated
+     * when the whole row is eligible.
      *
      * Idempotent: running it twice produces the same bytes and the second run reports every row as
      * already versioned.
@@ -188,42 +193,45 @@ class TaskEpisodeRepository(
 
     /**
      * Migrate one bounded batch inside the caller's transaction. Returns the counts for the batch.
+     *
+     * Two-phase per row: the whole row is planned first ([RowMigrationPlanner.plan]) and the entity
+     * is mutated only when the plan says the row is eligible. A row with any corrupt or unsupported
+     * field is left entirely untouched, so it can never be half-migrated in memory.
      */
     private fun migrateBatch(batch: List<TaskEpisodeEntity>): MigrationReport {
         var migrated = 0
         var alreadyVersioned = 0
         var skippedCorrupt = 0
         for (entity in batch) {
-            var changed = false
-            var needsAttention = false
+            val rawFields = LinkedHashMap<String, String>()
             for (fieldName in TaskEpisodeEntity.LIST_FIELDS) {
-                val result = StringListMigration.migrateValue(entity.rawListField(fieldName))
-                when (result.outcome) {
-                    StringListMigration.Outcome.MIGRATED -> {
-                        setListField(entity, fieldName, result.value)
-                        changed = true
-                    }
-
-                    StringListMigration.Outcome.ALREADY_VERSIONED -> Unit
-
-                    StringListMigration.Outcome.NEEDS_ATTENTION -> {
-                        needsAttention = true
+                rawFields[fieldName] = entity.rawListField(fieldName)
+            }
+            val plan = RowMigrationPlanner.plan(rawFields)
+            when (plan.outcome) {
+                RowMigrationPlanner.RowOutcome.NEEDS_ATTENTION -> {
+                    for (fieldName in plan.attentionFields) {
+                        val detail = StringListMigration
+                            .migrateValue(rawFields.getValue(fieldName))
+                            .detail
                         AppLogger.e(
                             TAG,
                             "TaskEpisodeEntity id=${entity.id} field '$fieldName' needs attention " +
-                                "and was left untouched: ${result.detail}"
+                                "and was left untouched: $detail"
                         )
                     }
+                    skippedCorrupt++
                 }
-            }
-            when {
-                needsAttention -> skippedCorrupt++
-                changed -> {
+
+                RowMigrationPlanner.RowOutcome.MIGRATED -> {
+                    for ((fieldName, value) in plan.fieldValues) {
+                        setListField(entity, fieldName, value)
+                    }
                     episodeBox.put(entity)
                     migrated++
                 }
 
-                else -> alreadyVersioned++
+                RowMigrationPlanner.RowOutcome.ALREADY_VERSIONED -> alreadyVersioned++
             }
         }
         return MigrationReport(

@@ -2,6 +2,30 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-19 — Learning pipeline hardening: Step 1 relational-memory repair
+
+Focused repair of the Step 1 foundations, authorized as implementation + push followed by GitHub-hosted CI and an independent review gate. This is NOT Stage 2 (the next stage is D06 safe memory rendering and G02 execution-route audit). No C04-C06 expansion, relation entities, graph traversal, H01, vector caching, or orchestrator redesign. No ObjectBox schema change: `app/objectbox-models/default.json` is byte-for-byte unchanged. Documentation and source changes only; no build or test was run on the VPS or any local machine. Nothing here is device-verified.
+
+### Fixed
+- `StringListCodec` (D07): the legacy/envelope discriminator no longer uses the first raw `}`. A JSON-aware structural scan plus strict parsing means a `}` inside a string item no longer misroutes a valid envelope to Legacy, so `encode(listOf("a {b} c", "}", "{\"nested\":1}"))` round-trips and repeat migration is idempotent. Truncated/malformed versioned data and trailing junk surface as Corrupt; unknown versions as UnsupportedVersion; never Legacy and never silently empty. Legacy newline decoding is preserved exactly. The compatibility policy is documented honestly: the discriminator is structural, not a magic prefix, so an ambiguous legacy row that is itself a single JSON object with a `v` field is surfaced and left untouched with NEEDS_ATTENTION rather than guessed at.
+- Shared observation store: `EnhancedAIService` and `ConversationService` now share one `ObservationCoordinator`, so the store tool results are written to is the store preflight reads from. The memory space is resolved identically on both sides (`ObservationScopeResolver`). The session generation is stamped as the `sessionId` coordinate and rotated on chat-instance release and execution invalidation; a late tool result from an old generation is rejected.
+- Deterministic TTL: `TaskContextSnapshotStore` enforces a bounded default TTL from the injected clock, honors an earlier explicit expiry, fails closed for future observation times / clock rollback, clamps overflow, and uses an explicit expiry boundary (`now >= validUntilMs`). `ToolObservationProducer` accepts an optional explicit expiry; `0` means the store applies the default bound.
+- Migration atomicity: `TaskEpisodeRepository` and `SkillRevisionRepository` plan the whole row first (`RowMigrationPlanner`) and mutate/persist only eligible rows; a row with any corrupt/unsupported field is left entirely untouched in memory and on disk.
+
+### Tests
+- `StringListCodecTest` grew with braces-in-items round-trip, idempotent repeat migration, truncated/trailing-junk Corrupt, and unknown-version UnsupportedVersion regressions.
+- `TaskContextSnapshotStoreTtlTest` (fresh/stale/default-zero-validUntil, explicit earlier expiry, explicit-later-cannot-extend, expiry boundary, future timestamp, clock rollback, overflow, scope mismatch).
+- `MigrationAtomicityTest` (later-field failure leaves the row untouched, all-legacy migrates, all-versioned no-op, mixed, corrupt-first, idempotent re-run, unsupported version).
+- `ObservationCoordinatorTest` (produced observation reaches preflight in the same scope; cannot cross memory space, task scope, or a rotated session generation; unknown scope does not match a real scope; in-flight old-session completion rejected; memory-space resolution).
+
+### Known limitations
+- No PRoot/SSH executor lifecycle exists in this codebase today, so generation rotation cannot be wired to it; the seam is provided and wired to chat-instance release and execution invalidation. `ShellExecutorFactory.clearCache` is not yet wired to rotation because no caller has access to the coordinator.
+- Ambiguous legacy-vs-envelope strings cannot be universally disambiguated without a persistent discriminator (a schema change forbidden here); such rows are retained with a needs-attention outcome.
+- ObjectBox migration-on-device and upgrade testing cannot be performed from CI; A01 remains PENDING. Nothing in this repair is device-verified.
+
+### Verification
+- CI evidence is recorded in `docs/TODO/learning-pipeline-hardening-20261017/index.md` under "Step 1 relational-memory repair". All runs are GitHub-hosted Actions. This is distinct from the historical Step 1 CI: the historical `f39e4358` green runs did not prove this repair's acceptance.
+
 ## 2026-10-18 — Learning pipeline hardening: Step 1 (baseline harness, typed observations, D07, R14b)
 
 Implemented Step 1 only of the multi-relational memory upgrade, authorized by Teddy. The later architecture (relational entities, graph expansion, structural matching, vector caching, H01, policy-gate expansion, automatic skill promotion) is recorded in `docs/TODO/learning-pipeline-hardening-20261017/03-step1-execution-plan.md` and is NOT implemented. No ObjectBox schema additions were made. Documentation and source changes only; no build or test was run on the VPS or any local machine. Nothing here is device-verified.

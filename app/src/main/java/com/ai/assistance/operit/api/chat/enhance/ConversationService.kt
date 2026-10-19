@@ -53,7 +53,6 @@ import com.ai.assistance.operit.util.LocaleUtils
 import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
 import com.ai.assistance.operit.data.learning.TaskPreflightProvider
-import com.ai.assistance.operit.data.learning.TaskContextSnapshotStore
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkBuilder
 import com.ai.assistance.operit.data.repository.getCustomMoodDefinitions
 import com.ai.assistance.operit.data.repository.getMoodAnimationMapping
@@ -61,7 +60,8 @@ import com.ai.assistance.operit.data.repository.getMoodAnimationMapping
 /** 处理会话相关功能的服务类，包括会话总结、偏好处理和对话切割准备 */
 class ConversationService(
     private val context: Context,
-    private val customEmojiRepository: CustomEmojiRepository
+    private val customEmojiRepository: CustomEmojiRepository,
+    private val observationCoordinator: com.ai.assistance.operit.data.learning.ObservationCoordinator
     ) {
 
     companion object {
@@ -93,12 +93,6 @@ class ConversationService(
     }
 
     private val apiPreferences = ApiPreferences.getInstance(context)
-    /**
-     * In-memory, bounded store of typed observations for the preflight snapshot (Step 1, Area 2).
-     * Injected clock; persistence is deferred (restart means unknown). The snapshot is advisory and
-     * does not gate execution.
-     */
-    private val taskContextSnapshotStore = TaskContextSnapshotStore(clock = { System.currentTimeMillis() })
     private val displayPreferencesManager = DisplayPreferencesManager.getInstance(context)
     private val waifuPreferences = WaifuPreferences.getInstance(context)
     private val characterCardManager = CharacterCardManager.getInstance(context)
@@ -561,8 +555,10 @@ class ConversationService(
             // Add system prompt if not already present
             if (!effectiveChatHistory.any { it.kind == PromptTurnKind.SYSTEM }) {
                 val effectiveMemorySpaceId =
-                    memorySpaceIdOverride?.takeIf { it.isNotBlank() }
-                        ?: userPreferencesManager.activeMemorySpaceIdFlow.first()
+                    com.ai.assistance.operit.data.learning.ObservationScopeResolver.resolveMemorySpace(
+                        memorySpaceIdOverride,
+                        userPreferencesManager.activeMemorySpaceIdFlow.first()
+                    )
                 val userProfileMarkdown =
                     memorySpaceProfileDocumentRepository.load(effectiveMemorySpaceId).trim()
                 val proxyRolePrompt =
@@ -627,7 +623,9 @@ class ConversationService(
                             currentTaskContext =
                                 buildPreflightTaskContext(processedInput, effectiveChatHistory),
                             useEnglish = useEnglish,
-                            snapshotStore = taskContextSnapshotStore
+                            snapshotStore = observationCoordinator.store,
+                            taskScope = chatId ?: "",
+                            sessionId = observationCoordinator.currentGeneration().toString()
                         )
                     } else {
                         TaskPreflightProvider.PreflightContext(textBlock = "", snapshot = null)

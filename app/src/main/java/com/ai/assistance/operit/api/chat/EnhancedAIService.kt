@@ -87,7 +87,7 @@ import com.ai.assistance.operit.data.repository.MemoryAutoSaveCandidateRepositor
 import com.ai.assistance.operit.api.chat.library.ReviewTriggerEnqueuer
 import com.ai.assistance.operit.data.learning.ReviewSignalDeriver
 import com.ai.assistance.operit.data.learning.ObservationScope
-import com.ai.assistance.operit.data.learning.TaskContextSnapshotStore
+import com.ai.assistance.operit.data.learning.ObservationScopeResolver
 import com.ai.assistance.operit.data.learning.ToolObservationProducer
 import com.ai.assistance.operit.core.config.SystemToolPrompts
 import com.ai.assistance.operit.data.model.ToolPrompt
@@ -141,6 +141,9 @@ class EnhancedAIService private constructor(private val context: Context) {
 
         fun releaseChatInstance(chatId: String) {
             val instance = CHAT_INSTANCES.remove(chatId) ?: return
+            // Rotate the observation generation: a released chat instance is a session boundary, so
+            // any in-flight tool result from the old session must not be recorded into the new one.
+            instance.observationCoordinator.rotateGeneration()
             runCatching {
                 instance.cancelConversation()
             }.onFailure { e ->
@@ -367,7 +370,8 @@ class EnhancedAIService private constructor(private val context: Context) {
     @Volatile private var isServiceManagerInitialized = false
 
     // 添加ConversationService实例
-    private val conversationService = ConversationService(context, CustomEmojiRepository.getInstance(context))
+    private val observationCoordinator = com.ai.assistance.operit.data.learning.ObservationCoordinator()
+    private val conversationService = ConversationService(context, CustomEmojiRepository.getInstance(context), observationCoordinator)
 
     // 添加FileBindingService实例
     private val fileBindingService = FileBindingService(context)
@@ -437,14 +441,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         val eventChannel: MutableSharedStream<TextStreamEvent>,
         var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
         var turnObservations: ReviewSignalDeriver.TurnObservationAccumulator =
-            ReviewSignalDeriver.TurnObservationAccumulator(),
-        /**
-         * Step 1, Area 2: bounded in-memory store of typed observations produced from this
-         * execution's tool results. Injected clock; persistence deferred (restart means unknown).
-         * Advisory only; it does not gate execution.
-         */
-        val taskContextSnapshotStore: TaskContextSnapshotStore =
-            TaskContextSnapshotStore(clock = { System.currentTimeMillis() })
+            ReviewSignalDeriver.TurnObservationAccumulator()
     )
 
     private val activeExecutionContexts = ConcurrentHashMap<Int, MessageExecutionContext>()
@@ -465,6 +462,9 @@ class EnhancedAIService private constructor(private val context: Context) {
     }
 
     private fun invalidateAllExecutionContexts(reason: String) {
+        // Rotate the observation generation: invalidating all executions is a session boundary, so
+        // late tool results from the invalidated session are rejected rather than misattributed.
+        observationCoordinator.rotateGeneration()
         activeExecutionContexts.values.forEach { context ->
             invalidateExecutionContext(context, reason)
         }
@@ -2316,23 +2316,31 @@ class EnhancedAIService private constructor(private val context: Context) {
                 "记录工具失败结果用于复盘信号: failed=$failedResults, total=${results.size}"
             )
         }
-
-        // Step 1, Area 2: record typed observations from the actual tool results. Only structured
-        // facts are recorded (tool execution status, and a structured shell exit code when present);
-        // tool transport success is NOT treated as task success. Scope fields that are not known
-        // here stay empty (unknown). This is advisory and does not gate execution.
+        // Step 1, Area 2: write observations into the SHARED coordinator store so preflight (which
+        // reads the same store) can see them. The memory space is resolved identically to the read
+        // side. projectScope/executorId/environment are unknown at this point and stay "" on both
+        // sides (documented limitation); the snapshot is advisory and does not gate execution.
+        val writeGeneration = observationCoordinator.currentGeneration()
+        val activeMemorySpaceForObservation =
+            preferencesManager.activeMemorySpaceIdFlow.first()
         val observationScope = ObservationScope(
-            memorySpace = memorySpaceIdOverride ?: "",
+            memorySpace = ObservationScopeResolver.resolveMemorySpace(
+                memorySpaceIdOverride,
+                activeMemorySpaceForObservation
+            ),
             projectScope = "",
-            taskScope = "",
+            taskScope = chatId ?: "",
             executorId = "",
             environment = "",
-            sessionId = ""
+            sessionId = writeGeneration.toString()
         )
         val observationNowMs = System.currentTimeMillis()
         results.forEachIndexed { index, toolResult ->
+            // Reject a late result from an old generation: if the generation rotated while this
+            // result was in flight, it belongs to a previous session and must not be recorded.
+            if (!observationCoordinator.isCurrent(writeGeneration)) return@forEachIndexed
             val callId = "${context.executionId}:$index:${toolResult.toolName}"
-            context.taskContextSnapshotStore.record(
+            observationCoordinator.store.record(
                 ToolObservationProducer.fromToolResult(
                     toolName = toolResult.toolName,
                     callId = callId,
@@ -2347,7 +2355,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 result = toolResult,
                 scope = observationScope,
                 nowMs = observationNowMs
-            )?.let { context.taskContextSnapshotStore.record(it) }
+            )?.let { observationCoordinator.store.record(it) }
         }
 
         // Add transition state

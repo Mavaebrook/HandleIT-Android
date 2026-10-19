@@ -42,9 +42,11 @@ import kotlinx.serialization.json.Json
  *
  * A stored value is treated as LEGACY — decoded with the exact old newline-join semantics — if and
  * only if it does NOT look like the version envelope. "Looks like the version envelope" is defined
- * as: the value, after stripping leading whitespace, starts with `{` AND the first `}` in the value
- * is followed only by whitespace (i.e. the value is a single JSON object, not a JSON object
- * embedded in other text). This is [looksLikeEnvelope].
+ * structurally by [looksLikeEnvelope]: after stripping leading whitespace the value starts with `{`
+ * and the value is a single JSON object — the matching closing `}` is found by a JSON-aware scan
+ * that respects string literals, backslash escapes and nested braces/brackets. Trailing
+ * non-whitespace after that closing `}` does NOT make the value legacy: a value that starts with
+ * `{` is envelope-shaped, so trailing junk is corruption, not legacy text.
  *
  * Consequences, all deliberate:
  *
@@ -52,14 +54,42 @@ import kotlinx.serialization.json.Json
  *  - `"a\nb\nc"` is legacy → `["a","b","c"]`.
  *  - `"  a  \n\n b "` is legacy → `["a","b"]` (old trim + drop-empty semantics).
  *  - `"{\"v\":1,\"items\":[\"a\"]}"` looks like the envelope → parsed as current format.
+ *  - `"{\"v\":1,\"items\":[\"a}b\"]}"` (a `}` inside a string item) looks like the envelope → the
+ *    scan is JSON-aware, so the brace inside the string literal does not end the object.
  *  - `"{\"v\":1,\"items\":[\"a\""` (truncated) looks like the envelope → [DecodedList.Corrupt]. It is
  *    NEVER reinterpreted as legacy and NEVER returned as an empty list.
+ *  - `"{\"v\":1,\"items\":[\"a\"]}garbage"` (trailing junk) looks like the envelope → [DecodedList.Corrupt].
  *  - `"{\"v\":999,\"items\":[]}"` parses but the version is unknown → [DecodedList.UnsupportedVersion].
  *  - A legacy item that happens to be a JSON object, e.g. a single item `{"a":1}` stored by the old
  *    join, looks like the envelope and will be reported as [DecodedList.Corrupt] rather than being
  *    silently decoded as legacy. That is the intended trade-off: the alternative (guessing) is how
  *    corruption gets destroyed. The row is never rewritten by a read, so the original bytes survive
  *    for inspection and for [StringListMigration], which leaves it unchanged.
+ *
+ * ## Compatibility policy (what the discriminator can and cannot prove)
+ *
+ * The discriminator is STRUCTURAL, not a magic prefix: a value is an envelope when it starts with
+ * `{` and parses as a single JSON object carrying a recognized `v`. There is no sentinel string
+ * that legacy rows could never contain.
+ *
+ * A magic prefix alone could not prove collision-free separation from arbitrary preexisting legacy
+ * text either — any prefix can in principle appear in legacy content — and, more concretely, the
+ * f39e4358 build already wrote UNPREFIXED `{"v":1,"items":...}` envelopes, so introducing a prefix
+ * now would strand those rows. The envelope format is therefore kept as-is.
+ *
+ * The honest consequence: a legacy row whose ENTIRE content happens to be a single JSON object with
+ * a `v` field is indistinguishable from an envelope. Such a row is treated as versioned — or as
+ * [DecodedList.Corrupt] / [DecodedList.UnsupportedVersion] when it does not match the envelope
+ * shape or version. This is a documented limitation, not universal unambiguous detection.
+ * [StringListMigration] leaves Corrupt/UnsupportedVersion rows untouched and reports
+ * [StringListMigration.Outcome.NEEDS_ATTENTION], so nothing is destroyed or guessed at.
+ *
+ * Both generations of stored data are handled:
+ *
+ *  - Pre-Step1 rows (newline-joined) that do not start with `{` are Legacy and are re-encoded by
+ *    the migration with the old semantics preserved.
+ *  - Existing Step1 envelopes (`{"v":1,...}`) parse as [DecodedList.Versioned] and are left
+ *    byte-identical, so the migration is idempotent.
  *
  * ## Legacy data is already lossy
  *
@@ -120,8 +150,8 @@ object StringListCodec {
 
         /**
          * The value looks like the version envelope but does not parse as one (invalid JSON, wrong
-         * shape, missing `items`, non-string item, ...). This is corruption and must be surfaced,
-         * never reinterpreted as legacy and never returned as an empty list.
+         * shape, missing `items`, non-string item, trailing junk, ...). This is corruption and must
+         * be surfaced, never reinterpreted as legacy and never returned as an empty list.
          *
          * [reason] is a short, non-sensitive description for logging; [stored] is the original value
          * so a caller can inspect or preserve it.
@@ -160,6 +190,9 @@ object StringListCodec {
      * Decode a stored column value. See the class KDoc for the exact legacy-detection rule and for
      * what each result means.
      *
+     * Order of checks: shape ([looksLikeEnvelope]) → strict JSON parse ([DecodedList.Corrupt] on
+     * failure) → version check ([DecodedList.UnsupportedVersion]) → [DecodedList.Versioned].
+     *
      * Never throws for malformed input: a value that looks like the envelope but does not parse is
      * returned as [DecodedList.Corrupt], and an unknown version as
      * [DecodedList.UnsupportedVersion]. A value that does not look like the envelope is legacy by
@@ -197,28 +230,66 @@ object StringListCodec {
         stored.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
 
     /**
-     * True when [stored] looks like the version envelope: after stripping leading whitespace it
-     * starts with `{`, and the first `}` is followed only by whitespace.
+     * True when [stored] is envelope-shaped: after stripping leading whitespace it starts with `{`.
      *
-     * This is the whole legacy-detection rule. It is intentionally structural rather than a
+     * This is the whole legacy-detection rule, and it is deliberately structural rather than a
      * substring search for `"v"`, so a legacy item that merely contains the text `"v"` is not
-     * mistaken for an envelope, and a truncated envelope is still recognised as an envelope (and
-     * therefore reported as corruption instead of being decoded as legacy).
+     * mistaken for an envelope.
      *
-     * A value that starts with `{` is envelope-shaped even when it is truncated (no closing `}`),
-     * so a truncated envelope is corruption, not legacy.
+     * A value that starts with `{` is envelope-shaped even when it is truncated (no matching
+     * closing `}`) or followed by trailing junk, so such a value is reported as
+     * [DecodedList.Corrupt] by [decode] instead of being decoded as legacy. Only values that do not
+     * start with `{` (after leading whitespace) are legacy.
+     *
+     * The closing brace is located by [findEndOfSingleJsonObject], a JSON-aware scan, so a `}` or
+     * `{` inside a string literal (e.g. `{"v":1,"items":["a}b"]}`) does not end the object early.
      */
     fun looksLikeEnvelope(stored: String): Boolean {
         val start = stored.indexOfFirst { !it.isWhitespace() }
-        if (start < 0 || stored[start] != '{') return false
-        // A value that starts with '{' is envelope-shaped even when it is truncated (no closing
-        // '}'), so a truncated envelope is reported as corruption rather than decoded as legacy.
-        val end = stored.indexOf('}', startIndex = start)
-        if (end < 0) return true
-        for (i in end + 1 until stored.length) {
-            if (!stored[i].isWhitespace()) return false
+        return start >= 0 && stored[start] == '{'
+    }
+
+    /**
+     * Locate the index of the `}` that closes the single JSON object starting at [start] (which must
+     * point at a `{`), or `-1` when the object is truncated / unbalanced.
+     *
+     * The scan is JSON-aware:
+     *
+     *  - inside a string literal, `{`, `}`, `[`, `]` and `:` are ordinary characters;
+     *  - a backslash inside a string literal escapes the next character (so `\"` does not close the
+     *    string and `\\` is a literal backslash);
+     *  - outside string literals, `{`/`[` increase and `}`/`]` decrease the nesting depth, and the
+     *    object ends at the `}` that brings the depth back to zero.
+     *
+     * Trailing content after that index is NOT inspected here; [looksLikeEnvelope] treats any value
+     * starting with `{` as envelope-shaped, and [decode]'s strict parse rejects trailing junk as
+     * [DecodedList.Corrupt].
+     */
+    private fun findEndOfSingleJsonObject(stored: String, start: Int): Int {
+        var depth = 0
+        var inString = false
+        var escaped = false
+        for (i in start until stored.length) {
+            val c = stored[i]
+            if (inString) {
+                when {
+                    escaped -> escaped = false
+                    c == '\\' -> escaped = true
+                    c == '"' -> inString = false
+                }
+                continue
+            }
+            when (c) {
+                '"' -> inString = true
+                '{', '[' -> depth++
+                '}', ']' -> {
+                    depth--
+                    if (depth == 0) return i
+                    if (depth < 0) return -1
+                }
+            }
         }
-        return true
+        return -1
     }
 }
 

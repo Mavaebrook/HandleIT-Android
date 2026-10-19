@@ -112,6 +112,46 @@ class StringListCodecTest {
         assertEquals("""{"v":1,"items":["a","b"]}""", StringListCodec.encode(listOf("a", "b")))
     }
 
+    // --- Roundtrip: braces / JSON-looking items (D07 discriminator regression) ---
+
+    @Test
+    fun encodeDecode_bracesInsideItems_roundtripsUnchanged() {
+        // The exact bug: a naive "first raw '}'" scan ended the envelope inside the item "a}b",
+        // misclassified the value as legacy, and the migration then double-encoded it.
+        val values = listOf("a {b} c", "}", "{\"nested\":1}")
+
+        val decoded = StringListCodec.decode(StringListCodec.encode(values))
+
+        assertEquals(StringListCodec.DecodedList.Versioned(1, values), decoded)
+    }
+
+    @Test
+    fun encodeDecode_itemThatIsJustClosingBrace_roundtrips() {
+        val values = listOf("}")
+
+        val decoded = StringListCodec.decode(StringListCodec.encode(values))
+
+        assertEquals(StringListCodec.DecodedList.Versioned(1, values), decoded)
+    }
+
+    @Test
+    fun encodeDecode_nestedJsonLookingItem_roundtrips() {
+        val values = listOf("{\"nested\":1}")
+
+        val decoded = StringListCodec.decode(StringListCodec.encode(values))
+
+        assertEquals(StringListCodec.DecodedList.Versioned(1, values), decoded)
+    }
+
+    @Test
+    fun encodeDecode_emptyStringWhitespaceNewlineBracesQuotesEscapesUnicode_allPreserved() {
+        val values = listOf("", "  ", "a\nb", "{", "}", "\"", "\\", "中文🚀")
+
+        val decoded = StringListCodec.decode(StringListCodec.encode(values))
+
+        assertEquals(StringListCodec.DecodedList.Versioned(1, values), decoded)
+    }
+
     // --- Legacy decoding ---
 
     @Test
@@ -124,6 +164,14 @@ class StringListCodecTest {
     @Test
     fun decode_legacyValueWithBlankLinesAndWhitespace_trimsAndDropsEmpties() {
         // Exact old semantics: split("\n").map { trim() }.filter { isNotEmpty() }.
+        val decoded = StringListCodec.decode("  a  \n\n   \n b \n")
+
+        assertEquals(StringListCodec.DecodedList.Legacy(listOf("a", "b")), decoded)
+    }
+
+    @Test
+    fun decode_legacyWhitespaceAndEmptyRows_unchanged() {
+        // Same rule as above, stated as the compatibility guarantee: whitespace-only rows vanish.
         val decoded = StringListCodec.decode("  a  \n\n   \n b \n")
 
         assertEquals(StringListCodec.DecodedList.Legacy(listOf("a", "b")), decoded)
@@ -143,19 +191,34 @@ class StringListCodecTest {
         assertEquals(StringListCodec.DecodedList.Legacy(listOf("a {b} c", "d")), decoded)
     }
 
-    @Test
-    fun decode_legacyValueWithTrailingTextAfterBrace_isLegacy() {
-        // "{" ... "}" followed by more text is not a single JSON object, so it is legacy.
-        val decoded = StringListCodec.decode("{\"v\":1} trailing")
-
-        assertEquals(StringListCodec.DecodedList.Legacy(listOf("{\"v\":1} trailing")), decoded)
-    }
-
     // --- Corruption and unsupported versions ---
 
     @Test
     fun decode_malformedEnvelope_returnsCorruptNotLegacyAndNotEmpty() {
         val stored = "{\"v\":1,\"items\":[\"a\""
+
+        val decoded = StringListCodec.decode(stored)
+
+        assertTrue("expected Corrupt but was $decoded", decoded is StringListCodec.DecodedList.Corrupt)
+        assertEquals(stored, (decoded as StringListCodec.DecodedList.Corrupt).stored)
+    }
+
+    @Test
+    fun decode_truncatedEnvelope_isCorrupt() {
+        // Envelope-shaped (starts with "{") but the object never closes: corruption, never legacy.
+        val stored = "{\"v\":1,\"items\":[\"a\""
+
+        val decoded = StringListCodec.decode(stored)
+
+        assertTrue("expected Corrupt but was $decoded", decoded is StringListCodec.DecodedList.Corrupt)
+        assertEquals(stored, (decoded as StringListCodec.DecodedList.Corrupt).stored)
+    }
+
+    @Test
+    fun decode_trailingJunkAfterEnvelope_isCorrupt() {
+        // A value that starts with "{" is envelope-shaped; trailing junk means it is not a single
+        // complete JSON object, so it is corruption rather than legacy text.
+        val stored = "{\"v\":1,\"items\":[\"a\"]}garbage"
 
         val decoded = StringListCodec.decode(stored)
 
@@ -179,6 +242,21 @@ class StringListCodecTest {
     }
 
     @Test
+    fun decode_legacyJsonShapedSingleItem_isLegacyWhenNotEnvelope() {
+        // Documented, honest limitation: a legacy row whose entire content is a single JSON object
+        // is indistinguishable from an envelope. `{"a":1}` starts with "{" and parses as a JSON
+        // object, but it has no `v`/`items`, so strict envelope deserialization fails and the value
+        // surfaces as Corrupt. It is retained untouched (the migration reports NEEDS_ATTENTION), so
+        // nothing is destroyed or guessed at.
+        val stored = """{"a":1}"""
+
+        val decoded = StringListCodec.decode(stored)
+
+        assertTrue("expected Corrupt but was $decoded", decoded is StringListCodec.DecodedList.Corrupt)
+        assertEquals(stored, (decoded as StringListCodec.DecodedList.Corrupt).stored)
+    }
+
+    @Test
     fun decode_unsupportedVersion_returnsUnsupportedVersion() {
         val stored = """{"v":999,"items":["a"]}"""
 
@@ -191,13 +269,28 @@ class StringListCodecTest {
     }
 
     @Test
+    fun decode_unknownVersion_isUnsupportedVersionNotLegacy() {
+        val stored = """{"v":2,"items":["a"]}"""
+
+        val decoded = StringListCodec.decode(stored)
+
+        assertEquals(
+            StringListCodec.DecodedList.UnsupportedVersion(version = 2, stored = stored),
+            decoded
+        )
+    }
+
+    @Test
     fun looksLikeEnvelope_distinguishesEnvelopeFromLegacy() {
         assertTrue(StringListCodec.looksLikeEnvelope("""{"v":1,"items":[]}"""))
         assertTrue(StringListCodec.looksLikeEnvelope("""  {"v":1,"items":[]}  """))
         assertTrue(StringListCodec.looksLikeEnvelope("{\"v\":1,\"items\":[\"a\""))
+        // A "}" inside a string item must not end the object early: still envelope-shaped.
+        assertTrue(StringListCodec.looksLikeEnvelope("""{"v":1,"items":["a}b"]}"""))
+        // Envelope-shaped with trailing junk: still envelope-shaped, so decode() reports Corrupt.
+        assertTrue(StringListCodec.looksLikeEnvelope("""{"v":1} trailing"""))
         assertFalse(StringListCodec.looksLikeEnvelope(""))
         assertFalse(StringListCodec.looksLikeEnvelope("a\nb"))
-        assertFalse(StringListCodec.looksLikeEnvelope("""{"v":1} trailing"""))
     }
 
     // --- Migration ---
@@ -218,6 +311,21 @@ class StringListCodecTest {
 
         assertEquals(StringListMigration.Outcome.ALREADY_VERSIONED, result.outcome)
         assertEquals(stored, result.value)
+    }
+
+    @Test
+    fun migrateValue_bracesInsideItems_isIdempotent() {
+        // Regression for the double-encoding bug: an envelope whose items contain braces must be
+        // recognised as versioned on every pass, so migrating twice changes nothing.
+        val stored = StringListCodec.encode(listOf("a {b} c", "}", "{\"nested\":1}"))
+
+        val once = StringListMigration.migrateValue(stored)
+        val twice = StringListMigration.migrateValue(once.value)
+
+        assertEquals(StringListMigration.Outcome.ALREADY_VERSIONED, once.outcome)
+        assertEquals(stored, once.value)
+        assertEquals(StringListMigration.Outcome.ALREADY_VERSIONED, twice.outcome)
+        assertEquals(stored, twice.value)
     }
 
     @Test

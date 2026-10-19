@@ -35,18 +35,34 @@ data class ObservationScope(
  * never inferred here.
  *
  * Returns null when there is nothing structured to record.
+ *
+ * ## Validity window
+ *
+ * The producer has no clock and no knowledge of the store's TTL, so it does NOT hardcode a TTL. Both
+ * functions accept an optional [validUntilMs] (wall-clock epoch ms):
+ *  - `0` (the default) means "no explicit expiry": the [TaskContextSnapshotStore] applies its bounded
+ *    default TTL (`observedAtMs + ttlMs`).
+ *  - A non-zero value is an explicit expiry; the store honors the earlier of it and its default bound,
+ *    so an explicit expiry can only shorten the window, never extend it.
  */
 object ToolObservationProducer {
 
     const val PREDICATE_TOOL_EXECUTION_STATUS = "tool.execution.status"
     const val PREDICATE_SHELL_EXIT_CODE = "shell.exitCode"
 
+    /**
+     * Observation of the transport-level tool execution status.
+     *
+     * @param validUntilMs explicit expiry in wall-clock epoch ms, or `0` (default) to let the
+     *   [TaskContextSnapshotStore] apply its bounded default TTL.
+     */
     fun fromToolResult(
         toolName: String,
         callId: String,
         result: ToolResult,
         scope: ObservationScope,
-        nowMs: Long
+        nowMs: Long,
+        validUntilMs: Long = 0L
     ): ObservationRecord {
         return ObservationRecord(
             eventId = "$callId:$toolName",
@@ -61,7 +77,7 @@ object ToolObservationProducer {
             subject = toolName,
             value = TypedValue.BooleanValue(result.success),
             observedAtMs = nowMs,
-            validUntilMs = 0L,
+            validUntilMs = validUntilMs,
             source = ObservationSource.TOOL_EXECUTION,
             trust = TrustLevel.OBSERVED
         )
@@ -71,13 +87,17 @@ object ToolObservationProducer {
      * A separate observation for a structured shell exit code, or null when the result carries no
      * structured exit code. exitCode == 0 is transport-level and does NOT prove the desired task
      * succeeded; it is recorded as a raw exit code only.
+     *
+     * @param validUntilMs explicit expiry in wall-clock epoch ms, or `0` (default) to let the
+     *   [TaskContextSnapshotStore] apply its bounded default TTL.
      */
     fun shellExitCodeObservation(
         toolName: String,
         callId: String,
         result: ToolResult,
         scope: ObservationScope,
-        nowMs: Long
+        nowMs: Long,
+        validUntilMs: Long = 0L
     ): ObservationRecord? {
         val exitCode = structuredExitCode(result.result) ?: return null
         return ObservationRecord(
@@ -93,7 +113,7 @@ object ToolObservationProducer {
             subject = toolName,
             value = TypedValue.IntValue(exitCode),
             observedAtMs = nowMs,
-            validUntilMs = 0L,
+            validUntilMs = validUntilMs,
             source = ObservationSource.TOOL_EXECUTION,
             trust = TrustLevel.OBSERVED
         )
