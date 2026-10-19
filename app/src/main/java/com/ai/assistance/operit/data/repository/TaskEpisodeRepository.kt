@@ -33,8 +33,39 @@ class TaskEpisodeRepository(
      */
     private val vectorIndex = TaskEpisodeVectorIndex(context, profileId)
 
-    override fun save(episode: TaskEpisode): Long {
-        return episodeBox.put(TaskEpisodeEntity.fromEpisode(episode))
+    /**
+     * Persist [episode].
+     *
+     * ## Unresolved list fields
+     *
+     * An episode read from a row whose list bytes could not be decoded carries `emptyList()` for
+     * that field (see [TaskEpisodeEntity.toEpisode]) and records the fact in
+     * [TaskEpisode.listIntegrity]. Re-encoding such a field would write `{"v":1,"items":[]}` and
+     * DESTROY the original bytes.
+     *
+     * Therefore, when re-saving a row that was read with unresolved integrity, pass [originalRaw]
+     * (field name → the row's [TaskEpisodeEntity.rawListField] value) so the original bytes are
+     * preserved verbatim; otherwise the unresolved field would be re-encoded as an empty envelope.
+     * Use [TaskEpisodeEntity.hasUnresolvedFields] to detect such a row, and
+     * [resavePreservingUnresolved] to do the round trip safely.
+     *
+     * For a NEW episode (always healthy) the default empty [originalRaw] is correct.
+     */
+    override fun save(episode: TaskEpisode, originalRaw: Map<String, String>): Long {
+        return episodeBox.put(TaskEpisodeEntity.fromEpisode(episode, originalRaw))
+    }
+
+    /**
+     * Re-save an episode that was read from storage, preserving the original raw bytes of any
+     * unresolved list field. Reads the current stored row's raw fields and passes them to save().
+     * If the row no longer exists, falls back to saving with no originalRaw (a new row).
+     */
+    fun resavePreservingUnresolved(episode: TaskEpisode): Long {
+        val existing = if (episode.id != 0L) episodeBox.get(episode.id) else null
+        val originalRaw = if (existing != null) {
+            TaskEpisodeEntity.LIST_FIELDS.associateWith { existing.rawListField(it) }
+        } else emptyMap()
+        return save(episode, originalRaw)
     }
 
     /**
@@ -151,8 +182,8 @@ class TaskEpisodeRepository(
      *    [MigrationReport.alreadyVersioned];
      *  - at least one legacy field and no corrupt field → the row is rewritten with the migrated
      *    content, counted in [MigrationReport.migrated];
-     *  - any corrupt or unsupported-version field → the row is left ENTIRELY untouched, both in
-     *    memory and on disk: no field of it is mutated and it is not written, so a partially
+     *  - any corrupt, unsupported-version or ambiguous field → the row is left ENTIRELY untouched,
+     *    both in memory and on disk: no field of it is mutated and it is not written, so a partially
      *    migrated row cannot exist. Counted in [MigrationReport.skippedCorrupt] and logged with the
      *    row id and field name.
      *
@@ -196,8 +227,8 @@ class TaskEpisodeRepository(
      * Migrate one bounded batch inside the caller's transaction. Returns the counts for the batch.
      *
      * Two-phase per row: the whole row is planned first ([RowMigrationPlanner.plan]) and the entity
-     * is mutated only when the plan says the row is eligible. A row with any corrupt or unsupported
-     * field is left entirely untouched, so it can never be half-migrated in memory.
+     * is mutated only when the plan says the row is eligible. A row with any corrupt, unsupported or
+     * ambiguous field is left entirely untouched, so it can never be half-migrated in memory.
      */
     private fun migrateBatch(batch: List<TaskEpisodeEntity>): MigrationReport {
         var migrated = 0

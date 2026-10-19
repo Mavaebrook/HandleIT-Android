@@ -23,8 +23,39 @@ class SkillRevisionRepository(
     private val store = ObjectBoxManager.get(context, profileId)
     private val revisionBox: Box<SkillRevisionEntity> = store.boxFor()
 
-    fun save(revision: SkillRevision): Long {
-        return revisionBox.put(SkillRevisionEntity.fromRevision(revision))
+    /**
+     * Persist [revision].
+     *
+     * ## Unresolved list fields
+     *
+     * A revision read from a row whose list bytes could not be decoded carries `emptyList()` for
+     * that field (see [SkillRevisionEntity.toRevision]) and records the fact in
+     * [SkillRevision.listIntegrity]. Re-encoding such a field would write `{"v":1,"items":[]}` and
+     * DESTROY the original bytes.
+     *
+     * Therefore, when re-saving a row that was read with unresolved integrity, pass [originalRaw]
+     * (field name → the row's [SkillRevisionEntity.rawListField] value) so the original bytes are
+     * preserved verbatim; otherwise the unresolved field would be re-encoded as an empty envelope.
+     * Use [SkillRevisionEntity.hasUnresolvedFields] to detect such a row, and
+     * [resavePreservingUnresolved] to do the round trip safely.
+     *
+     * For a NEW revision (always healthy) the default empty [originalRaw] is correct.
+     */
+    fun save(revision: SkillRevision, originalRaw: Map<String, String> = emptyMap()): Long {
+        return revisionBox.put(SkillRevisionEntity.fromRevision(revision, originalRaw))
+    }
+
+    /**
+     * Re-save a revision that was read from storage, preserving the original raw bytes of any
+     * unresolved list field. Reads the current stored row's raw fields and passes them to save().
+     * If the row no longer exists, falls back to saving with no originalRaw (a new row).
+     */
+    fun resavePreservingUnresolved(revision: SkillRevision): Long {
+        val existing = if (revision.id != 0L) revisionBox.get(revision.id) else null
+        val originalRaw = if (existing != null) {
+            SkillRevisionEntity.LIST_FIELDS.associateWith { existing.rawListField(it) }
+        } else emptyMap()
+        return save(revision, originalRaw)
     }
 
     fun all(): List<SkillRevision> = revisionBox.query().build().find().map { it.toRevision() }
@@ -52,8 +83,8 @@ class SkillRevisionRepository(
      *    [MigrationReport.alreadyVersioned];
      *  - at least one legacy field and no corrupt field → the row is rewritten with the migrated
      *    content, counted in [MigrationReport.migrated];
-     *  - any corrupt or unsupported-version field → the row is left ENTIRELY untouched, both in
-     *    memory and on disk: no field of it is mutated and it is not written, so a partially
+     *  - any corrupt, unsupported-version or ambiguous field → the row is left ENTIRELY untouched,
+     *    both in memory and on disk: no field of it is mutated and it is not written, so a partially
      *    migrated row cannot exist. Counted in [MigrationReport.skippedCorrupt] and logged with the
      *    row id and field name.
      *
@@ -97,8 +128,8 @@ class SkillRevisionRepository(
      * Migrate one bounded batch inside the caller's transaction. Returns the counts for the batch.
      *
      * Two-phase per row: the whole row is planned first ([RowMigrationPlanner.plan]) and the entity
-     * is mutated only when the plan says the row is eligible. A row with any corrupt or unsupported
-     * field is left entirely untouched, so it can never be half-migrated in memory.
+     * is mutated only when the plan says the row is eligible. A row with any corrupt, unsupported or
+     * ambiguous field is left entirely untouched, so it can never be half-migrated in memory.
      */
     private fun migrateBatch(batch: List<SkillRevisionEntity>): MigrationReport {
         var migrated = 0
