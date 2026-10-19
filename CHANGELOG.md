@@ -2,6 +2,24 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-19 — Learning pipeline hardening: Step 1 codec & data integrity repair
+
+Bounded repair of the Step 1 codec and data-integrity work after the independent review of bridge #36 did NOT establish Step 1 acceptance. This is NOT Stage 2 (the next stage is D06 safe memory rendering and G02 execution-route audit). No Job 2 observation-lifecycle changes, no Stage 2 D06/G02 rollout, no graph/relational entities, no H01, no vector caching, no orchestrator redesign. No ObjectBox schema change: `app/objectbox-models/default.json` is byte-for-byte unchanged. Documentation and source changes only; no build or test was run on the VPS or any local machine. Nothing here is device-verified.
+
+### Fixed
+- `StringListCodec` (D07): added an explicit `Ambiguous` decode outcome for brace-starting bytes whose provenance (legacy literal vs versioned envelope) cannot be proven. The Corrupt-vs-Ambiguous split is a parse-independent prefix test, not a lenient re-parse, so truncated/trailing-junk envelopes are reliably `Corrupt` and brace-starting legacy text (`{"a":1}`, `{placeholder}\nsecond_item`) is preserved as `Ambiguous` rather than guessed. Unknown versions remain `UnsupportedVersion`; non-brace-starting values keep the exact legacy newline semantics; the unprefixed envelope format is unchanged.
+- `TaskEpisode` / `SkillRevision`: added non-persisted `listIntegrity` metadata (`ListFieldIntegrity` / `RowListIntegrity`) distinguishing a genuine empty list from an unresolved field, retaining field name, reason/version and original raw bytes for recovery. Raw bytes are never rendered into prompts or logs.
+- `TaskPreflightFormatter` / `TaskEpisodeRetrieval`: an episode with unresolved `requiredPrerequisites` or `applicableConstraints` is machine-readably `INELIGIBLE_UNRESOLVED_INTEGRITY` and the formatter emits a bounded fixed caution (no raw payload, no duplicated memory block).
+- `SkillRevisionLifecycle`: `evaluate` rejects a candidate with any unresolved list field (`passed=false`, explicit reason); `preservesUserConstraints` returns false for an unresolved candidate; a baseline-aware overload rejects an unresolved authoritative revision.
+- `TaskEpisodeEntity` / `SkillRevisionEntity` / repositories: `fromEpisode`/`fromRevision` preserve the original raw bytes of unresolved fields via `originalRaw`; `save(..., originalRaw)` and `resavePreservingUnresolved(...)` prevent a later write from erasing unresolved bytes.
+- `RowMigrationPlanner`: treats `Ambiguous` as `NEEDS_ATTENTION`; any such row is left entirely untouched in memory and on disk; repeated migration is idempotent.
+
+### Tests
+- Added `Step1CodecIntegrityRegressionTest` (22 tests) covering corrupt prerequisites/constraints/steps, applicability ineligibility, formatter caution, save preservation, lifecycle rejection (candidate and baseline), the provenance policy (Ambiguous vs Corrupt vs UnsupportedVersion vs Legacy), lossless round-trip, idempotent migration, healthy empty lists, later-field row immutability, and integrity preservation through `copy`.
+
+### CI
+- Final green SHA `38e3d60fc0bd79b7bf1009622d34cb94c7c3c97d` (base `f495c1083b204ee1c50eb333600a68c3a32c963d`). Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39339986761), Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39339985105). Three intermediate failures recorded honestly in the TODO index. JVM/source evidence only; device/DB upgrade verification (A01) remains PENDING. Independent review gate not yet satisfied.
+
 ## 2026-10-19 — Learning pipeline hardening: Step 1 relational-memory repair
 
 Focused repair of the Step 1 foundations, authorized as implementation + push followed by GitHub-hosted CI and an independent review gate. This is NOT Stage 2 (the next stage is D06 safe memory rendering and G02 execution-route audit). No C04-C06 expansion, relation entities, graph traversal, H01, vector caching, or orchestrator redesign. No ObjectBox schema change: `app/objectbox-models/default.json` is byte-for-byte unchanged. Documentation and source changes only; no build or test was run on the VPS or any local machine. Nothing here is device-verified.
