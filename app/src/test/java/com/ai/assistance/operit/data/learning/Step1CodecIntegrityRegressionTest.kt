@@ -243,13 +243,34 @@ class Step1CodecIntegrityRegressionTest {
     }
 
     @Test
-    fun malformedVersionedContainingRawNewlines_isCorrupt() {
-        // A newline BETWEEN JSON tokens is legal whitespace, so such a payload would parse as
-        // Versioned. What is genuinely invalid JSON is an unescaped newline INSIDE a string literal
-        // (a raw control character in a JSON string). That is the malformed versioned payload this
-        // test covers: the strict parse fails, and the prefix probe still sees `{"v":`, so this is
-        // Corrupt (not Ambiguous, not Legacy).
+    fun rawNewlineInsideStringItem_roundTripsLosslesslyAsVersioned() {
+        // A raw newline INSIDE a JSON string literal is accepted by kotlinx.serialization's Json
+        // even with isLenient=false, so this payload parses successfully as Versioned(1, ["a\nb"]).
+        // That is the CORRECT, lossless behavior the codec is designed for: the newline is preserved
+        // inside the single item and is NOT split into two items. (The old newline-join encoding
+        // would have split "a\nb" into ["a", "b"], losing the fact that it was one item.)
         val decoded = StringListCodec.decode("{\"v\":1,\"items\":[\"a\nb\"]}")
+
+        assertTrue(
+            "expected Versioned, got: $decoded",
+            decoded is StringListCodec.DecodedList.Versioned
+        )
+        val versioned = decoded as StringListCodec.DecodedList.Versioned
+        assertEquals(1, versioned.version)
+        assertEquals(
+            "the raw newline must survive inside the single item, not be split into two items",
+            listOf("a\nb"),
+            versioned.items
+        )
+    }
+
+    @Test
+    fun malformedVersionedPayload_isCorruptNotLegacy() {
+        // A genuinely malformed versioned payload: truncated JSON that still starts with the
+        // envelope-shaped prefix `{"v":`. The strict parse fails, and the parse-independent prefix
+        // probe sees `{"v":`, so this is Corrupt (not Ambiguous, not Legacy). This preserves the
+        // original intent: a malformed versioned payload is Corrupt, never reinterpreted as Legacy.
+        val decoded = StringListCodec.decode("{\"v\":1,\"items\":[\"a\"")
 
         assertTrue(
             "expected Corrupt, got: $decoded",
