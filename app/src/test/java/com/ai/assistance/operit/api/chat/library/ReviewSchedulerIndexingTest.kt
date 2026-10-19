@@ -188,7 +188,7 @@ class ReviewSchedulerIndexingTest {
             private set
         val indexedIds: MutableList<Long> = mutableListOf()
 
-        override fun save(episode: TaskEpisode): Long {
+        override fun save(episode: TaskEpisode, originalRaw: Map<String, String>): Long {
             saveCalls += 1
             return savedId
         }
