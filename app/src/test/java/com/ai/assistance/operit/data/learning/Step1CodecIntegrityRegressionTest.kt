@@ -244,9 +244,12 @@ class Step1CodecIntegrityRegressionTest {
 
     @Test
     fun malformedVersionedContainingRawNewlines_isCorrupt() {
-        // A JSON object WITH a "v" key but a raw newline makes the strict parse fail; the lenient
-        // probe still sees a JsonObject carrying "v", so this is Corrupt (not Ambiguous, not Legacy).
-        val decoded = StringListCodec.decode("{\"v\":1,\n\"items\":[\"a\"]}")
+        // A newline BETWEEN JSON tokens is legal whitespace, so such a payload would parse as
+        // Versioned. What is genuinely invalid JSON is an unescaped newline INSIDE a string literal
+        // (a raw control character in a JSON string). That is the malformed versioned payload this
+        // test covers: the strict parse fails, and the prefix probe still sees `{"v":`, so this is
+        // Corrupt (not Ambiguous, not Legacy).
+        val decoded = StringListCodec.decode("{\"v\":1,\"items\":[\"a\nb\"]}")
 
         assertTrue(
             "expected Corrupt, got: $decoded",

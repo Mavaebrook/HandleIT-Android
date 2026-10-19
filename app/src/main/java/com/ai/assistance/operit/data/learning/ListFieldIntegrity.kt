@@ -75,6 +75,24 @@ data class RowListIntegrity(
     val hasUnresolved: Boolean get() = fields.values.any { it.isUnresolved }
     val unresolvedFields: List<ListFieldIntegrity> get() = fields.values.filter { it.isUnresolved }
 
+    /**
+     * Equality is defined over the UNRESOLVED fields only. A row whose every field is healthy is
+     * equal to [HEALTHY] whether its map is empty or explicitly populated with healthy entries,
+     * because both describe the same integrity state: nothing unresolved. This keeps a freshly
+     * constructed domain object (default [HEALTHY]) equal to the same object after a storage
+     * round-trip that populated an all-healthy map.
+     */
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is RowListIntegrity) return false
+        return unresolvedByField() == other.unresolvedByField()
+    }
+
+    override fun hashCode(): Int = unresolvedByField().hashCode()
+
+    private fun unresolvedByField(): Map<String, ListFieldIntegrity> =
+        fields.filterValues { it.isUnresolved }
+
     companion object {
         val HEALTHY = RowListIntegrity(emptyMap())
     }
