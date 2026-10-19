@@ -414,4 +414,61 @@ class Step1CodecIntegrityRegressionTest {
         )
         assertTrue(ep.listIntegrity.hasUnresolved)
     }
+    // ---------------------------------------------------------------------------------------------
+    // Regression 6: safe-by-default re-save and additional integrity statuses
+    // ---------------------------------------------------------------------------------------------
+
+    @Test
+    fun corruptApplicableConstraints_applicabilityIsIneligible() {
+        val entity = TaskEpisodeEntity(
+            id = 11L,
+            taskSummary = "task",
+            applicableConstraintsJoined = "{\"v\":1,\"items\":[\"x\""
+        )
+
+        val ep = entity.toEpisode()
+
+        assertEquals(
+            EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY,
+            TaskEpisodeRetrieval.episodeApplicability(ep)
+        )
+    }
+
+    @Test
+    fun unsupportedVersionField_hasUnsupportedVersionStatus() {
+        val entity = TaskEpisodeEntity(
+            id = 12L,
+            taskSummary = "task",
+            requiredPrerequisitesJoined = "{\"v\":999,\"items\":[]}"
+        )
+
+        val ep = entity.toEpisode()
+
+        val integrity = ep.listIntegrity.fields["requiredPrerequisitesJoined"]!!
+        assertEquals(ListFieldIntegrity.Status.UNSUPPORTED_VERSION, integrity.status)
+        assertEquals(999, integrity.version)
+    }
+
+    @Test
+    fun resavePreservingUnresolved_retainsOriginalBytes() {
+        val entity = TaskEpisodeEntity(
+            id = 5L,
+            taskSummary = "task",
+            requiredPrerequisitesJoined = "{\"v\":1,\"items\":[\"a\""
+        )
+
+        val ep = entity.toEpisode()
+
+        // The repository's safe-by-default path triggers for this row.
+        assertTrue(TaskEpisodeEntity.hasUnresolvedFields(ep))
+
+        // Simulate the safe re-save: the stored raw bytes are supplied back verbatim.
+        val resaved = TaskEpisodeEntity.fromEpisode(
+            ep,
+            mapOf("requiredPrerequisitesJoined" to entity.requiredPrerequisitesJoined)
+        )
+
+        // The original bytes are retained, NOT re-encoded to an empty envelope.
+        assertEquals(entity.requiredPrerequisitesJoined, resaved.requiredPrerequisitesJoined)
+    }
 }

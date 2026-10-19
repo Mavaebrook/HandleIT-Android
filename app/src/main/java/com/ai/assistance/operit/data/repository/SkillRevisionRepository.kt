@@ -39,10 +39,24 @@ class SkillRevisionRepository(
      * Use [SkillRevisionEntity.hasUnresolvedFields] to detect such a row, and
      * [resavePreservingUnresolved] to do the round trip safely.
      *
+     * ## Safe by default
+     *
+     * This method is SAFE BY DEFAULT: when [revision] has unresolved fields, [originalRaw] is empty
+     * and the revision has a stored id, the existing row's raw list bytes are read from the store and
+     * preserved automatically. A caller doing `save(toRevision())` therefore cannot erase the bytes
+     * of an unresolved row. An explicit [originalRaw] still takes precedence over the automatic read.
+     * If the row no longer exists there is nothing to preserve and the normal encode path runs.
+     *
      * For a NEW revision (always healthy) the default empty [originalRaw] is correct.
      */
     fun save(revision: SkillRevision, originalRaw: Map<String, String> = emptyMap()): Long {
-        return revisionBox.put(SkillRevisionEntity.fromRevision(revision, originalRaw))
+        val effectiveRaw = if (SkillRevisionEntity.hasUnresolvedFields(revision) && originalRaw.isEmpty() && revision.id != 0L) {
+            val existing = revisionBox.get(revision.id)
+            if (existing != null) {
+                SkillRevisionEntity.LIST_FIELDS.associateWith { existing.rawListField(it) }
+            } else emptyMap()
+        } else originalRaw
+        return revisionBox.put(SkillRevisionEntity.fromRevision(revision, effectiveRaw))
     }
 
     /**

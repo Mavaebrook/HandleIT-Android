@@ -49,10 +49,27 @@ class TaskEpisodeRepository(
      * Use [TaskEpisodeEntity.hasUnresolvedFields] to detect such a row, and
      * [resavePreservingUnresolved] to do the round trip safely.
      *
+     * ## Safe by default
+     *
+     * This method is SAFE BY DEFAULT: when [episode] has unresolved fields, [originalRaw] is empty
+     * and the episode has a stored id, the existing row's raw list bytes are read from the store and
+     * preserved automatically. A caller doing `save(toEpisode())` therefore cannot erase the bytes of
+     * an unresolved row. An explicit [originalRaw] still takes precedence over the automatic read.
+     * If the row no longer exists there is nothing to preserve and the normal encode path runs.
+     *
      * For a NEW episode (always healthy) the default empty [originalRaw] is correct.
      */
     override fun save(episode: TaskEpisode, originalRaw: Map<String, String>): Long {
-        return episodeBox.put(TaskEpisodeEntity.fromEpisode(episode, originalRaw))
+        val effectiveRaw = if (TaskEpisodeEntity.hasUnresolvedFields(episode) && originalRaw.isEmpty() && episode.id != 0L) {
+            // Safe-by-default: an unresolved row must not have its original bytes erased by a re-save.
+            // When the caller did not supply originalRaw, read the stored row's raw fields and preserve
+            // them. If the row no longer exists, there is nothing to preserve and the encode path runs.
+            val existing = episodeBox.get(episode.id)
+            if (existing != null) {
+                TaskEpisodeEntity.LIST_FIELDS.associateWith { existing.rawListField(it) }
+            } else emptyMap()
+        } else originalRaw
+        return episodeBox.put(TaskEpisodeEntity.fromEpisode(episode, effectiveRaw))
     }
 
     /**

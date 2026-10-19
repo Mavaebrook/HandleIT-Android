@@ -20,15 +20,6 @@ object SkillRevisionLifecycle {
 
     const val MIN_INDEPENDENT_EVIDENCE = 1
 
-    /**
-     * The list fields whose integrity must be resolved before a revision may be evaluated.
-     * Any unresolved field (corrupt, unsupported version, ambiguous) makes the revision ineligible.
-     */
-    private val REQUIRED_RESOLVED_FIELDS = listOf(
-        "prerequisitesJoined", "stepsJoined", "checksJoined",
-        "pitfallsJoined", "evidenceKeysJoined", "userConstraintsJoined"
-    )
-
     /** True when [revision] has any unresolved list field. */
     fun hasUnresolvedFields(revision: SkillRevision): Boolean = revision.listIntegrity.hasUnresolved
 
