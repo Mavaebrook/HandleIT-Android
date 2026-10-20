@@ -143,3 +143,12 @@ the evidence limit; do not manufacture a red run.
 - Durable option 2 (alternative): a one-time migration that stamps every existing row's provenance by re-encoding through the codec and recording the decode outcome, so future reads never need to infer. Also a schema/data change, out of scope here.
 - Interim behavior (this repair): preserve unresolved bytes verbatim (Corrupt/Ambiguous), never rewrite them, and treat the successfully-parsed collision as an envelope with the honest structural-inference caveat. No universal-compatibility claim is made.
 - This decision is recorded so a future schema-change task can pick it up; it is NOT implemented in this repair and no new schema is added.
+
+## Bridge #38 CI evidence (commit c50b399b)
+
+- Branch fix/step1-codec-integrity, commit c50b399b0c6d84bfb15c38000d314a8fd4537c9e (base main f495c1083b204ee1c50eb333600a68c3a32c963d).
+- Android Build dispatched (workflow_dispatch, gradle_task=assembleDebug) against the branch ref: run 39461571548 — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39461571548
+- Android Tests dispatched (workflow_dispatch) against the branch ref: run 39461574664 — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39461574664
+- Both runs confirmed on head_sha c50b399b (no dispatch race). At the time of this checkpoint both were still in_progress (setup/cache steps green; heavy steps "Run Gradle build" and "Run JVM unit tests" executing). Final conclusions PENDING — re-query the two run URLs above.
+- PR #2 open against main, LEFT UNMERGED: https://github.com/Mavaebrook/HandleIT-Android/pull/2
+- JVM evidence only; device/ObjectBox upgrade (A01) remains PENDING. This is NOT device/DB upgrade proof.
