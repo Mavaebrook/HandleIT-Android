@@ -450,7 +450,7 @@ class Step1CodecIntegrityRegressionTest {
     }
 
     @Test
-    fun resavePreservingUnresolved_retainsOriginalBytes() {
+    fun fromEpisodeWithOriginalRaw_retainsOriginalBytes() {
         val entity = TaskEpisodeEntity(
             id = 5L,
             taskSummary = "task",
@@ -459,10 +459,12 @@ class Step1CodecIntegrityRegressionTest {
 
         val ep = entity.toEpisode()
 
-        // The repository's safe-by-default path triggers for this row.
+        // This row carries unresolved integrity, so the entity-level originalRaw mechanism applies.
         assertTrue(TaskEpisodeEntity.hasUnresolvedFields(ep))
 
-        // Simulate the safe re-save: the stored raw bytes are supplied back verbatim.
+        // Entity-level originalRaw mechanism: the stored raw bytes are supplied back verbatim to
+        // fromEpisode. (The repository-level decision of WHEN to read those bytes is covered by
+        // unresolvedWriteGuard_preservesStoredRawOnlyWhenUnresolvedAndNoCallerRawAndPersisted.)
         val resaved = TaskEpisodeEntity.fromEpisode(
             ep,
             mapOf("requiredPrerequisitesJoined" to entity.requiredPrerequisitesJoined)
@@ -470,5 +472,34 @@ class Step1CodecIntegrityRegressionTest {
 
         // The original bytes are retained, NOT re-encoded to an empty envelope.
         assertEquals(entity.requiredPrerequisitesJoined, resaved.requiredPrerequisitesJoined)
+    }
+
+    @Test
+    fun unresolvedWriteGuard_preservesStoredRawOnlyWhenUnresolvedAndNoCallerRawAndPersisted() {
+        // The safe-by-default decision: preserve stored raw bytes only when the row is unresolved,
+        // the caller supplied no originalRaw, and the row is persisted (id != 0).
+        assertTrue(
+            UnresolvedWriteGuard.mustPreserveStoredRaw(
+                hasUnresolved = true, callerSuppliedRaw = emptyMap(), persistedId = 5L
+            )
+        )
+        // A healthy row needs no preservation.
+        assertFalse(
+            UnresolvedWriteGuard.mustPreserveStoredRaw(
+                hasUnresolved = false, callerSuppliedRaw = emptyMap(), persistedId = 5L
+            )
+        )
+        // An explicit caller map takes precedence (no auto-read).
+        assertFalse(
+            UnresolvedWriteGuard.mustPreserveStoredRaw(
+                hasUnresolved = true, callerSuppliedRaw = mapOf("requiredPrerequisitesJoined" to "x"), persistedId = 5L
+            )
+        )
+        // A new row (id == 0) has no stored bytes to preserve.
+        assertFalse(
+            UnresolvedWriteGuard.mustPreserveStoredRaw(
+                hasUnresolved = true, callerSuppliedRaw = emptyMap(), persistedId = 0L
+            )
+        )
     }
 }

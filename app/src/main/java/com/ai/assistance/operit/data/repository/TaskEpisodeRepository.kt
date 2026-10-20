@@ -7,6 +7,7 @@ import com.ai.assistance.operit.data.learning.RowMigrationPlanner
 import com.ai.assistance.operit.data.learning.StringListMigration
 import com.ai.assistance.operit.data.learning.TaskEpisodeRetrieval
 import com.ai.assistance.operit.data.learning.TaskEpisodeVectorIndex
+import com.ai.assistance.operit.data.learning.UnresolvedWriteGuard
 import com.ai.assistance.operit.data.model.TaskEpisode
 import com.ai.assistance.operit.data.model.TaskEpisodeEntity
 import com.ai.assistance.operit.data.model.TaskEpisodeEntity_
@@ -60,7 +61,12 @@ class TaskEpisodeRepository(
      * For a NEW episode (always healthy) the default empty [originalRaw] is correct.
      */
     override fun save(episode: TaskEpisode, originalRaw: Map<String, String>): Long {
-        val effectiveRaw = if (TaskEpisodeEntity.hasUnresolvedFields(episode) && originalRaw.isEmpty() && episode.id != 0L) {
+        val effectiveRaw = if (UnresolvedWriteGuard.mustPreserveStoredRaw(
+                hasUnresolved = TaskEpisodeEntity.hasUnresolvedFields(episode),
+                callerSuppliedRaw = originalRaw,
+                persistedId = episode.id
+            )
+        ) {
             // Safe-by-default: an unresolved row must not have its original bytes erased by a re-save.
             // When the caller did not supply originalRaw, read the stored row's raw fields and preserve
             // them. If the row no longer exists, there is nothing to preserve and the encode path runs.

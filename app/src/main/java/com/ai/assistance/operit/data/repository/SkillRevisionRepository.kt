@@ -6,6 +6,7 @@ import com.ai.assistance.operit.data.learning.MigrationReport
 import com.ai.assistance.operit.data.learning.RowMigrationPlanner
 import com.ai.assistance.operit.data.learning.SkillRevision
 import com.ai.assistance.operit.data.learning.StringListMigration
+import com.ai.assistance.operit.data.learning.UnresolvedWriteGuard
 import com.ai.assistance.operit.data.model.SkillRevisionEntity
 import com.ai.assistance.operit.data.model.SkillRevisionEntity_
 import com.ai.assistance.operit.util.AppLogger
@@ -50,7 +51,12 @@ class SkillRevisionRepository(
      * For a NEW revision (always healthy) the default empty [originalRaw] is correct.
      */
     fun save(revision: SkillRevision, originalRaw: Map<String, String> = emptyMap()): Long {
-        val effectiveRaw = if (SkillRevisionEntity.hasUnresolvedFields(revision) && originalRaw.isEmpty() && revision.id != 0L) {
+        val effectiveRaw = if (UnresolvedWriteGuard.mustPreserveStoredRaw(
+                hasUnresolved = SkillRevisionEntity.hasUnresolvedFields(revision),
+                callerSuppliedRaw = originalRaw,
+                persistedId = revision.id
+            )
+        ) {
             val existing = revisionBox.get(revision.id)
             if (existing != null) {
                 SkillRevisionEntity.LIST_FIELDS.associateWith { existing.rawListField(it) }
