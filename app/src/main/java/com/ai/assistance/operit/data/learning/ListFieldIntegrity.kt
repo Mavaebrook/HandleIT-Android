@@ -20,6 +20,10 @@ data class ListFieldIntegrity(
     /** Original raw stored string, retained for recovery. Never render verbatim. */
     val rawStored: String = ""
 ) {
+    // Nested domain-object logging must not expose bytes retained solely for recovery.
+    override fun toString(): String =
+        "ListFieldIntegrity(fieldName=$fieldName, status=$status, reason=$reason, version=$version, rawStored=<redacted>)"
+
     enum class Status {
         /** Decoded cleanly (versioned or established legacy). The list is trustworthy. */
         HEALTHY,

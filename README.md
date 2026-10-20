@@ -201,6 +201,8 @@ Contributions to HandleIT's scripts, extensions, documentation, and core feature
 - [Changelog](CHANGELOG.md)
 - [Active development TODO](docs/TODO/reliable-learning-architect-20261016/index.md)
 - [Learning pipeline hardening TODO](docs/TODO/learning-pipeline-hardening-20261017/index.md)
+
+Learning-data integrity: unresolved list fields retain their original stored bytes on re-save, so edits to those lists are ignored until an explicit resolution path exists. Unresolved evidence contributes zero evidence. Recovery bytes are redacted in integrity/unresolved-codec diagnostics; this is not general-purpose log sanitization. Device upgrade verification remains pending (A01).
 - Building requires the external `subpack.zip`, `jniLibs.zip`, and `libs.zip` archives and an initialized `terminal` submodule; the default local STT model is fetched and verified according to `app/config/stt-model-assets.properties`
 - Community: [QQ Group](https://qm.qq.com/q/Sa4fKEH7sO) | [Discord](https://discord.gg/YnV9MWurRF)
 

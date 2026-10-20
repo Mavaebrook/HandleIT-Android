@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-20 — PR #2 diagnostic redaction
+
+- Redact retained recovery bytes from `ListFieldIntegrity` and unresolved codec `toString()` results, including nested episode/revision diagnostics. Original properties and verbatim re-save behavior remain intact.
+- Add a sentinel regression for corrupt, unsupported-version, and ambiguous payloads; fresh GitHub-hosted Build/Tests are PENDING for this change.
+- Document that unresolved evidence contributes zero and edits to unresolved lists are ignored in favor of the captured bytes. No explicit resolution API is introduced.
+- Verified the prior documentation correction at `5cf24170`; the older repair evidence below applies to `c50b399b`, not this cleanup. A01 device verification remains PENDING.
+
+
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
 ## 2026-10-19 — Learning pipeline hardening: Step 1 codec & data integrity repair

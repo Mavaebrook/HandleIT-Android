@@ -29,6 +29,39 @@ import org.junit.Test
  */
 class Step1CodecIntegrityRegressionTest {
 
+    @Test
+    fun unresolvedPayloads_areRedactedInDirectAndNestedDiagnosticsButStillResaveVerbatim() {
+        val sentinel = "PRIVATE_RECOVERY_SENTINEL"
+        val payloads = listOf(
+            "{\"v\":1,\"items\":[\"$sentinel\"",
+            "{\"v\":999,\"items\":[\"$sentinel\"]}",
+            "{\"legacy\":\"$sentinel\"}"
+        )
+        for (stored in payloads) {
+            val decoded = StringListCodec.decode(stored)
+            val episode = TaskEpisodeEntity(
+                taskSummary = "task",
+                requiredPrerequisitesJoined = stored
+            ).toEpisode()
+            val revision = SkillRevisionEntity(
+                skillId = "skill",
+                userConstraintsJoined = stored
+            ).toRevision()
+            val integrity = episode.listIntegrity.fields["requiredPrerequisitesJoined"]!!
+            assertTrue(integrity.isUnresolved)
+            for (diagnostic in listOf(
+                decoded.toString(), integrity.toString(), episode.listIntegrity.toString(),
+                episode.toString(), revision.toString()
+            )) {
+                assertFalse("recovery payload leaked into diagnostic", diagnostic.contains(sentinel))
+                assertTrue("diagnostic should mark redaction", diagnostic.contains("<redacted>"))
+            }
+            assertEquals(stored, integrity.rawStored)
+            assertEquals(stored, TaskEpisodeEntity.fromEpisode(episode).requiredPrerequisitesJoined)
+            assertEquals(stored, SkillRevisionEntity.fromRevision(revision).userConstraintsJoined)
+        }
+    }
+
     private var previousSystemLog = true
 
     @Before

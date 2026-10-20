@@ -207,13 +207,19 @@ object StringListCodec {
          * embeds a verbatim prefix of the stored input); [stored] is the original value so a caller
          * can inspect or preserve it.
          */
-        data class Corrupt(val stored: String, val reason: String) : DecodedList()
+        data class Corrupt(val stored: String, val reason: String) : DecodedList() {
+            // Preserve recovery bytes without exposing them through diagnostic stringification.
+            override fun toString(): String = "Corrupt(stored=<redacted>, reason=$reason)"
+        }
 
         /**
          * The value is a well-formed envelope whose `v` this codec does not support (a newer format
          * written by a later app version). The items are NOT guessed at.
          */
-        data class UnsupportedVersion(val version: Int, val stored: String) : DecodedList()
+        data class UnsupportedVersion(val version: Int, val stored: String) : DecodedList() {
+            // Preserve recovery bytes without exposing them through diagnostic stringification.
+            override fun toString(): String = "UnsupportedVersion(version=$version, stored=<redacted>)"
+        }
 
         /**
          * The stored bytes are brace-starting but do NOT start with the envelope-shaped prefix
@@ -225,7 +231,10 @@ object StringListCodec {
          * treat this as healthy-empty and must NOT rewrite it. This is the explicit honest
          * compatibility policy for brace-starting legacy text: the codec refuses to guess.
          */
-        data class Ambiguous(val stored: String, val reason: String) : DecodedList()
+        data class Ambiguous(val stored: String, val reason: String) : DecodedList() {
+            // Preserve recovery bytes without exposing them through diagnostic stringification.
+            override fun toString(): String = "Ambiguous(stored=<redacted>, reason=$reason)"
+        }
     }
 
     /**
