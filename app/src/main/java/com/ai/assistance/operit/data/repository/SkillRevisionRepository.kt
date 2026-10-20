@@ -6,7 +6,6 @@ import com.ai.assistance.operit.data.learning.MigrationReport
 import com.ai.assistance.operit.data.learning.RowMigrationPlanner
 import com.ai.assistance.operit.data.learning.SkillRevision
 import com.ai.assistance.operit.data.learning.StringListMigration
-import com.ai.assistance.operit.data.learning.UnresolvedWriteGuard
 import com.ai.assistance.operit.data.model.SkillRevisionEntity
 import com.ai.assistance.operit.data.model.SkillRevisionEntity_
 import com.ai.assistance.operit.util.AppLogger
@@ -34,48 +33,14 @@ class SkillRevisionRepository(
      * [SkillRevision.listIntegrity]. Re-encoding such a field would write `{"v":1,"items":[]}` and
      * DESTROY the original bytes.
      *
-     * Therefore, when re-saving a row that was read with unresolved integrity, pass [originalRaw]
-     * (field name → the row's [SkillRevisionEntity.rawListField] value) so the original bytes are
-     * preserved verbatim; otherwise the unresolved field would be re-encoded as an empty envelope.
-     * Use [SkillRevisionEntity.hasUnresolvedFields] to detect such a row, and
-     * [resavePreservingUnresolved] to do the round trip safely.
-     *
-     * ## Safe by default
-     *
-     * This method is SAFE BY DEFAULT: when [revision] has unresolved fields, [originalRaw] is empty
-     * and the revision has a stored id, the existing row's raw list bytes are read from the store and
-     * preserved automatically. A caller doing `save(toRevision())` therefore cannot erase the bytes
-     * of an unresolved row. An explicit [originalRaw] still takes precedence over the automatic read.
-     * If the row no longer exists there is nothing to preserve and the normal encode path runs.
-     *
-     * For a NEW revision (always healthy) the default empty [originalRaw] is correct.
+     * That cannot happen here: [SkillRevisionEntity.fromRevision] writes an unresolved field back
+     * with the raw bytes captured at read time in
+     * [com.ai.assistance.operit.data.learning.ListFieldIntegrity.rawStored]. The invariant lives in
+     * the entity write path, so this method needs no caller-supplied raw map and performs no DB read
+     * before the put.
      */
-    fun save(revision: SkillRevision, originalRaw: Map<String, String> = emptyMap()): Long {
-        val effectiveRaw = if (UnresolvedWriteGuard.mustPreserveStoredRaw(
-                hasUnresolved = SkillRevisionEntity.hasUnresolvedFields(revision),
-                callerSuppliedRaw = originalRaw,
-                persistedId = revision.id
-            )
-        ) {
-            val existing = revisionBox.get(revision.id)
-            if (existing != null) {
-                SkillRevisionEntity.LIST_FIELDS.associateWith { existing.rawListField(it) }
-            } else emptyMap()
-        } else originalRaw
-        return revisionBox.put(SkillRevisionEntity.fromRevision(revision, effectiveRaw))
-    }
-
-    /**
-     * Re-save a revision that was read from storage, preserving the original raw bytes of any
-     * unresolved list field. Reads the current stored row's raw fields and passes them to save().
-     * If the row no longer exists, falls back to saving with no originalRaw (a new row).
-     */
-    fun resavePreservingUnresolved(revision: SkillRevision): Long {
-        val existing = if (revision.id != 0L) revisionBox.get(revision.id) else null
-        val originalRaw = if (existing != null) {
-            SkillRevisionEntity.LIST_FIELDS.associateWith { existing.rawListField(it) }
-        } else emptyMap()
-        return save(revision, originalRaw)
+    fun save(revision: SkillRevision): Long {
+        return revisionBox.put(SkillRevisionEntity.fromRevision(revision))
     }
 
     fun all(): List<SkillRevision> = revisionBox.query().build().find().map { it.toRevision() }

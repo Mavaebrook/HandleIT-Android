@@ -3,13 +3,18 @@ package com.ai.assistance.operit.data.learning
 import com.ai.assistance.operit.data.model.TaskEpisode
 
 /**
- * Machine-readable applicability of a past episode to the present task.
+ * Machine-readable integrity eligibility of a past episode.
+ *
+ * INTEGRITY_ELIGIBLE means ONLY that the episode's stored list bytes decoded (its integrity is
+ * resolved). It does NOT assert that the episode is fully applicable to the present task:
+ * task-relative applicability is computed separately by [TaskEpisodeRetrieval.isPrerequisiteApplicable],
+ * [TaskEpisodeRetrieval.satisfiedPrerequisites] and [TaskEpisodeRetrieval.missingPrerequisites].
  *
  * INELIGIBLE_UNRESOLVED_INTEGRITY: the episode's requiredPrerequisites or applicableConstraints
  * could not be resolved from storage, so applicability cannot be established. The episode must not
  * be presented as applicable; the formatter emits a fixed caution instead.
  */
-enum class EpisodeApplicability { APPLICABLE, INELIGIBLE_UNRESOLVED_INTEGRITY }
+enum class EpisodeApplicability { INTEGRITY_ELIGIBLE, INELIGIBLE_UNRESOLVED_INTEGRITY }
 
 /**
  * Pure, bounded similar-task retrieval, independent-evidence deduplication, and
@@ -158,7 +163,7 @@ object TaskEpisodeRetrieval {
         val unresolved = episode.listIntegrity.fields.filterKeys {
             it == "requiredPrerequisitesJoined" || it == "applicableConstraintsJoined"
         }.values.any { it.isUnresolved }
-        return if (unresolved) EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY else EpisodeApplicability.APPLICABLE
+        return if (unresolved) EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY else EpisodeApplicability.INTEGRITY_ELIGIBLE
     }
 
     /**

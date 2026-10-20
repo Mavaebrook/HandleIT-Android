@@ -99,14 +99,12 @@ class Step1CodecIntegrityRedRegressionTest {
     }
 
     @Test
-    fun fromEpisode_partialCallerMap_preservesUncoveredUnresolvedBytes() {
+    fun fromEpisode_preservesUnresolvedBytesRegardlessOfCallerIntent() {
         val ep = corruptEpisodeEntity().toEpisode()
 
-        // A caller map that does NOT cover the unresolved field must not disable preservation of it.
-        val resaved = TaskEpisodeEntity.fromEpisode(
-            ep,
-            mapOf("evidenceKeysJoined" to "unrelated")
-        )
+        // There is no caller-supplied raw map any more: preservation is an invariant of the write
+        // path, so no caller intent can disable it for the unresolved field.
+        val resaved = TaskEpisodeEntity.fromEpisode(ep)
 
         assertEquals(truncatedRequiredPrerequisites, resaved.requiredPrerequisitesJoined)
     }

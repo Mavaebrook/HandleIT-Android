@@ -178,18 +178,14 @@ data class TaskEpisodeEntity(
          * An episode read from a row with an unresolved list field carries `emptyList()` for that
          * field, because the bytes could not be decoded. Blindly re-encoding it would write
          * `{"v":1,"items":[]}` and DESTROY the original bytes. Therefore, for any field whose
-         * [TaskEpisode.listIntegrity] entry is unresolved AND whose name is present in
-         * [originalRaw], the original raw stored string is written back VERBATIM (no re-encode).
+         * [TaskEpisode.listIntegrity] entry is unresolved, the raw stored string captured at read
+         * time in [ListFieldIntegrity.rawStored] is written back VERBATIM (no re-encode).
          *
-         * The caller must supply [originalRaw] (typically built from
-         * [TaskEpisodeEntity.rawListField] for each field of the row that was read) when re-saving a
-         * row that was read with unresolved integrity. Use [hasUnresolvedFields] to detect such a
-         * row and refuse an unsafe write when the original bytes are not available.
+         * This is an invariant of the write path, not a caller responsibility: no separately
+         * supplied raw map exists, so a caller cannot accidentally (or deliberately) erase the
+         * bytes of an unresolved field. Use [hasUnresolvedFields] to detect such a row.
          */
-        fun fromEpisode(
-            episode: TaskEpisode,
-            originalRaw: Map<String, String> = emptyMap()
-        ): TaskEpisodeEntity = TaskEpisodeEntity(
+        fun fromEpisode(episode: TaskEpisode): TaskEpisodeEntity = TaskEpisodeEntity(
             id = episode.id,
             taskSummary = episode.taskSummary,
             contextSummary = episode.contextSummary,
@@ -201,38 +197,40 @@ data class TaskEpisodeEntity(
             requiredPrerequisitesJoined = encodeField(
                 FIELD_REQUIRED_PREREQUISITES,
                 episode.requiredPrerequisites,
-                episode.listIntegrity,
-                originalRaw
+                episode.listIntegrity
             ),
             applicableConstraintsJoined = encodeField(
                 FIELD_APPLICABLE_CONSTRAINTS,
                 episode.applicableConstraints,
-                episode.listIntegrity,
-                originalRaw
+                episode.listIntegrity
             ),
             evidenceKeysJoined = encodeField(
                 FIELD_EVIDENCE_KEYS,
                 episode.evidenceKeys,
-                episode.listIntegrity,
-                originalRaw
+                episode.listIntegrity
             ),
             relatedSkillVersion = episode.relatedSkillVersion,
             createdAt = Date(if (episode.createdAtMs > 0L) episode.createdAtMs else System.currentTimeMillis())
         )
 
         /**
-         * Encode one list column for [fromEpisode], preserving the original raw bytes when the field
-         * is unresolved and the caller supplied them.
+         * Encode one list column for [fromEpisode].
+         *
+         * DELIBERATE INVARIANT: an unresolved field (corrupt, unsupported version, or ambiguous
+         * provenance) is written back with the raw bytes captured at read time in
+         * [ListFieldIntegrity.rawStored]. The decoded list for such a field is empty for a reason
+         * unrelated to the data, so re-encoding it would silently erase the original bytes. A caller
+         * cannot override this with a separately supplied map: explicit resolution requires a
+         * resolved (healthy) integrity state, not a raw override.
          */
         private fun encodeField(
             fieldName: String,
             values: List<String>,
-            integrity: RowListIntegrity,
-            originalRaw: Map<String, String>
+            integrity: RowListIntegrity
         ): String {
-            val unresolved = integrity.fields[fieldName]?.isUnresolved == true
-            if (unresolved && originalRaw.containsKey(fieldName)) {
-                return originalRaw.getValue(fieldName)
+            val fieldIntegrity = integrity.fields[fieldName]
+            if (fieldIntegrity != null && fieldIntegrity.isUnresolved) {
+                return fieldIntegrity.rawStored
             }
             return StringListCodec.encode(values)
         }

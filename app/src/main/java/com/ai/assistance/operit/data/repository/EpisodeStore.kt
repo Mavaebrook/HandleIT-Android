@@ -13,11 +13,12 @@ interface EpisodeStore {
     /**
      * Persist [episode].
      *
-     * [originalRaw] maps a list field name to the raw stored string of the row being re-saved. It
-     * must be supplied when re-saving a row read with unresolved list integrity, so the original
-     * bytes of an undecodable field are preserved instead of being re-encoded as an empty envelope.
-     * New (healthy) episodes use the default empty map.
+     * Unresolved list fields are preserved from the domain object's captured
+     * [com.ai.assistance.operit.data.learning.ListFieldIntegrity.rawStored] inside
+     * [com.ai.assistance.operit.data.model.TaskEpisodeEntity.fromEpisode]: an undecodable field is
+     * written back with its original bytes instead of being re-encoded as an empty envelope. There
+     * is no caller-supplied raw map, so a caller cannot erase those bytes.
      */
-    fun save(episode: TaskEpisode, originalRaw: Map<String, String> = emptyMap()): Long
+    fun save(episode: TaskEpisode): Long
     suspend fun indexSavedEpisode(episodeId: Long, episode: TaskEpisode)
 }

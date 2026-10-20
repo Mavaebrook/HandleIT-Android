@@ -180,8 +180,9 @@ object StringListCodec {
          * shape, missing `items`, non-string item, trailing junk, ...). This is corruption and must
          * be surfaced, never reinterpreted as legacy and never returned as an empty list.
          *
-         * [reason] is a short, non-sensitive description for logging; [stored] is the original value
-         * so a caller can inspect or preserve it.
+         * [reason] is a FIXED, short, non-sensitive code for logging (never the parser message, which
+         * embeds a verbatim prefix of the stored input); [stored] is the original value so a caller
+         * can inspect or preserve it.
          */
         data class Corrupt(val stored: String, val reason: String) : DecodedList()
 
@@ -196,10 +197,10 @@ object StringListCodec {
          * (`{` … `"v"` … `:`), so they could be either a legacy literal string that happens to be
          * brace-starting OR a versioned envelope whose provenance cannot be proven.
          *
-         * The bytes are preserved verbatim in [stored]; [reason] is a short, non-sensitive
-         * description for logging. The caller must NOT treat this as healthy-empty and must NOT
-         * rewrite it. This is the explicit honest compatibility policy for brace-starting legacy
-         * text: the codec refuses to guess.
+         * The bytes are preserved verbatim in [stored]; [reason] is a FIXED, short, non-sensitive
+         * code for logging (it never contains any part of the stored input). The caller must NOT
+         * treat this as healthy-empty and must NOT rewrite it. This is the explicit honest
+         * compatibility policy for brace-starting legacy text: the codec refuses to guess.
          */
         data class Ambiguous(val stored: String, val reason: String) : DecodedList()
     }
@@ -246,14 +247,16 @@ object StringListCodec {
         val envelope = try {
             json.decodeFromString(Envelope.serializer(), stored)
         } catch (e: kotlinx.serialization.SerializationException) {
-            // Not a fallback: a value that looks like the envelope and fails to parse is either a
-            // recognized-but-malformed versioned payload (Corrupt) or brace-starting text whose
-            // provenance cannot be proven (Ambiguous). It is never silently reinterpreted as legacy.
-            return classifyUnparseable(stored, e.message ?: "invalid envelope JSON")
+            // A value that looks like the envelope and fails to parse is either a recognized-but-
+            // malformed versioned payload (Corrupt) or brace-starting text whose provenance cannot be
+            // proven (Ambiguous). It is never silently reinterpreted as legacy. The reason is a FIXED
+            // code, never the parser message: kotlinx.serialization messages embed a verbatim prefix
+            // of the stored input ("JSON input: ..."), which would leak untrusted bytes into logs.
+            return classifyUnparseable(stored, "malformed-envelope")
         } catch (e: IllegalArgumentException) {
-            // kotlinx.serialization throws IllegalArgumentException for some malformed inputs
-            // (e.g. a non-string element). Same reasoning as above.
-            return classifyUnparseable(stored, e.message ?: "invalid envelope JSON")
+            // kotlinx.serialization can throw IllegalArgumentException for some malformed inputs.
+            // Same fixed-code reasoning as above.
+            return classifyUnparseable(stored, "malformed-envelope")
         }
         if (envelope.v !in SUPPORTED_VERSIONS) {
             return DecodedList.UnsupportedVersion(version = envelope.v, stored = stored)

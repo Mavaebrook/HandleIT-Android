@@ -7,7 +7,6 @@ import com.ai.assistance.operit.data.learning.RowMigrationPlanner
 import com.ai.assistance.operit.data.learning.StringListMigration
 import com.ai.assistance.operit.data.learning.TaskEpisodeRetrieval
 import com.ai.assistance.operit.data.learning.TaskEpisodeVectorIndex
-import com.ai.assistance.operit.data.learning.UnresolvedWriteGuard
 import com.ai.assistance.operit.data.model.TaskEpisode
 import com.ai.assistance.operit.data.model.TaskEpisodeEntity
 import com.ai.assistance.operit.data.model.TaskEpisodeEntity_
@@ -44,51 +43,17 @@ class TaskEpisodeRepository(
      * [TaskEpisode.listIntegrity]. Re-encoding such a field would write `{"v":1,"items":[]}` and
      * DESTROY the original bytes.
      *
-     * Therefore, when re-saving a row that was read with unresolved integrity, pass [originalRaw]
-     * (field name → the row's [TaskEpisodeEntity.rawListField] value) so the original bytes are
-     * preserved verbatim; otherwise the unresolved field would be re-encoded as an empty envelope.
-     * Use [TaskEpisodeEntity.hasUnresolvedFields] to detect such a row, and
-     * [resavePreservingUnresolved] to do the round trip safely.
-     *
-     * ## Safe by default
-     *
-     * This method is SAFE BY DEFAULT: when [episode] has unresolved fields, [originalRaw] is empty
-     * and the episode has a stored id, the existing row's raw list bytes are read from the store and
-     * preserved automatically. A caller doing `save(toEpisode())` therefore cannot erase the bytes of
-     * an unresolved row. An explicit [originalRaw] still takes precedence over the automatic read.
-     * If the row no longer exists there is nothing to preserve and the normal encode path runs.
-     *
-     * For a NEW episode (always healthy) the default empty [originalRaw] is correct.
+     * That cannot happen here: [TaskEpisodeEntity.fromEpisode] writes an unresolved field back with
+     * the raw bytes captured at read time in
+     * [com.ai.assistance.operit.data.learning.ListFieldIntegrity.rawStored]. The invariant lives in
+     * the entity write path, so this method needs no caller-supplied raw map and performs no DB read
+     * before the put.
      */
-    override fun save(episode: TaskEpisode, originalRaw: Map<String, String>): Long {
-        val effectiveRaw = if (UnresolvedWriteGuard.mustPreserveStoredRaw(
-                hasUnresolved = TaskEpisodeEntity.hasUnresolvedFields(episode),
-                callerSuppliedRaw = originalRaw,
-                persistedId = episode.id
-            )
-        ) {
-            // Safe-by-default: an unresolved row must not have its original bytes erased by a re-save.
-            // When the caller did not supply originalRaw, read the stored row's raw fields and preserve
-            // them. If the row no longer exists, there is nothing to preserve and the encode path runs.
-            val existing = episodeBox.get(episode.id)
-            if (existing != null) {
-                TaskEpisodeEntity.LIST_FIELDS.associateWith { existing.rawListField(it) }
-            } else emptyMap()
-        } else originalRaw
-        return episodeBox.put(TaskEpisodeEntity.fromEpisode(episode, effectiveRaw))
-    }
-
-    /**
-     * Re-save an episode that was read from storage, preserving the original raw bytes of any
-     * unresolved list field. Reads the current stored row's raw fields and passes them to save().
-     * If the row no longer exists, falls back to saving with no originalRaw (a new row).
-     */
-    fun resavePreservingUnresolved(episode: TaskEpisode): Long {
-        val existing = if (episode.id != 0L) episodeBox.get(episode.id) else null
-        val originalRaw = if (existing != null) {
-            TaskEpisodeEntity.LIST_FIELDS.associateWith { existing.rawListField(it) }
-        } else emptyMap()
-        return save(episode, originalRaw)
+    override fun save(episode: TaskEpisode): Long {
+        // Unresolved list fields are preserved from the domain object's captured
+        // listIntegrity.rawStored inside TaskEpisodeEntity.fromEpisode. No DB read is needed, so
+        // there is no read/put race and no all-or-nothing caller map to get wrong.
+        return episodeBox.put(TaskEpisodeEntity.fromEpisode(episode))
     }
 
     /**

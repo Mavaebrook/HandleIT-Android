@@ -12,9 +12,10 @@ import com.ai.assistance.operit.data.model.TaskEpisode
  * they are never presented as verified facts, and the block never issues new user mandates.
  *
  * FAIL CLOSED ON UNRESOLVED STORAGE (Step 1, Area C): an episode whose prerequisite/constraint
- * record could not be decoded from storage is not presented as applicable. It gets a FIXED caution
- * line instead, and its per-prerequisite caution computation is skipped because the prerequisite
- * list is empty for a reason unrelated to the present task.
+ * record could not be decoded from storage is not presented as applicable. Only its neutral task
+ * identification line and a FIXED caution line are rendered: the resolution/action and cause
+ * content are NOT rendered, and its per-prerequisite caution computation is skipped because the
+ * prerequisite list is empty for a reason unrelated to the present task.
  */
 object TaskPreflightFormatter {
 
@@ -56,7 +57,8 @@ object TaskPreflightFormatter {
      *  - an episode whose prerequisite/constraint record is unresolved
      *    ([TaskEpisodeRetrieval.episodeApplicability] ==
      *    [EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY]) is NOT presented as applicable:
-     *    a fixed caution line is emitted and the per-prerequisite computation is skipped;
+     *    only the neutral task line and a fixed caution line are emitted. Its resolution/action and
+     *    cause content are NOT rendered, and the per-prerequisite computation is skipped;
      *  - a prerequisite that does NOT apply to the present task is not rendered;
      *  - a prerequisite that applies AND is evidently covered by the request text
      *    ([TaskEpisodeRetrieval.satisfiedPrerequisites]) is not rendered as a caution;
@@ -79,18 +81,22 @@ object TaskPreflightFormatter {
             val task = truncate(episode.taskSummary)
             if (task.isEmpty()) return@forEach
             val outcome = episode.outcome
+            val applicability = TaskEpisodeRetrieval.episodeApplicability(episode)
+            if (applicability == EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY) {
+                // Ineligible: the prerequisite/constraint record could not be resolved, so the
+                // lesson must NOT be presented as applicable advice. Emit only the neutral task
+                // identification and the fixed, bounded caution. Resolution/action and cause content
+                // are deliberately NOT rendered. No raw stored value, field name or reason is shown.
+                lines.add("- [$outcome] $task")
+                lines.add(if (useEnglish) UNRESOLVED_RECORD_NOTE_EN else UNRESOLVED_RECORD_NOTE_ZH)
+                return@forEach
+            }
             val resolution = truncate(episode.resolutionSummary)
             val cause = truncate(episode.causeSummary)
             val causeLabel = if (episode.causeIsHypothesis) "hypothesis" else "cause"
             lines.add("- [$outcome] $task" + if (resolution.isNotEmpty()) " -> $resolution" else "")
             if (cause.isNotEmpty()) {
                 lines.add("    $causeLabel: $cause")
-            }
-            val applicability = TaskEpisodeRetrieval.episodeApplicability(episode)
-            if (applicability == EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY) {
-                // Fixed, bounded caution. No raw stored value, field name or reason is rendered.
-                lines.add(if (useEnglish) UNRESOLVED_RECORD_NOTE_EN else UNRESOLVED_RECORD_NOTE_ZH)
-                return@forEach
             }
             val applicablePrereqs = episode.requiredPrerequisites.filter { prereq ->
                 TaskEpisodeRetrieval.isPrerequisiteApplicable(prereq, currentTaskContext)
