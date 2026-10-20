@@ -230,6 +230,12 @@ data class TaskEpisodeEntity(
         ): String {
             val fieldIntegrity = integrity.fields[fieldName]
             if (fieldIntegrity != null && fieldIntegrity.isUnresolved) {
+                // An unresolved field must always carry the raw bytes captured at read time. If rawStored
+                // is empty here the integrity metadata was hand-constructed without its bytes; writing an
+                // empty column would silently erase the unresolved field. Fail loudly instead of erasing.
+                require(fieldIntegrity.rawStored.isNotEmpty()) {
+                    "unresolved field '$fieldName' has no captured raw bytes; refusing to write an empty column"
+                }
                 return fieldIntegrity.rawStored
             }
             return StringListCodec.encode(values)

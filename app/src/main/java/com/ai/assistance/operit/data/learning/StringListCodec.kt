@@ -118,6 +118,29 @@ import kotlinx.serialization.json.Json
  *  - Existing Step1 envelopes (`{"v":1,...}`) parse as [DecodedList.Versioned] and are left
  *    byte-identical, so the migration is idempotent.
  *
+ * ## Envelope-shaped legacy literal collision: PARTIAL / BLOCKED
+ *
+ * There is one case this codec CANNOT resolve under the fixed schema, and it is stated here
+ * explicitly rather than papered over with a heuristic:
+ *
+ *  - A pre-Step1 legacy value that happens to be a well-formed envelope-shaped JSON object
+ *    (e.g. a legacy item literally equal to `{"v":1,"items":["a"]}`) is byte-indistinguishable
+ *    from a real versioned envelope. The strict parse succeeds, so it is decoded as
+ *    [DecodedList.Versioned] and reported HEALTHY. Its provenance (legacy literal vs. real
+ *    envelope) is NOT provable from the bytes alone.
+ *
+ * Status: **PARTIAL / BLOCKED.** This is a documented, accepted limitation, not a defect to be
+ * fixed by more parsing. No additional heuristic can separate the two cases without a durable
+ * discriminator that the fixed schema does not carry. The unresolved bytes are never destroyed:
+ * a value that fails the strict parse is preserved verbatim as [DecodedList.Corrupt] or
+ * [DecodedList.Ambiguous] and is never rewritten. Only the *successfully-parsed* collision case
+ * is silently treated as an envelope, and that is the honest structural inference described above.
+ *
+ * The durable fix (a persistent per-field format discriminator, or a one-time migration that
+ * stamps provenance) is a schema change and is OUT OF SCOPE for this repair; it is recorded as a
+ * design decision in the Step 1 plan doc, not implemented here. This codec does NOT claim
+ * universal legacy/envelope compatibility.
+ *
  * ## Legacy data is already lossy
  *
  * Legacy rows were written by the old join, so any newline inside an item, any empty item and any
@@ -246,14 +269,14 @@ object StringListCodec {
         }
         val envelope = try {
             json.decodeFromString(Envelope.serializer(), stored)
-        } catch (e: kotlinx.serialization.SerializationException) {
+        } catch (_: kotlinx.serialization.SerializationException) {
             // A value that looks like the envelope and fails to parse is either a recognized-but-
             // malformed versioned payload (Corrupt) or brace-starting text whose provenance cannot be
             // proven (Ambiguous). It is never silently reinterpreted as legacy. The reason is a FIXED
             // code, never the parser message: kotlinx.serialization messages embed a verbatim prefix
             // of the stored input ("JSON input: ..."), which would leak untrusted bytes into logs.
             return classifyUnparseable(stored, "malformed-envelope")
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             // kotlinx.serialization can throw IllegalArgumentException for some malformed inputs.
             // Same fixed-code reasoning as above.
             return classifyUnparseable(stored, "malformed-envelope")

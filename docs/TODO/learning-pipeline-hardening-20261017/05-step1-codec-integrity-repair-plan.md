@@ -126,3 +126,20 @@ the evidence limit; do not manufacture a red run.
 - [ ] E. Whole-row migration: NEEDS_ATTENTION untouched in memory+disk; idempotent; later-field case.
 - [ ] Schema unchanged (default.json blob identical).
 - [ ] Red regressions demonstrated on branch; green on repaired SHA; independent review.
+
+## Bridge #38 recovery checkpoint (2026-10-20)
+
+- Recovered state: no orchestrator checkpoint row existed for parent github-38 (handleit.db has no parent/child or checkpoint table); recovery used the published red tests + #38 instructions, not an invented state.
+- Worktree /home/teddy/HandleIT-Android-work was clean on branch fix/step1-codec-integrity at HEAD 66887f07 (one commit ahead of red commit 02e8f029, unpushed at recovery time). No stashes, no untracked task files, no uncommitted changes to preserve.
+- Commit 66887f07 already implemented fix areas 1 (entity encodeField preserves rawStored unconditionally; originalRaw map removed; no DB read/put race; id=0 covered), 2 (preflight gates INELIGIBLE_UNRESOLVED_INTEGRITY before emitting resolution/cause; bounded fixed caution), 3 (bounded fixed diagnostic codes, no parser messages), and 5 (destructive-default test removed; guard test removed with deleted UnresolvedWriteGuard).
+- Remaining work at recovery: fix area 4 (explicit PARTIAL/BLOCKED provenance statement for envelope-shaped legacy literal collision) plus non-blocking hardening (rawStored empty guard, field-name constants, unused catch bindings, stale CHANGELOG/index wording describing deleted originalRaw/resavePreservingUnresolved/UnresolvedWriteGuard).
+- Next edits: (a) add PARTIAL/BLOCKED provenance statement + durable-discriminator design decision (documentation only, no new schema); (b) harden encodeField against empty rawStored; (c) replace hardcoded field-name literals in TaskEpisodeRetrieval with entity constants; (d) fix unused catch bindings; (e) correct stale docs.
+
+## Envelope provenance: durable-discriminator / migration design decision (recorded, NOT implemented)
+
+- Problem: under the fixed schema a legacy literal that is byte-identical to a versioned envelope cannot be distinguished from a real envelope. This is the one PARTIAL/BLOCKED case in the codec (see StringListCodec KDoc "Envelope-shaped legacy literal collision: PARTIAL / BLOCKED").
+- Decision: do NOT attempt to solve this with more parsing heuristics. Heuristics cannot prove historical intent and would risk misclassifying healthy current writes.
+- Durable option 1 (preferred, future): add a persistent per-field format discriminator (a small enum/int column or a sentinel-prefixed envelope version) so provenance is recorded at write time and never inferred. This is a schema change (new column / new entity field) and is explicitly OUT OF SCOPE here; it must go through the normal ObjectBox schema-change review (default.json change, UID assignment, migration).
+- Durable option 2 (alternative): a one-time migration that stamps every existing row's provenance by re-encoding through the codec and recording the decode outcome, so future reads never need to infer. Also a schema/data change, out of scope here.
+- Interim behavior (this repair): preserve unresolved bytes verbatim (Corrupt/Ambiguous), never rewrite them, and treat the successfully-parsed collision as an envelope with the honest structural-inference caveat. No universal-compatibility claim is made.
+- This decision is recorded so a future schema-change task can pick it up; it is NOT implemented in this repair and no new schema is added.

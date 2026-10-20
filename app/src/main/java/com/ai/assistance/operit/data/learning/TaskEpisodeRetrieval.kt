@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.data.learning
 
 import com.ai.assistance.operit.data.model.TaskEpisode
+import com.ai.assistance.operit.data.model.TaskEpisodeEntity
 
 /**
  * Machine-readable integrity eligibility of a past episode.
@@ -161,7 +162,8 @@ object TaskEpisodeRetrieval {
      */
     fun episodeApplicability(episode: TaskEpisode): EpisodeApplicability {
         val unresolved = episode.listIntegrity.fields.filterKeys {
-            it == "requiredPrerequisitesJoined" || it == "applicableConstraintsJoined"
+            it == TaskEpisodeEntity.FIELD_REQUIRED_PREREQUISITES ||
+                it == TaskEpisodeEntity.FIELD_APPLICABLE_CONSTRAINTS
         }.values.any { it.isUnresolved }
         return if (unresolved) EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY else EpisodeApplicability.INTEGRITY_ELIGIBLE
     }

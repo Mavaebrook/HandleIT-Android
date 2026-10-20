@@ -460,4 +460,38 @@ class Step1CodecIntegrityRegressionTest {
         // The original bytes are retained, NOT re-encoded to an empty envelope.
         assertEquals(entity.requiredPrerequisitesJoined, resaved.requiredPrerequisitesJoined)
     }
+
+    @Test
+    fun envelopeShapedLegacyLiteral_collisionIsDocumentedPartialBlocked() {
+        // PARTIAL / BLOCKED (documented limitation, see StringListCodec KDoc "Envelope-shaped legacy
+        // literal collision: PARTIAL / BLOCKED"). A pre-Step1 legacy value that is byte-identical to a
+        // versioned envelope cannot be distinguished from a real envelope under the fixed schema. The
+        // strict parse succeeds, so it decodes as Versioned and is reported HEALTHY. This test PINS that
+        // accepted behavior so it cannot silently change; it does NOT claim the collision is resolved.
+        // The durable fix (a persistent discriminator / provenance-stamping migration) is a schema change
+        // recorded in the Step 1 plan doc and is out of scope here.
+        val envelopeShapedLegacyLiteral = "{\"v\":1,\"items\":[\"a\"]}"
+
+        val decoded = StringListCodec.decode(envelopeShapedLegacyLiteral)
+
+        assertTrue(
+            "collision case is accepted as Versioned (PARTIAL/BLOCKED); got: $decoded",
+            decoded is StringListCodec.DecodedList.Versioned
+        )
+        assertEquals(
+            listOf("a"),
+            (decoded as StringListCodec.DecodedList.Versioned).items
+        )
+        // And at the integrity layer it is reported HEALTHY (not unresolved), which is exactly why the
+        // collision is a documented limitation rather than a fail-closed case.
+        val entity = TaskEpisodeEntity(
+            id = 99L,
+            taskSummary = "task",
+            requiredPrerequisitesJoined = envelopeShapedLegacyLiteral
+        )
+        assertFalse(
+            "collision case decodes HEALTHY, so it is not flagged unresolved",
+            entity.toEpisode().listIntegrity.hasUnresolved
+        )
+    }
 }
