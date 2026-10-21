@@ -2,6 +2,24 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-21 — Learning pipeline hardening: memory reinforcement, propagation floor (D04 / R10)
+
+Bounded repair of three memory-salience defects from the learning-pipeline hardening findings (R10). Two items are implemented; the salience N+1 item is blocked by the ObjectBox schema constraint and is left unchanged (see the TODO findings note). No ObjectBox schema change: `app/objectbox-models/default.json` is byte-for-byte unchanged. No new model calls. Documentation and source changes only; no build or test was run on the VPS or any local machine. Nothing here is device-verified.
+
+### Fixed
+- `MemoryLibrary` (D04a): reinforcement now fires only on normalized content novelty via the pure `MemoryContentNovelty.isNovel` (trim, collapse whitespace runs, normalize line breaks, case-insensitive), instead of raw string inequality. Cosmetic edits — trailing/leading whitespace, re-wrapped lines, case-only changes — no longer inflate occurrence counts. No embeddings or model calls.
+- `MemoryRepository` (D04c): removed the unconditional `basePropagationScore = 0.03 * effectiveEdgeWeight` that was added to every traversed graph edge regardless of relevance. Propagation now uses the pure `MemoryPropagationScoring.propagatedScore`, where edge weight alone determines the score and a zero/negative-weight link contributes nothing. This is a behavior change: semantically meaningless neighbours are no longer boosted into results. No other constants retuned.
+
+### Not changed
+- Salience N+1 (D04b): `loadMemorySalienceMetadata` still issues one property query per memory. Batching requires a schema change (`MemoryProperty` has no queryable `memoryId`), which is out of scope; the code is intentionally left unchanged rather than partially patched.
+
+### Tests
+- Added `MemoryContentNoveltyTest` (JVM) — whitespace-only, re-wrapped, collapsed-run and case-only edits are not novel; genuine content changes are.
+- Added `MemoryPropagationScoringTest` (JVM) — a zero-weight link contributes no score; edge weight is the determinant.
+
+### CI
+- Pending: GitHub-hosted Android Build / Android Tests on branch `fix/memory-reinforcement-d04` (base `origin/main` 5b3277cf). Run IDs to be recorded once available.
+
 ## 2026-10-20 — Learning pipeline hardening: D06 safe memory rendering and G02 execution-route audit
 
 D06 is implemented: retrieved episode text is now rendered inside a fixed, sanitized, provenance-labelled fence instead of being interpolated verbatim into the SYSTEM prompt. G02 is audit-only: the execution-route audit is complete and recorded, but no enforcement is implemented. A01 device evidence is recorded as PARTIAL, based on user-reported device observation rather than CI verification. Documentation and source changes only; no build or test was run on the VPS or any local machine.
