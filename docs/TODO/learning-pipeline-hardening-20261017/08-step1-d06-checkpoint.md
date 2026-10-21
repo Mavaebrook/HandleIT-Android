@@ -6,6 +6,10 @@ This is the single authoritative "final code SHA" for this branch. Earlier revis
 checkpoint named `adfcf154` and then `edbe22a8` as the final code SHA; both of those claims are
 superseded and are retained below only as history. `edbe22a8` did not compile.
 
+The documentation commit `e6000c3f` sits on top of `49ad9977` and is documentation-only (three doc
+files, no source or workflow change), so it needs no CI run of its own; the green runs below verify
+the code at `49ad9977`.
+
 ## Branch and commits
 
 - Branch: `fix/step1-d06-safe-memory-rendering`
@@ -27,6 +31,7 @@ Commit history on this branch, oldest → newest:
 | `edbe22a846b237495b924080cbf0130af6eeb9ea` | attempted `Pattern.UNICODE_CHARACTER_CLASS` fix — **DID NOT COMPILE** |
 | `64bf104aad36273b91cad7a849c70d23c981730d` | record compile fix + fourth dispatch |
 | `49ad9977732bd57566fd78aa7933c65ef5f766f4` | **CURRENT FINAL CODE SHA**: compile-safe regex + truncation well-formedness + blank outcome |
+| `e6000c3f` | docs only: record the green CI result (no CI run needed) |
 
 ## Completed criteria
 
@@ -112,14 +117,29 @@ triggers on a feature-branch push, so every dispatch below was manual.
 | `dce76750` | run [39529855733](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39529855733) **CANCELLED** | run [39529857659](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39529857659) **CANCELLED** — superseded by the next dispatch |
 | `adfcf154` | run [39530282737](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39530282737) **CANCELLED** | run [39530284722](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39530284722) **FAILURE** — Kotlin compile: `TaskPreflightFormatter.kt:354 Unresolved reference 'UNICODE_CHARACTER_CLASS'` (`RegexOption` has no such member) |
 | `edbe22a8` | run [39531073371](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39531073371) **FAILURE** | run [39531075607](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39531075607) **FAILURE** — Kotlin compile: `Cannot access 'constructor(nativePattern: Pattern): Regex': it is internal in 'kotlin.text.Regex'` |
-| `49ad9977` (CURRENT) | run [39534113610](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534113610) **PENDING** | run [39534111508](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534111508) **PENDING** |
+| `49ad9977` (CURRENT) | run [39534113610](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534113610) **SUCCESS** | run [39534111508](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534111508) **SUCCESS** |
 
-No CI run on this branch has yet been green on both workflows. Nothing here is CI-verified.
+Both workflows are now GREEN on `49ad9977`; this is the first green pair on this branch.
+
+- Android Tests run [39534111508](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534111508):
+  status `completed`, conclusion `SUCCESS`; job "Android JVM tests" success, step 15 "Run JVM unit
+  tests" success; created 2026-10-21T02:38:11Z, completed 2026-10-21T02:47:16Z (~9 min); no failed
+  steps.
+- Android Build run [39534113610](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534113610):
+  status `completed`, conclusion `SUCCESS`; job "Build Android artifacts" success, step 20
+  "Configure APK signing keystore" success, step 21 "Run Gradle build" success, step 23 "Upload
+  successful Android outputs" success; created 2026-10-21T02:38:12Z, completed
+  2026-10-21T02:53:47Z (~15.5 min); no failed steps.
+
+Honest scope of that green result: CI verifies that the code COMPILES and that the JVM unit tests
+PASS. It does NOT verify device behavior, does NOT verify A01 historical entity preservation, and
+does NOT change D06's PARTIAL status.
 
 ## Remaining work
 
-- [ ] CI outcome for the fifth dispatch on the current final code SHA `49ad9977` (Android Tests run
-      39534111508, Android Build run 39534113610; both PENDING at checkpoint time).
+- [x] CI outcome for the fifth dispatch on the current final code SHA `49ad9977`: both workflows
+      GREEN — Android Tests run 39534111508 SUCCESS, Android Build run 39534113610 SUCCESS (first
+      green pair on this branch).
 - [ ] PR #3 review and merge (left unmerged by design; requires explicit authorization).
 - [ ] A01 full verification requires a compatible populated historical baseline, established separately.
 - [ ] G02 enforcement implementation (separate task; audit only here).
@@ -139,18 +159,21 @@ No CI run on this branch has yet been green on both workflows. Nothing here is C
 
 ## Next action
 
-1. Poll Android Tests run [39534111508](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534111508)
-   and Android Build run [39534113610](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534113610)
-   on `49ad9977`.
-2. If either fails, read the failing job log, fix within scope on this branch, and re-dispatch BOTH
-   workflows on the new SHA.
-3. Do not merge PR #3 without explicit authorization.
+1. CI is green on `49ad9977`: Android Tests run
+   [39534111508](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534111508) SUCCESS and
+   Android Build run [39534113610](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534113610)
+   SUCCESS.
+2. The next action is the PR [#3](https://github.com/Mavaebrook/HandleIT-Android/pull/3) review
+   handoff: hand the branch and this checkpoint to the human reviewer.
+3. Merging PR #3 requires explicit authorization. This agent stops at review handoff and does not
+   merge.
 
 ## Resume instructions
 
-If this task is resumed: the current final code SHA is `49ad9977732bd57566fd78aa7933c65ef5f766f4`.
-Check the run URLs 39534111508 (Android Tests) and 39534113610 (Android Build) for the outcome of
-the fifth dispatch. If CI failed, read the failing job log, fix on this branch, and re-dispatch both
-workflows on the new final SHA. Do not run Gradle/build/tests locally. Do not merge PR #3 without
-explicit authorization. Do not touch `app/objectbox-models/default.json` or any source file as part
-of a documentation-only resume.
+If this task is resumed: the current final code SHA is `49ad9977732bd57566fd78aa7933c65ef5f766f4`,
+and CI is GREEN on it — Android Tests run 39534111508 SUCCESS, Android Build run 39534113610
+SUCCESS (first green pair on this branch). The documentation commit `e6000c3f` sits on top of
+`49ad9977` and is documentation-only, so it needs no CI run. The remaining work is: PR #3
+review/merge authorization, the A01 baseline, and G02 enforcement. Do not run Gradle/build/tests
+locally. Do not merge PR #3 without explicit authorization. Do not touch
+`app/objectbox-models/default.json` or any source file as part of a documentation-only resume.

@@ -27,15 +27,15 @@ D06 is implemented: retrieved episode text is now rendered inside a fixed, sanit
 - The stale KDoc on the existing `buildPreflightBlock_unicodeLineSeparator_isNeutralized` test was corrected; its assertions are unchanged. No existing test was weakened.
 
 ### CI
-All runs are GitHub-hosted Actions, all triggered by `workflow_dispatch` (neither workflow triggers on a feature-branch push). No run on this branch has yet been green on both workflows.
+All runs are GitHub-hosted Actions, all triggered by `workflow_dispatch` (neither workflow triggers on a feature-branch push). Both workflows are now green on `49ad9977`; this is the first green pair on this branch.
 
 - `5340951b`: Android Build run [39526251675](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39526251675) SUCCESS; Android Tests run [39526269306](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39526269306) FAILURE (1 test: the unresolved-row test used `TaskEpisodeEntity.toEpisode()` → `AppLogger.e` → `android.util.Log.e` "not mocked" on the JVM).
 - `dce76750`: Android Build run [39529855733](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39529855733) CANCELLED; Android Tests run [39529857659](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39529857659) CANCELLED (superseded by the next dispatch).
 - `adfcf154`: Android Build run [39530282737](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39530282737) CANCELLED; Android Tests run [39530284722](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39530284722) FAILURE (Kotlin compile: `TaskPreflightFormatter.kt:354 Unresolved reference 'UNICODE_CHARACTER_CLASS'`).
 - `edbe22a8`: Android Build run [39531073371](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39531073371) FAILURE; Android Tests run [39531075607](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39531075607) FAILURE (Kotlin compile: `Cannot access 'constructor(nativePattern: Pattern): Regex': it is internal in 'kotlin.text.Regex'`).
-- `49ad9977` (current final code SHA): Android Tests run [39534111508](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534111508) **PENDING**; Android Build run [39534113610](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534113610) **PENDING**.
+- `49ad9977` (current final code SHA): Android Tests run [39534111508](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534111508) **SUCCESS** (job "Android JVM tests" success, step 15 "Run JVM unit tests" success; ~9 min); Android Build run [39534113610](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534113610) **SUCCESS** (job "Build Android artifacts" success, steps 20 "Configure APK signing keystore", 21 "Run Gradle build" and 23 "Upload successful Android outputs" success; ~15.5 min). No failed steps in either run.
 
-CI success is NOT claimed. PR [#3](https://github.com/Mavaebrook/HandleIT-Android/pull/3) is open and unmerged by design.
+Both workflows are green on `49ad9977` (Android Tests run 39534111508 and Android Build run 39534113610, both SUCCESS). CI verifies compilation and the JVM unit tests only; it does NOT verify device behavior, does NOT verify A01 historical entity preservation, and does NOT change D06's PARTIAL status. PR [#3](https://github.com/Mavaebrook/HandleIT-Android/pull/3) is open and unmerged by design.
 
 ### Notes
 - Honest limitation: fencing and escaping reduce but do not eliminate prompt injection. The block still rides in the SYSTEM message, and a true lower-trust message boundary would need provider-level plumbing that does not exist.
