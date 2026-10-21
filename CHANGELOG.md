@@ -2,6 +2,47 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-20 — Learning pipeline hardening: D06 safe memory rendering and G02 execution-route audit
+
+D06 is implemented: retrieved episode text is now rendered inside a fixed, sanitized, provenance-labelled fence instead of being interpolated verbatim into the SYSTEM prompt. G02 is audit-only: the execution-route audit is complete and recorded, but no enforcement is implemented. A01 device evidence is recorded as PARTIAL, based on user-reported device observation rather than CI verification. Documentation and source changes only; no build or test was run on the VPS or any local machine.
+
+### Fixed
+- Retrieved episode text is now rendered inside a fixed `<retrieved_memory trust="untrusted">` fence, separate from the fixed authoritative framing sentence, instead of being interpolated verbatim into the SYSTEM prompt.
+- Every interpolated field is sanitized: control characters neutralized, `&`/`<`/`>` escaped, whitespace collapsed, length-capped. CJK and other Unicode preserved.
+- Provenance attributes carry only values that exist on TaskEpisode; `source_chat` and `confidence` render as `unknown`, never fabricated or inferred from outcome.
+- Whole-block budget enforced by adding episodes one at a time so framing and closing fence are always emitted and the block is never sliced mid-tag.
+- Unresolved-integrity gate preserved: such rows render only the neutral task line and fixed caution, no resolution/cause/prereq content.
+- Compile-safe Unicode whitespace regex: the whitespace run is now built with `java.util.regex.Pattern.compile("\\s+", java.util.regex.Pattern.UNICODE_CHARACTER_CLASS).toRegex()`. `kotlin.text.Regex` has no `(String, Int)` overload and its `(java.util.regex.Pattern)` constructor is `@PublishedApi`/internal, so the earlier `Regex(pattern, Pattern.UNICODE_CHARACTER_CLASS)` form resolved to the internal constructor and failed to compile; `RegexOption` has no `UNICODE_CHARACTER_CLASS` member either. `UNICODE_CHARACTER_CLASS` requires API 24; this module's `minSdk` is 26.
+- Truncation no longer splits surrogate pairs: `String.take(n)` counts UTF-16 code units, so a cut could keep a high surrogate and drop its low surrogate, emitting a lone surrogate that encodes to `?` on the wire. A new `truncateWithEllipsis` drops an orphaned high surrogate at the cut.
+- Truncation no longer splits escape entities: escaping ran before truncation, so a cut could land inside `&amp;`/`&lt;`/`&gt;`/`&quot;`/`&apos;` and leave a dangling entity, making the block not well-formed XML. Both sanitizers now truncate the neutralized text BEFORE escaping. The per-field cap therefore bounds the untrusted input; the whole-block `MAX_BLOCK_CHARS` budget still bounds the final block.
+- A present but blank `outcome` now renders as `unknown` instead of `outcome=""`: `json.optString("outcome", OUTCOME_UNKNOWN)` returns the fallback only when the key is absent or JSON `null`, so a present `""`/`"   "` produced a blank attribute indistinguishable from a parse failure and inconsistent with `ts`, which maps its absent case to `unknown`.
+
+### Tests
+- Regressions at the renderer seam for fake system/assistant delimiters, embedded instructions, control characters, long inputs, CJK, missing provenance, unresolved rows, duplicate-block and empty-input cases.
+- Existing codec/redaction tests preserved.
+- `buildPreflightBlock_truncationDoesNotSplitSurrogatePair` (asserts UTF-8 round-trip equality as an exact well-formedness check).
+- `buildPreflightBlock_truncationDoesNotSplitEscapeEntity` (asserts no `&…` and no partial entity before the ellipsis; asserts `&amp;` is present).
+- `buildPreflightBlock_blankOutcome_rendersUnknown` (covers both `""` and `"   "`).
+- `buildPreflightBlock_unicodeWhitespaceCollapsed` (NBSP `U+00A0`, `U+2028`, `U+2029` collapse to a single space; NBSP is the case ASCII `\s` would miss, so this proves the Unicode-aware run works).
+- The stale KDoc on the existing `buildPreflightBlock_unicodeLineSeparator_isNeutralized` test was corrected; its assertions are unchanged. No existing test was weakened.
+
+### CI
+All runs are GitHub-hosted Actions, all triggered by `workflow_dispatch` (neither workflow triggers on a feature-branch push). Both workflows are now green on `49ad9977`; this is the first green pair on this branch.
+
+- `5340951b`: Android Build run [39526251675](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39526251675) SUCCESS; Android Tests run [39526269306](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39526269306) FAILURE (1 test: the unresolved-row test used `TaskEpisodeEntity.toEpisode()` → `AppLogger.e` → `android.util.Log.e` "not mocked" on the JVM).
+- `dce76750`: Android Build run [39529855733](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39529855733) CANCELLED; Android Tests run [39529857659](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39529857659) CANCELLED (superseded by the next dispatch).
+- `adfcf154`: Android Build run [39530282737](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39530282737) CANCELLED; Android Tests run [39530284722](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39530284722) FAILURE (Kotlin compile: `TaskPreflightFormatter.kt:354 Unresolved reference 'UNICODE_CHARACTER_CLASS'`).
+- `edbe22a8`: Android Build run [39531073371](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39531073371) FAILURE; Android Tests run [39531075607](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39531075607) FAILURE (Kotlin compile: `Cannot access 'constructor(nativePattern: Pattern): Regex': it is internal in 'kotlin.text.Regex'`).
+- `49ad9977` (current final code SHA): Android Tests run [39534111508](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534111508) **SUCCESS** (job "Android JVM tests" success, step 15 "Run JVM unit tests" success; ~9 min); Android Build run [39534113610](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534113610) **SUCCESS** (job "Build Android artifacts" success, steps 20 "Configure APK signing keystore", 21 "Run Gradle build" and 23 "Upload successful Android outputs" success; ~15.5 min). No failed steps in either run.
+
+Both workflows are green on `49ad9977` (Android Tests run 39534111508 and Android Build run 39534113610, both SUCCESS). CI verifies compilation and the JVM unit tests only; it does NOT verify device behavior, does NOT verify A01 historical entity preservation, and does NOT change D06's PARTIAL status. PR [#3](https://github.com/Mavaebrook/HandleIT-Android/pull/3) is open and unmerged by design.
+
+### Notes
+- Honest limitation: fencing and escaping reduce but do not eliminate prompt injection. The block still rides in the SYSTEM message, and a true lower-trust message boundary would need provider-level plumbing that does not exist.
+- G02 enforcement is not implemented; the execution-route audit is recorded in `docs/TODO/learning-pipeline-hardening-20261017/07-step1-g02-execution-route-audit.md`.
+- A01 device evidence is user-reported, not CI-verified. Historical entity preservation is NOT VERIFIED, and no compatible populated baseline exists.
+- Invariants preserved: `app/objectbox-models/default.json` is byte-for-byte unchanged, no new entities, columns or UIDs, and no `entity12`/`MemoryLedger` edits.
+
 ## 2026-10-20 — PR #2 diagnostic redaction
 
 - Redact retained recovery bytes from `ListFieldIntegrity` and unresolved codec `toString()` results, including nested episode/revision diagnostics. Original properties and verbatim re-save behavior remain intact.
