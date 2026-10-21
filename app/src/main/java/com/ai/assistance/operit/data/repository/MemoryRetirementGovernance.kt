@@ -43,6 +43,19 @@ object MemoryRetirementGovernance {
         data class PendingDecision(val reason: RetirementReason) : RetirementDecision()
     }
 
+    /** Outcome of evaluating whether a retired memory may be restored. */
+    sealed class RestoreDecision {
+        data class Restore(val priorStatus: String) : RestoreDecision()
+        data class Refuse(val reason: RestoreRefusalReason) : RestoreDecision()
+    }
+
+    /** Why a restore request was refused. */
+    enum class RestoreRefusalReason {
+        NOT_RETIRED,          // no recorded prior status: nothing to restore
+        NOT_INACTIVE,         // current status is not INACTIVE: another operation changed it
+        MISSING_PROVENANCE    // retired_prev_status present but retired_at absent: incomplete audit
+    }
+
     /**
      * Plain facts about one candidate retirement. Deliberately free of Memory/entity types so the
      * decision can be exercised without an ObjectBox store.
@@ -138,5 +151,27 @@ object MemoryRetirementGovernance {
             is RetirementDecision.LeaveActive -> decision.reason.name
             is RetirementDecision.PendingDecision -> decision.reason.name
         }
+    }
+
+    /**
+     * Decide whether a memory may be restored to its recorded prior status.
+     *
+     * Core invariant: restoration must never silently reactivate a memory that another operation
+     * has since deliberately changed. Restoration is only permitted when the memory is still in the
+     * exact state the retirement left it: status INACTIVE and a complete retirement audit present.
+     *
+     * @param currentStatus the memory's current salience status.
+     * @param recordedPrevStatus the value stored under retired_prev_status, or null.
+     * @param recordedRetiredAt the value stored under retired_at, or null.
+     */
+    fun evaluateRestore(
+        currentStatus: String,
+        recordedPrevStatus: String?,
+        recordedRetiredAt: String?
+    ): RestoreDecision {
+        if (recordedPrevStatus.isNullOrBlank()) return RestoreDecision.Refuse(RestoreRefusalReason.NOT_RETIRED)
+        if (currentStatus != "INACTIVE") return RestoreDecision.Refuse(RestoreRefusalReason.NOT_INACTIVE)
+        if (recordedRetiredAt.isNullOrBlank()) return RestoreDecision.Refuse(RestoreRefusalReason.MISSING_PROVENANCE)
+        return RestoreDecision.Restore(recordedPrevStatus)
     }
 }

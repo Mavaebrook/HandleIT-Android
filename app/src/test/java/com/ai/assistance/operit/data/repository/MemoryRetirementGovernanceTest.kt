@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.data.repository
 
+import com.ai.assistance.operit.data.repository.MemoryRetirementGovernance.RestoreDecision
+import com.ai.assistance.operit.data.repository.MemoryRetirementGovernance.RestoreRefusalReason
 import com.ai.assistance.operit.data.repository.MemoryRetirementGovernance.RetirementCandidate
 import com.ai.assistance.operit.data.repository.MemoryRetirementGovernance.RetirementDecision
 import com.ai.assistance.operit.data.repository.MemoryRetirementGovernance.RetirementReason
@@ -228,6 +230,99 @@ class MemoryRetirementGovernanceTest {
         assertEquals(
             RetirementDecision.LeaveActive(RetirementReason.ALREADY_INACTIVE),
             decision
+        )
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // Restore eligibility (evaluateRestore)
+    //
+    // IMPORTANT: these are PURE decision tests, NOT persistence evidence. No ObjectBox store is
+    // exercised here — MemoryRepository cannot be instantiated in app/src/test (no Robolectric).
+    // They prove only that the restore policy refuses to reactivate a memory whose status was
+    // changed by another operation and never invents a status. The persistence wiring in
+    // MemoryRepository.restoreMemory is only compile-verified by CI.
+    // ---------------------------------------------------------------------------------------
+
+    // Covers: nothing was ever retired, so there is nothing to restore.
+    @Test
+    fun restore_noRecordedPrevStatus_refusesNotRetired() {
+        assertEquals(
+            RestoreDecision.Refuse(RestoreRefusalReason.NOT_RETIRED),
+            MemoryRetirementGovernance.evaluateRestore(
+                currentStatus = "INACTIVE",
+                recordedPrevStatus = null,
+                recordedRetiredAt = "1000"
+            )
+        )
+        assertEquals(
+            RestoreDecision.Refuse(RestoreRefusalReason.NOT_RETIRED),
+            MemoryRetirementGovernance.evaluateRestore(
+                currentStatus = "INACTIVE",
+                recordedPrevStatus = "   ",
+                recordedRetiredAt = "1000"
+            )
+        )
+    }
+
+    // Covers: the "never silently reactivate" guard — another operation changed the status away
+    // from INACTIVE, so restoring would clobber that deliberate change.
+    @Test
+    fun restore_statusChangedByAnotherOperation_refusesNotInactive() {
+        assertEquals(
+            RestoreDecision.Refuse(RestoreRefusalReason.NOT_INACTIVE),
+            MemoryRetirementGovernance.evaluateRestore(
+                currentStatus = "ACTIVE",
+                recordedPrevStatus = "ACTIVE",
+                recordedRetiredAt = "1000"
+            )
+        )
+    }
+
+    // Covers: a prior status was recorded but the retirement timestamp is missing, so the audit is
+    // incomplete and we cannot prove the retirement actually happened.
+    @Test
+    fun restore_missingRetiredAt_refusesMissingProvenance() {
+        assertEquals(
+            RestoreDecision.Refuse(RestoreRefusalReason.MISSING_PROVENANCE),
+            MemoryRetirementGovernance.evaluateRestore(
+                currentStatus = "INACTIVE",
+                recordedPrevStatus = "ACTIVE",
+                recordedRetiredAt = null
+            )
+        )
+        assertEquals(
+            RestoreDecision.Refuse(RestoreRefusalReason.MISSING_PROVENANCE),
+            MemoryRetirementGovernance.evaluateRestore(
+                currentStatus = "INACTIVE",
+                recordedPrevStatus = "ACTIVE",
+                recordedRetiredAt = "  "
+            )
+        )
+    }
+
+    // Covers: the happy path — still INACTIVE with a complete audit restores the recorded status.
+    @Test
+    fun restore_completeAudit_restoresRecordedStatus() {
+        assertEquals(
+            RestoreDecision.Restore("ACTIVE"),
+            MemoryRetirementGovernance.evaluateRestore(
+                currentStatus = "INACTIVE",
+                recordedPrevStatus = "ACTIVE",
+                recordedRetiredAt = "1000"
+            )
+        )
+    }
+
+    // Covers: the recorded prior status is returned verbatim, never normalised or defaulted.
+    @Test
+    fun restore_nonActivePriorStatus_returnsExactRecordedValue() {
+        assertEquals(
+            RestoreDecision.Restore("INACTIVE"),
+            MemoryRetirementGovernance.evaluateRestore(
+                currentStatus = "INACTIVE",
+                recordedPrevStatus = "INACTIVE",
+                recordedRetiredAt = "1000"
+            )
         )
     }
 }
