@@ -551,17 +551,30 @@ object MemoryLibrary {
                             // Resolve the target identity unambiguously. A target that was just
                             // created in this run is a single known object; a target resolved from
                             // the DB must match exactly one stored memory by title.
+                            // Count every memory that shares the target title, including a
+                            // freshly-created one that is not yet persisted. A title present in
+                            // both createdMemories and the DB is a genuine ambiguity, not a match.
+                            val dbTitleMatches =
+                                memoryRepository.findMemoriesByTitle(link.targetTitle)
                             val targetTitleMatchCount =
-                                if (createdMemories.containsKey(link.targetTitle)) {
-                                    1
-                                } else {
-                                    memoryRepository.findMemoriesByTitle(link.targetTitle).size
-                                }
+                                dbTitleMatches.size +
+                                    if (createdMemories.containsKey(link.targetTitle) &&
+                                        dbTitleMatches.none { it.id == target.id }
+                                    ) {
+                                        1
+                                    } else {
+                                        0
+                                    }
 
-                            // The only existing evidence that a correction genuinely applies is a
-                            // non-blank model-supplied description. A timestamp alone is not proof
-                            // of semantic contradiction, so a blank description is insufficient.
-                            val correctionApplicable = link.description.isNotBlank()
+                            // D02: the current data model contains no corroborating evidence that a
+                            // correction genuinely applies. A model-asserted link type and a
+                            // timestamp are not proof of semantic contradiction, and the link
+                            // description is guaranteed non-blank by the parser, so it cannot serve
+                            // as evidence either. Production therefore does not auto-retire: the
+                            // decision defers to a recorded pending decision until a real evidence
+                            // source exists. The policy's Retire path is exercised by unit tests and
+                            // activates once such evidence is available.
+                            val correctionApplicable = false
 
                             val candidate =
                                 MemoryRetirementGovernance.RetirementCandidate(

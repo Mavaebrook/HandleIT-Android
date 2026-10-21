@@ -15,7 +15,7 @@ package com.ai.assistance.operit.data.repository
  *
  * Note on timestamps: a timestamp alone is not proof of semantic contradiction. A newer "target"
  * only tells us the ordering of writes, not that the source genuinely corrects it. That is why
- * step 7 requires explicit [RetirementCandidate.correctionApplicable] evidence and otherwise
+ * step 8 requires explicit [RetirementCandidate.correctionApplicable] evidence and otherwise
  * returns [RetirementDecision.PendingDecision].
  */
 object MemoryRetirementGovernance {
@@ -27,6 +27,7 @@ object MemoryRetirementGovernance {
     enum class RetirementReason {
         ACCEPTED,
         SELF_LINK,
+        ALREADY_INACTIVE,
         AMBIGUOUS_TARGET,
         REVERSED_DIRECTION,
         TARGET_NEWER_THAN_SOURCE,
@@ -70,13 +71,14 @@ object MemoryRetirementGovernance {
      * the first match wins, so a later permissive signal can never override an earlier refusal.
      *
      * 1. self-link (same id or same title) -> [RetirementDecision.LeaveActive]
-     * 2. target not uniquely identifiable -> [RetirementDecision.PendingDecision]
-     * 3. target protected by an active user constraint -> [RetirementDecision.LeaveActive]
-     * 4. target newer than source (direction reversed) -> [RetirementDecision.LeaveActive]
-     * 5. equal timestamps (no ordering evidence) -> [RetirementDecision.LeaveActive]
-     * 6. unsupported link type -> [RetirementDecision.LeaveActive]
-     * 7. no explicit correction evidence -> [RetirementDecision.PendingDecision]
-     * 8. otherwise -> [RetirementDecision.Retire] with [RetirementReason.ACCEPTED]
+     * 2. target already inactive -> [RetirementDecision.LeaveActive]
+     * 3. target not uniquely identifiable -> [RetirementDecision.PendingDecision]
+     * 4. target protected by an active user constraint -> [RetirementDecision.LeaveActive]
+     * 5. target newer than source (direction reversed) -> [RetirementDecision.LeaveActive]
+     * 6. equal timestamps (no ordering evidence) -> [RetirementDecision.LeaveActive]
+     * 7. unsupported link type -> [RetirementDecision.LeaveActive]
+     * 8. no explicit correction evidence -> [RetirementDecision.PendingDecision]
+     * 9. otherwise -> [RetirementDecision.Retire] with [RetirementReason.ACCEPTED]
      */
     fun decide(candidate: RetirementCandidate): RetirementDecision {
         // 1. A memory can never retire itself, by id or by title.
@@ -86,37 +88,43 @@ object MemoryRetirementGovernance {
             return RetirementDecision.LeaveActive(RetirementReason.SELF_LINK)
         }
 
-        // 2. 0 or >1 matches means we cannot identify the target unambiguously.
+        // 2. An already-inactive memory must not be retired again: re-retiring would overwrite
+        // the recorded prior status and corrupt the audit chain.
+        if (candidate.targetStatus == "INACTIVE") {
+            return RetirementDecision.LeaveActive(RetirementReason.ALREADY_INACTIVE)
+        }
+
+        // 3. 0 or >1 matches means we cannot identify the target unambiguously.
         if (candidate.targetTitleMatchCount != 1) {
             return RetirementDecision.PendingDecision(RetirementReason.AMBIGUOUS_TARGET)
         }
 
-        // 3. A live user constraint outranks any model-proposed retirement.
+        // 4. A live user constraint outranks any model-proposed retirement.
         if (candidate.targetProtectedByActiveUserConstraint) {
             return RetirementDecision.LeaveActive(RetirementReason.PROTECTED_USER_CONSTRAINT)
         }
 
-        // 4. The "target" is newer than the "correction": the direction is reversed.
+        // 5. The "target" is newer than the "correction": the direction is reversed.
         if (candidate.targetCreatedAtMs > candidate.sourceCreatedAtMs) {
             return RetirementDecision.LeaveActive(RetirementReason.TARGET_NEWER_THAN_SOURCE)
         }
 
-        // 5. No ordering evidence; we cannot establish direction.
+        // 6. No ordering evidence; we cannot establish direction.
         if (candidate.targetCreatedAtMs == candidate.sourceCreatedAtMs) {
             return RetirementDecision.LeaveActive(RetirementReason.REVERSED_DIRECTION)
         }
 
-        // 6. Only correction-style links can justify a retirement.
+        // 7. Only correction-style links can justify a retirement.
         if (!SUPPORTED_LINK_TYPES.contains(candidate.linkType)) {
             return RetirementDecision.LeaveActive(RetirementReason.NO_APPLICABLE_CORRECTION)
         }
 
-        // 7. A timestamp is not proof of semantic contradiction; require explicit evidence.
+        // 8. A timestamp is not proof of semantic contradiction; require explicit evidence.
         if (!candidate.correctionApplicable) {
             return RetirementDecision.PendingDecision(RetirementReason.INSUFFICIENT_EVIDENCE)
         }
 
-        // 8. The only path to Retire, and it is always ACCEPTED.
+        // 9. The only path to Retire, and it is always ACCEPTED.
         return RetirementDecision.Retire(RetirementReason.ACCEPTED)
     }
 
