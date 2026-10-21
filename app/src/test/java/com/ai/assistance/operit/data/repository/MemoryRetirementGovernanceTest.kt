@@ -164,6 +164,7 @@ class MemoryRetirementGovernanceTest {
         val nonAcceptedCandidates =
             listOf(
                 candidate(sourceId = 1L, targetId = 1L), // SELF_LINK
+                candidate(targetStatus = "INACTIVE"), // ALREADY_INACTIVE
                 candidate(targetTitleMatchCount = 2), // AMBIGUOUS_TARGET
                 candidate(targetProtectedByActiveUserConstraint = true), // PROTECTED_USER_CONSTRAINT
                 candidate(targetCreatedAtMs = 3000L), // TARGET_NEWER_THAN_SOURCE
@@ -199,6 +200,34 @@ class MemoryRetirementGovernanceTest {
             MemoryRetirementGovernance.reasonCode(
                 RetirementDecision.PendingDecision(RetirementReason.AMBIGUOUS_TARGET)
             )
+        )
+    }
+
+    // Covers: an already-inactive target must not be retired again, because re-retiring would
+    // overwrite the recorded prior status and corrupt the audit chain.
+    @Test
+    fun alreadyInactiveTarget_doesNotRetire() {
+        val decision = MemoryRetirementGovernance.decide(candidate(targetStatus = "INACTIVE"))
+
+        assertEquals(
+            RetirementDecision.LeaveActive(RetirementReason.ALREADY_INACTIVE),
+            decision
+        )
+        assertFalse(MemoryRetirementGovernance.isRetirement(decision))
+    }
+
+    // Covers: the already-inactive guard takes precedence over the ambiguity check, so an
+    // inactive target is reported as ALREADY_INACTIVE rather than AMBIGUOUS_TARGET.
+    @Test
+    fun alreadyInactiveTarget_precedesAmbiguityCheck() {
+        val decision =
+            MemoryRetirementGovernance.decide(
+                candidate(targetStatus = "INACTIVE", targetTitleMatchCount = 2)
+            )
+
+        assertEquals(
+            RetirementDecision.LeaveActive(RetirementReason.ALREADY_INACTIVE),
+            decision
         )
     }
 }
