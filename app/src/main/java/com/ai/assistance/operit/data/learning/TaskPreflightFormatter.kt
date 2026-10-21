@@ -351,5 +351,6 @@ object TaskPreflightFormatter {
      * `\u2029`) instead of ASCII only, so a Unicode line separator cannot survive as a real line
      * break inside a `task:` field.
      */
-    private val WHITESPACE_RUN = Regex("\\s+", RegexOption.UNICODE_CHARACTER_CLASS)
+    private val WHITESPACE_RUN =
+        Regex("\\s+", java.util.regex.Pattern.UNICODE_CHARACTER_CLASS)
 }
