@@ -150,6 +150,7 @@ Published the status review, bridge #46–#48 dispatch record, outstanding prima
 D06 is implemented: retrieved episode text is now rendered inside a fixed, sanitized, provenance-labelled fence instead of being interpolated verbatim into the SYSTEM prompt. G02 is audit-only: the execution-route audit is complete and recorded, but no enforcement is implemented. A01 device evidence is recorded as PARTIAL, based on user-reported device observation rather than CI verification. Documentation and source changes only; no build or test was run on the VPS or any local machine.
 
 ### Fixed
+- Scope architect rules to a trusted project identity (D05): HandleIT-specific requirements are injected only for the HandleIT project; other and unknown projects keep generic preflight without inheriting HandleIT restrictions.
 - Retrieved episode text is now rendered inside a fixed `<retrieved_memory trust="untrusted">` fence, separate from the fixed authoritative framing sentence, instead of being interpolated verbatim into the SYSTEM prompt.
 - Every interpolated field is sanitized: control characters neutralized, `&`/`<`/`>` escaped, whitespace collapsed, length-capped. CJK and other Unicode preserved.
 - Provenance attributes carry only values that exist on TaskEpisode; `source_chat` and `confidence` render as `unknown`, never fabricated or inferred from outcome.
