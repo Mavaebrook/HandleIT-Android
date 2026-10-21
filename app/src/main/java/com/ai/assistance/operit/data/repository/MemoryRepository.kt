@@ -78,6 +78,14 @@ class MemoryRepository(private val context: Context, profileId: String) {
         const val PROP_OCCURRENCES = "occurrences"
         const val PROP_LAST_SEEN = "last_seen"
 
+        // D02 retirement audit provenance (stored as MemoryProperty key-value rows; no schema change).
+        const val PROP_RETIRED_PREV_STATUS = "retired_prev_status"
+        const val PROP_RETIRED_AT = "retired_at"
+        const val PROP_RETIRED_REASON = "retired_reason"
+        const val PROP_RETIRED_BY_LINK_TYPE = "retired_by_link_type"
+        const val PROP_RETIRED_SOURCE_ID = "retired_source_id"
+        const val PROP_PENDING_RETIREMENT_REASON = "pending_retirement_reason"
+
         // Recency weight at retrieval: 0.5 + 0.5 * exp(-ageMs / tau).
         // The floor keeps old, uncontradicted facts from decaying to zero.
         private const val RECENCY_FLOOR = 0.5
@@ -303,6 +311,16 @@ class MemoryRepository(private val context: Context, profileId: String) {
         memoryBox.put(memory)
     }
 
+    private fun clearProperty(memory: Memory, key: String) {
+        if (memory.id <= 0L) return
+        memory.properties.reset()
+        val toRemove = memory.properties.filter { it.key == key }
+        if (toRemove.isNotEmpty()) {
+            propertyBox.removeByIds(toRemove.map { it.id })
+            memory.properties.reset()
+        }
+    }
+
     private fun loadMemorySalienceMetadata(memory: Memory): MemorySalienceMetadata {
         if (memory.id <= 0L) {
             return MemorySalienceMetadata(
@@ -344,6 +362,74 @@ class MemoryRepository(private val context: Context, profileId: String) {
         withContext(Dispatchers.IO) {
             if (memory.id <= 0L) return@withContext
             writeProperty(memory, PROP_STATUS, STATUS_INACTIVE)
+        }
+    }
+
+    /** D02: read the current salience status of a memory (ACTIVE/INACTIVE). */
+    suspend fun readMemoryStatus(memory: Memory): String = withContext(Dispatchers.IO) {
+        loadMemorySalienceMetadata(memory).status
+    }
+
+    /**
+     * D02: retire a memory with audit provenance so the retirement is reversible.
+     *
+     * Records the prior status and the reason/link-type/source-id that authorized the retirement
+     * as MemoryProperty key-value rows (existing storage, no schema change), then writes
+     * status=INACTIVE. The prior status is captured BEFORE the overwrite so [restoreMemory] can
+     * return the memory to exactly its previous state.
+     *
+     * This method performs no governance decision of its own. The caller must have already
+     * obtained an accepted decision from MemoryRetirementGovernance.
+     */
+    suspend fun retireMemoryWithAudit(
+        memory: Memory,
+        reasonCode: String,
+        linkType: String,
+        sourceMemoryId: Long
+    ) {
+        withContext(Dispatchers.IO) {
+            if (memory.id <= 0L) return@withContext
+            val priorStatus = loadMemorySalienceMetadata(memory).status
+            writeProperty(memory, PROP_RETIRED_PREV_STATUS, priorStatus)
+            writeProperty(memory, PROP_RETIRED_AT, System.currentTimeMillis().toString())
+            writeProperty(memory, PROP_RETIRED_REASON, reasonCode)
+            writeProperty(memory, PROP_RETIRED_BY_LINK_TYPE, linkType)
+            writeProperty(memory, PROP_RETIRED_SOURCE_ID, sourceMemoryId.toString())
+            writeProperty(memory, PROP_STATUS, STATUS_INACTIVE)
+        }
+    }
+
+    /**
+     * D02: explicitly restore a memory that was retired by [retireMemoryWithAudit].
+     *
+     * Reads the recorded prior status and writes it back, then clears the retirement audit keys.
+     * If no prior status was recorded this is a no-op and returns false: the method never guesses
+     * a status and never invents a default. There is no automatic restoration anywhere; this is
+     * only ever called explicitly.
+     *
+     * @return true when a prior status was found and restored, false otherwise.
+     */
+    suspend fun restoreMemory(memory: Memory): Boolean = withContext(Dispatchers.IO) {
+        if (memory.id <= 0L) return@withContext false
+        val priorStatus = readProperty(memory, PROP_RETIRED_PREV_STATUS)
+        if (priorStatus.isNullOrBlank()) return@withContext false
+        writeProperty(memory, PROP_STATUS, priorStatus)
+        clearProperty(memory, PROP_RETIRED_PREV_STATUS)
+        clearProperty(memory, PROP_RETIRED_AT)
+        clearProperty(memory, PROP_RETIRED_REASON)
+        clearProperty(memory, PROP_RETIRED_BY_LINK_TYPE)
+        clearProperty(memory, PROP_RETIRED_SOURCE_ID)
+        true
+    }
+
+    /**
+     * D02: record that a retirement was considered but not applied, so the decision is surfaced
+     * and durable rather than silently dropped. Does NOT change status.
+     */
+    suspend fun recordPendingRetirementDecision(memory: Memory, reasonCode: String) {
+        withContext(Dispatchers.IO) {
+            if (memory.id <= 0L) return@withContext
+            writeProperty(memory, PROP_PENDING_RETIREMENT_REASON, reasonCode)
         }
     }
 
