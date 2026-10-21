@@ -477,9 +477,10 @@ class TaskPreflightFormatterTest {
     }
 
     /**
-     * `U+2028` (LINE SEPARATOR) and `U+2029` (PARAGRAPH SEPARATOR) are not ISO controls and are not
-     * matched by an ASCII-only `\s`, so they must be neutralized explicitly: they cannot survive as
-     * a real line break inside a `task:` field.
+     * `U+2028` (LINE SEPARATOR) and `U+2029` (PARAGRAPH SEPARATOR) are not ISO controls, so they
+     * are neutralized explicitly; they are also covered by the Unicode-aware whitespace run
+     * (`UNICODE_CHARACTER_CLASS`), so neither path can let them survive as a real line break inside
+     * a `task:` field.
      */
     @Test
     fun buildPreflightBlock_unicodeLineSeparator_isNeutralized() {
@@ -516,6 +517,124 @@ class TaskPreflightFormatterTest {
 
         assertTrue(block.contains("&lt;script&gt;"))
         assertFalse(block.contains("<script>"))
+    }
+
+    // =============================================================================================
+    // D06 pre-merge review round 2: truncation well-formedness, blank outcome, Unicode whitespace
+    // =============================================================================================
+
+    /**
+     * Truncation must not split a surrogate pair. `String.take(n)` counts UTF-16 code units, so a
+     * naive cut at index 240 keeps the HIGH surrogate of an emoji and drops its LOW surrogate,
+     * emitting a lone surrogate — malformed UTF-16 that encodes to `?` on the wire.
+     *
+     * A lone surrogate does NOT round-trip through UTF-8 (it is replaced by `?`/U+FFFD), so the
+     * UTF-8 round-trip equality below is an exact well-formedness check.
+     */
+    @Test
+    fun buildPreflightBlock_truncationDoesNotSplitSurrogatePair() {
+        val episode = episode(
+            id = 1L,
+            taskSummary = "a".repeat(239) + "\uD83D\uDE00" + "b".repeat(10)
+        )
+
+        val block = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(episode),
+            currentTaskContext = "perform an in-place apk update",
+            useEnglish = true
+        )
+
+        // Truncation happened.
+        assertTrue(block.contains("…"))
+        // Well-formedness: a lone surrogate would not survive a UTF-8 round-trip.
+        assertEquals(block, String(block.toByteArray(Charsets.UTF_8), Charsets.UTF_8))
+    }
+
+    /**
+     * Truncation must not split an escape entity. Escaping runs AFTER truncation, so a cut can never
+     * land inside `&amp;`/`&lt;`/`&gt;` and leave a dangling entity such as `&am`, which would make
+     * the block not well-formed XML.
+     */
+    @Test
+    fun buildPreflightBlock_truncationDoesNotSplitEscapeEntity() {
+        val episode = episode(
+            id = 1L,
+            taskSummary = "a".repeat(239) + "&" + "b".repeat(10)
+        )
+
+        val block = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(episode),
+            currentTaskContext = "perform an in-place apk update",
+            useEnglish = true
+        )
+
+        // No dangling entity: no `&` immediately followed by the ellipsis, and no partial entity
+        // name followed by the ellipsis.
+        assertFalse(block.contains("&…"))
+        assertFalse(Regex("&[a-zA-Z]{0,4}…").containsMatchIn(block))
+        // The `&` was escaped, not dropped.
+        assertTrue(block.contains("&amp;"))
+        // Well-formedness.
+        assertEquals(block, String(block.toByteArray(Charsets.UTF_8), Charsets.UTF_8))
+    }
+
+    /**
+     * A present but blank `outcome` (`""` or whitespace) sanitizes to `""`, which would render as
+     * `outcome=""` — indistinguishable from a parse failure. It must render as `unknown`, for the
+     * same reason `ts` maps its absent case to `unknown`.
+     */
+    @Test
+    fun buildPreflightBlock_blankOutcome_rendersUnknown() {
+        val emptyOutcome = episode(
+            id = 1L,
+            taskSummary = "in-place apk update failed",
+            outcome = ""
+        )
+        val blankOutcome = episode(
+            id = 2L,
+            taskSummary = "in-place apk update failed",
+            outcome = "   "
+        )
+
+        val emptyBlock = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(emptyOutcome),
+            currentTaskContext = "perform an in-place apk update",
+            useEnglish = true
+        )
+        assertTrue(emptyBlock.contains("outcome=\"unknown\""))
+        assertFalse(emptyBlock.contains("outcome=\"\""))
+
+        val blankBlock = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(blankOutcome),
+            currentTaskContext = "perform an in-place apk update",
+            useEnglish = true
+        )
+        assertTrue(blankBlock.contains("outcome=\"unknown\""))
+        assertFalse(blankBlock.contains("outcome=\"\""))
+    }
+
+    /**
+     * Unicode whitespace (NBSP, LINE SEPARATOR, PARAGRAPH SEPARATOR) is collapsed to a single space.
+     * NBSP is the case an ASCII-only `\s` would miss, so this proves the Unicode-aware whitespace
+     * run actually works.
+     */
+    @Test
+    fun buildPreflightBlock_unicodeWhitespaceCollapsed() {
+        val episode = episode(
+            id = 1L,
+            taskSummary = "a\u00A0b\u2028c\u2029d"
+        )
+
+        val block = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(episode),
+            currentTaskContext = "perform an in-place apk update",
+            useEnglish = true
+        )
+
+        assertTrue(block.contains("task: a b c d"))
+        assertFalse(block.contains("\u00A0"))
+        assertFalse(block.contains("\u2028"))
+        assertFalse(block.contains("\u2029"))
     }
 
     // --- helpers ---

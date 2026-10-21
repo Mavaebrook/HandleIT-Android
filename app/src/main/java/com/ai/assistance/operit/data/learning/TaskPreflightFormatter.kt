@@ -184,7 +184,9 @@ object TaskPreflightFormatter {
      * Provenance attributes carry only values that exist on [TaskEpisode]:
      *  - `id` is the stable episode id;
      *  - `ts` is the stable creation timestamp, or `unknown` when it is 0;
-     *  - `outcome` is the sanitized outcome;
+     *  - `outcome` is the sanitized outcome, or `unknown` when it sanitizes to blank (a present but
+     *    empty/whitespace outcome is indistinguishable from a parse failure, so it is mapped to
+     *    `unknown` for the same reason `ts` maps its absent case to `unknown`);
      *  - `source_chat` and `confidence` are ALWAYS `unknown`: those fields do not exist on the
      *    model, so they are never fabricated and never inferred from the outcome.
      *
@@ -201,7 +203,7 @@ object TaskPreflightFormatter {
     ): String? {
         val task = sanitizeDataField(episode.taskSummary)
         if (task.isEmpty()) return null
-        val outcome = sanitizeAttributeValue(episode.outcome)
+        val outcome = sanitizeAttributeValue(episode.outcome).ifEmpty { PROVENANCE_UNKNOWN }
         val timestamp = if (episode.createdAtMs == 0L) PROVENANCE_UNKNOWN else episode.createdAtMs.toString()
 
         val attributes = buildString {
@@ -268,6 +270,22 @@ object TaskPreflightFormatter {
     }
 
     /**
+     * Truncate [value] to at most [MAX_CHARS_PER_FIELD] UTF-16 code units and append `…` when
+     * truncation occurred.
+     *
+     * D06: `String.take(n)` counts UTF-16 code units, so a naive cut can keep a HIGH surrogate and
+     * drop its LOW surrogate, emitting a lone surrogate — malformed UTF-16 that encodes to `?` on
+     * the wire. When the cut would land between a surrogate pair, drop the orphaned high surrogate
+     * so the result is always well-formed.
+     */
+    private fun truncateWithEllipsis(value: String): String {
+        if (value.length <= MAX_CHARS_PER_FIELD) return value
+        val cut = value.take(MAX_CHARS_PER_FIELD)
+        val safe = if (cut.lastOrNull()?.isHighSurrogate() == true) cut.dropLast(1) else cut
+        return safe + "…"
+    }
+
+    /**
      * Sanitize one untrusted, model-generated field for rendering as DATA inside the fence.
      *
      * Steps, in order:
@@ -276,12 +294,15 @@ object TaskPreflightFormatter {
      *     `\u007F`, and the Unicode line/paragraph separators `\u2028`/`\u2029`) with a single
      *     space, so newlines/tabs/Unicode line breaks cannot survive as real line breaks and
      *     cannot forge extra bullet or child lines;
-     *  3. escape `&` FIRST, then `<` and `>`, so `</retrieved_memory>`, `<system>`,
+     *  3. apply the per-field length cap ([MAX_CHARS_PER_FIELD]) to the NEUTRALIZED text, appending
+     *     `…` when truncated. The cut is surrogate-safe: an orphaned high surrogate is dropped so
+     *     the result is always well-formed UTF-16. Truncating BEFORE escaping is deliberate — a cut
+     *     inside an already-escaped string can split `&amp;`/`&lt;`/`&gt;` and leave a dangling
+     *     entity, which is not well-formed XML;
+     *  4. escape `&` FIRST, then `<` and `>`, so `</retrieved_memory>`, `<system>`,
      *     `<|im_start|>` and similar markers are neutralized when rendered as text;
-     *  4. collapse runs of whitespace to a single space;
-     *  5. preserve all other Unicode (CJK, emoji, accented Latin) unchanged;
-     *  6. apply the per-field length cap ([MAX_CHARS_PER_FIELD]) AFTER sanitizing, appending `…`
-     *     when truncated.
+     *  5. collapse runs of whitespace to a single space;
+     *  6. preserve all other Unicode (CJK, emoji, accented Latin) unchanged.
      */
     private fun sanitizeDataField(value: String): String {
         val trimmed = value.trim()
@@ -300,25 +321,26 @@ object TaskPreflightFormatter {
                 }
             }
         }
-        val escaped = neutralized
+        // Truncate BEFORE escaping: cutting an already-escaped string can split `&amp;`/`&lt;`/
+        // `&gt;` and leave a dangling entity, which is not well-formed XML. The cap therefore
+        // bounds the untrusted input; the whole-block budget still bounds the final block.
+        val bounded = truncateWithEllipsis(neutralized)
+        val escaped = bounded
             .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
-        val collapsed = escaped.replace(WHITESPACE_RUN, " ").trim()
-        return if (collapsed.length <= MAX_CHARS_PER_FIELD) {
-            collapsed
-        } else {
-            collapsed.take(MAX_CHARS_PER_FIELD) + "…"
-        }
+        return escaped.replace(WHITESPACE_RUN, " ").trim()
     }
 
     /**
      * Sanitize a value for use inside a double-quoted XML attribute.
      *
      * Attribute values are a different injection surface from element text: a `"` closes the
-     * attribute and lets the value inject new attributes. This escapes `&`, `<`, `>`, `"` and `'`
-     * (in that order, `&` first) and neutralizes control characters, so a model-supplied value
-     * cannot break out of the attribute. Length-capped like [sanitizeDataField].
+     * attribute and lets the value inject new attributes. This neutralizes control characters,
+     * applies the surrogate-safe length cap to the NEUTRALIZED text, then escapes `&`, `<`, `>`,
+     * `"` and `'` (in that order, `&` first), so a model-supplied value cannot break out of the
+     * attribute. Truncating before escaping avoids splitting `&quot;`/`&apos;` into a dangling
+     * entity. Length-capped like [sanitizeDataField].
      */
     private fun sanitizeAttributeValue(value: String): String {
         val trimmed = value.trim()
@@ -333,15 +355,16 @@ object TaskPreflightFormatter {
                 if (isControl) append(' ') else append(ch)
             }
         }
-        val escaped = neutralized
+        // Truncate BEFORE escaping (see sanitizeDataField): a post-escape cut can split `&quot;`
+        // or `&apos;` and leave a dangling entity.
+        val bounded = truncateWithEllipsis(neutralized)
+        val escaped = bounded
             .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace("\"", "&quot;")
             .replace("'", "&apos;")
-        val collapsed = escaped.replace(WHITESPACE_RUN, " ").trim()
-        return if (collapsed.length <= MAX_CHARS_PER_FIELD) collapsed
-        else collapsed.take(MAX_CHARS_PER_FIELD) + "…"
+        return escaped.replace(WHITESPACE_RUN, " ").trim()
     }
 
     /**
@@ -350,7 +373,15 @@ object TaskPreflightFormatter {
      * D06: `UNICODE_CHARACTER_CLASS` makes `\s` cover Unicode whitespace (e.g. `\u00A0`, `\u2028`,
      * `\u2029`) instead of ASCII only, so a Unicode line separator cannot survive as a real line
      * break inside a `task:` field.
+     *
+     * Built via `java.util.regex.Pattern.compile(pattern, flags).toRegex()` rather than a Kotlin
+     * `Regex(...)` constructor: `kotlin.text.Regex` exposes no `(String, Int)` overload, and its
+     * `(java.util.regex.Pattern)` constructor is `@PublishedApi`/internal, so neither
+     * `Regex(pattern, Pattern.UNICODE_CHARACTER_CLASS)` nor `Regex(pattern, RegexOption.X)` can
+     * express this flag. `Pattern.compile(String, int)` and the `Pattern.toRegex()` extension are
+     * both public. `UNICODE_CHARACTER_CLASS` requires API 24; this module's minSdk is 26.
      */
-    private val WHITESPACE_RUN =
-        Regex("\\s+", java.util.regex.Pattern.UNICODE_CHARACTER_CLASS)
+    private val WHITESPACE_RUN: Regex =
+        java.util.regex.Pattern.compile("\\s+", java.util.regex.Pattern.UNICODE_CHARACTER_CLASS)
+            .toRegex()
 }
