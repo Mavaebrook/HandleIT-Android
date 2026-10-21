@@ -2,6 +2,24 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-21 — Learning pipeline hardening: D02 memory-retirement governance (PARTIAL)
+
+D02 is delivered as a conservative prevention gate plus an additive, reversible restore API. Production never auto-retires a memory: a model-asserted `CORRECTS`/`SUPERSEDES` link type or a timestamp alone can never authorize retirement, so every such link records a pending decision and leaves the fact active. The overall D02 item remains PARTIAL and unchecked because production `correctionApplicable` is hardcoded `false` (no corroborating evidence source), active-user-constraint provenance is absent, restoration has no production UI/caller, and persistence/retrieval acceptance is not exercised by any test. Documentation and source changes only; no build or test was run on the VPS or any local machine.
+
+### Added
+- Pure `MemoryRetirementGovernance` policy object with a `decide` gate (self-link, already-inactive, ambiguity, user-constraint, direction/recency, link-type, evidence) and a `reasonCode` mapping.
+- Pure `MemoryRetirementGovernance.evaluateRestore` decision that refuses restoration unless the memory is still `INACTIVE` with a complete retirement audit.
+- Atomic audited retirement (`retireMemoryWithAudit`) and explicit `restoreMemory` in `MemoryRepository`, using existing `MemoryProperty` key-value storage (no schema change).
+
+### Fixed
+- Retirement and restoration now run inside a single `store.runInTx`, so a partial failure cannot leave audit rows without `status=INACTIVE` (or vice versa).
+- Re-retirement is guarded so it cannot overwrite the recorded prior status and corrupt the audit chain.
+- Restoration no longer silently reactivates a memory that another operation deliberately changed; it refuses instead.
+- Restoration retains the retirement provenance and stamps `restored_at` instead of erasing the audit trail; the pending reason is cleared on resolution.
+
+### Tests
+- Five new pure JVM tests for `evaluateRestore` (NOT_RETIRED, NOT_INACTIVE, MISSING_PROVENANCE, restore to ACTIVE, restore to a non-ACTIVE prior status). These are pure decision tests, not persistence evidence.
+
 ## 2026-10-20 — Learning pipeline hardening: D06 safe memory rendering and G02 execution-route audit
 
 D06 is implemented: retrieved episode text is now rendered inside a fixed, sanitized, provenance-labelled fence instead of being interpolated verbatim into the SYSTEM prompt. G02 is audit-only: the execution-route audit is complete and recorded, but no enforcement is implemented. A01 device evidence is recorded as PARTIAL, based on user-reported device observation rather than CI verification. Documentation and source changes only; no build or test was run on the VPS or any local machine.

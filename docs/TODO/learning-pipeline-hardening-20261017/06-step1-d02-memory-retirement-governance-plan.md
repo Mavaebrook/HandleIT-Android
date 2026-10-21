@@ -1,7 +1,7 @@
 ---
 repository: https://github.com/Mavaebrook/HandleIT-Android
 created: 2026-10-21
-status: planned
+status: partial
 base_commit: 838deba5c3f7ea86c71265046a09a039e86a0d94
 branch: fix/memory-retirement-governance
 ---
@@ -139,17 +139,19 @@ Three invariants are stated explicitly and must hold in the implementation:
 
 ## Acceptance checklist
 
-- [ ] A reversed link does not retire its target
-- [ ] A same-title ambiguity does not retire any candidate
-- [ ] A protected user constraint or user correction is preserved
-- [ ] Missing evidence leaves the memory active and records a pending decision
-- [ ] An accepted, justified retirement still works (policy level and unit tests; not reachable end-to-end in production, see incomplete criteria)
-- [ ] The previous status is auditable after a retirement
-- [ ] Explicit restoration returns the memory to its prior status
-- [ ] Retrieval after restoration returns the fact again
-- [ ] Production wiring is inspected, not only the pure policy tests
-- [ ] No ObjectBox schema change and `default.json` is byte-identical
-- [ ] No unrelated files are touched
+Policy-level items are covered by pure JVM tests in `MemoryRetirementGovernanceTest.kt` (no ObjectBox store). Persistence and retrieval items are NOT exercised by any test and stay unchecked.
+
+- [x] A reversed link does not retire its target (pure test `reversedLink_doesNotRetire`)
+- [x] A same-title ambiguity does not retire any candidate (pure test `ambiguousTarget_doesNotRetire`)
+- [x] A protected user constraint or user correction is preserved (pure test `protectedUserConstraint_doesNotRetire`; note: production supplies `targetProtectedByActiveUserConstraint = false` because no constraint model exists)
+- [x] Missing evidence leaves the memory active and records a pending decision (pure test `missingEvidence_returnsPendingDecision`)
+- [x] An accepted, justified retirement still works at the policy level (pure test `justifiedCorrection_retires`; not reachable end-to-end in production, see incomplete criteria)
+- [ ] The previous status is auditable after a retirement — the code writes `retired_prev_status`/`retired_at`/`retired_reason`/`retired_by_link_type`/`retired_source_id` inside one transaction, but no test exercises real ObjectBox persistence; compile-verified only.
+- [ ] Explicit restoration returns the memory to its prior status — the pure `evaluateRestore` decision is tested, but the transactional write-back is not exercised against a real store; compile-verified only.
+- [ ] Retrieval after restoration returns the fact again — not tested; no retrieval test exists.
+- [x] Production wiring is inspected, not only the pure policy tests (gate wiring in `MemoryLibrary` reviewed; `correctionApplicable` and `targetProtectedByActiveUserConstraint` are hardcoded `false` by design)
+- [x] No ObjectBox schema change and `default.json` is byte-identical (verified against main `5b3277cf`)
+- [x] No unrelated files are touched
 
 ## Known incomplete criteria and product decisions needed
 
@@ -240,3 +242,19 @@ Both hosted workflows succeeded on code commit `44a3361681252c464a84f46acc8e5d97
 - Android Tests run [39542094153](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39542094153) — success
 
 Pull request: [#4](https://github.com/Mavaebrook/HandleIT-Android/pull/4), open and unmerged, awaiting review.
+
+
+## Integrity repair and merge (2026-10-21)
+
+Current main `5b3277cf` (PR #3 merged) was merged into the branch at `0b997e66` without rewriting history. The only conflict was in `index.md` and was resolved by keeping main's newer A01 `PARTIAL` wording plus the D02 section; no blanket ours/theirs was used.
+
+Commit `5a3832ba` repairs concrete data-integrity defects in the retirement/restore path:
+
+- `retireMemoryWithAudit` and `restoreMemory` now run inside a single `store.runInTx`, so a partial failure cannot leave audit rows without `status=INACTIVE` (or vice versa).
+- Re-retirement is guarded: if `retired_prev_status` is already set, the method returns without overwriting the audit chain.
+- New pure `MemoryRetirementGovernance.evaluateRestore` refuses restoration unless the memory is still `INACTIVE` with a complete retirement audit (`NOT_RETIRED`, `NOT_INACTIVE`, `MISSING_PROVENANCE`). This prevents silently reactivating a memory that another operation deliberately changed.
+- Restore retains the retirement provenance (`retired_at`, `retired_reason`, `retired_by_link_type`, `retired_source_id`), stamps `restored_at`, and clears only the consumed restorable marker and the pending reason.
+
+Regression coverage: five new pure JVM tests for `evaluateRestore` in `MemoryRetirementGovernanceTest.kt`. These are pure decision tests, not persistence evidence — `MemoryRepository` needs a real ObjectBox store and cannot be instantiated in `app/src/test` (no Robolectric). The transactional wiring is compile-verified only.
+
+CI on the final head is recorded in PR #4. This is not device acceptance and not a complete security gate.
