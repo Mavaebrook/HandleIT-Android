@@ -129,3 +129,13 @@ A bounded, non-bypassable carrier would require either extending `AIToolHook` wi
 ### Remaining bypass paths (UNGUARDED, from the audit — not "accepted" on the user's behalf)
 
 `StandardShellExecutor.*`, `RootShellExecutor.*`, `RootAuthorizer.*`, `PortProcessKiller.killListeners`, `ShowerServerManager.*`, `MCPBridge.deployBridge`/`startBridge`, `MCPDeployer.executeDeployCommands`, `ShellCommandManager.executeCommand`, `AppPermissionsScreen`/`ProcessLimitRemoverScreen`, `PhoneAgent.ActionHandler`, `RootActionListener`/`DebuggerActionListener`, raw `rm` in `DebuggerUITools`, and the external/remote executors (`MCPBridgeClient.callTool`, `RemoteMcpRuntimeSession.callTool`, `ShowerServerManager`). G02 stays unchecked until the full route inventory is enforced.
+
+## CI evidence
+
+All runs are GitHub-hosted Actions. No build or test was run on the VPS or any local machine.
+
+| Item | Commit | Android Build | Android Tests |
+| --- | --- | --- | --- |
+| D05 project-scoped architect rules | `87fcfedab2f74e5431c1779a08e5b272426385b9` | pending — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39583110293 | pending — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39583113800 |
+
+Both workflows are `push`-to-`main` + `workflow_dispatch` only (no `pull_request` trigger), so they were dispatched manually on the branch head. The run links above are PENDING at the time of this checkpoint; they are not yet green. CI verifies compilation and the JVM unit tests only, not device behavior. D05 remains unchecked until these runs are green.
