@@ -686,7 +686,8 @@ object AIMessageManager {
         messages: List<ChatMessage>,
         autoContinue: Boolean = false,
         isGroupChat: Boolean = false,
-        summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig()
+        summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
+        workspacePath: String? = null
     ): ChatMessage? {
         val lastSummaryIndex = messages.indexOfLast { it.sender == "summary" }
         val previousSummary = if (lastSummaryIndex != -1) messages[lastSummaryIndex].content.trim() else null
@@ -1046,7 +1047,8 @@ object AIMessageManager {
                 enhancedAiService.generateSummary(
                     conversationToSummarize,
                     previousSummary,
-                    summaryConfig
+                    summaryConfig,
+                    workspacePath = workspacePath
                 )
             AppLogger.d(TAG, "AI生成总结完成: ${summary.take(50)}...")
 

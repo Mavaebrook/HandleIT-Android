@@ -86,10 +86,11 @@ These are recorded as UNGUARDED, not "accepted" on the user's behalf. G02 stays 
 4. Cancellation propagates: the hook is synchronous and returns a decision; the streaming path already returns `return@flow` on `Block`, so cancellation semantics are preserved.
 5. The policy is applied **only** when the trusted identity is `HANDLEIT`; other projects are unaffected.
 
-## Open decisions (to resolve during implementation)
+## Resolved decisions
 
-- **D05 UNKNOWN-identity behavior**: whether `UNKNOWN` maps to `GENERIC_DEVELOPMENT` (rules suppressed, preflight kept) or to a documented "legacy" mode. The job forbids calling D05 done with all rules accidentally disabled, so the chosen behavior must be explicit, tested, and recorded here.
-- **G02 trusted-context carrier**: `onToolCallIntercept` has no context parameter. Options: (a) extend `AIToolHook` with an overload that receives a typed context, wired at the three call sites; (b) a per-invocation context passed through `ToolExecutionManager`/`AIToolHandler`. A global singleton is explicitly forbidden. If neither is bounded and non-bypassable from existing APIs, G02 stops at a design/blocked checkpoint.
+- **D05 UNKNOWN-identity behavior — RESOLVED.** `ProjectPolicyScope.resolve` maps a workspace with `UNKNOWN` identity to `GENERIC_DEVELOPMENT` (generic preflight preserved, HandleIT rules suppressed), and reserves `NONE` strictly for "no workspace at all" (casual chat). This satisfies two requirements at once: an unestablished identity can never grant HandleIT authority, and fixing scope does not silently disable valid preflight for other projects. `HANDLEIT` + workspace → `HANDLEIT_DEVELOPMENT` (rules + preflight); `OTHER` + workspace → `GENERIC_DEVELOPMENT` (preflight only).
+- **D05 summary-hook plumbing — RESOLVED.** The summary hook previously never received `workspacePath` (it was absent from `baseSummaryMetadata`), so its gate was dead code. `workspacePath` is now threaded from the chat record through `AIMessageManager.summarizeMemory` → `EnhancedAIService.generateSummary`/`generateSummaryFromPromptTurns` → `ConversationService.generateSummaryFromPromptTurns` and placed in `baseSummaryMetadata`. Both hooks now call the same `ArchitectRulesProvider.resolveScope` on real data.
+- **G02 trusted-context carrier — BLOCKED (see G02 section below).**
 
 ## Acceptance criteria
 
@@ -101,7 +102,30 @@ These are recorded as UNGUARDED, not "accepted" on the user's behalf. G02 stays 
 ## Checkpoint
 
 Owner: VPS orchestrator via the bridge, at Teddy's explicit request.
-State: PLAN ONLY. Branch created from `origin/main` at `5b3277cf844c0c198307c60ac0e9c8f79f1b88bf`. No source changes yet.
-Exact commit: `5b3277cf844c0c198307c60ac0e9c8f79f1b88bf` (branch point; no implementation commits yet).
-Next: implement D05 typed identity + scope decision and tests; then evaluate the G02 trusted-context carrier and either implement the bounded slice or record a blocked checkpoint.
-Blockers: trusted project identity is unavailable in production (no `ProjectContext`, no DI, no build-config constant); `projectScope` is always `""`. G02 hook signature carries no invocation context.
+State: D05 IMPLEMENTED (code + tests, not yet CI-verified). G02 BLOCKED at design checkpoint (see below).
+Exact commit: `2f30c4284b59080a45a3386a5a000c97d70440be` (D05 implementation; branch point `5b3277cf844c0c198307c60ac0e9c8f79f1b88bf`).
+Next: run hosted Android Build + Android Tests on the D05 head; then record CI evidence. G02 requires a trusted invocation-context carrier that does not exist (see G02 section).
+Blockers: (1) No production caller supplies a `ProjectIdentity`, so HandleIT rules are inert at runtime until a trusted identity source is wired — this is the unconnected production prerequisite, reported honestly, not a silent regression. (2) G02 cannot be made non-bypassable from existing dispatch/context APIs (see G02 section).
+
+## G02 — first slice: BLOCKED at design checkpoint
+
+### Why the slice cannot be shipped as a hard gate
+
+The job requires a "bounded non-bypassable decision" at the existing `AIToolHandler.checkToolInterception` routes, using "a pure policy seam and typed/trusted invocation context." Two facts block that:
+
+1. **The hook signature carries no invocation context.** `AIToolHook.onToolCallIntercept(tool: AITool)` (`core/tools/AIToolHook.kt:21`) receives only `AITool(name, parameters, description)`. It has no chat id, no workspace, no project identity. A policy hook therefore cannot know whether the current task is the HandleIT project — the exact authority D05 establishes. Enforcing "HandleIT constraints" without that authority would either (a) apply HandleIT restrictions globally (forbidden), or (b) guess from the command text (a claimed repo string / directory heuristic, forbidden).
+
+2. **`AIToolHandler` is a process-wide singleton with no per-invocation context.** `AIToolHandler.getInstance(context)` (`AIToolHandler.kt:36-41`) is shared across all chats. `executeTool`/`executeToolAndStream` (`:363`, `:419`) have no chat/workspace parameter. `ToolExecutionManager.executeInvocations` (`:504`) has `callerChatId` but no project identity, and it calls the same singleton. A global singleton task policy is explicitly forbidden by the job.
+
+A bounded, non-bypassable carrier would require either extending `AIToolHook` with a context-bearing overload wired at all three call sites (a signature change to a shared interface used by `ToolPkgToolLifecycleBridge` and `WorkspaceToolHookSession`), or threading a typed `ToolInvocationContext` through `AIToolHandler` and `ToolExecutionManager`. Both are larger than "a pure policy seam" and touch shared dispatcher code that other in-flight jobs (bridge #46/#47, Codex) may depend on. Per the job: "If a bounded non-bypassable decision is not possible from existing dispatch/context APIs, stop that slice at a concrete design/blocked checkpoint while delivering D05; do not ship a pretend hard gate."
+
+### What a future G02 slice would need (design, not implemented)
+
+- A typed `ToolInvocationContext(projectIdentity: ProjectIdentity, chatId: String?, workspacePath: String?)` carried from the chat dispatch site into the interception point — not a global.
+- A pure `ProjectConstraintPolicy.decide(context, tool): Decision` returning `Allow` or `Deny(reasonCode)` with bounded codes (`LOCAL_BUILD_FORBIDDEN`, `PROTECTED_PATH_MUTATION`), never logging full commands/arguments/secrets.
+- Application only when `context.projectIdentity.kind == HANDLEIT`; other projects unaffected.
+- Coverage of the four tool-dispatched command routes (`execute_shell`, `execute_in_terminal_session`, `execute_in_terminal_session_streaming`, `execute_hidden_terminal_command`) plus an explicit UNGUARDED list for every raw-exec and direct-UI route from `07-step1-g02-execution-route-audit.md`.
+
+### Remaining bypass paths (UNGUARDED, from the audit — not "accepted" on the user's behalf)
+
+`StandardShellExecutor.*`, `RootShellExecutor.*`, `RootAuthorizer.*`, `PortProcessKiller.killListeners`, `ShowerServerManager.*`, `MCPBridge.deployBridge`/`startBridge`, `MCPDeployer.executeDeployCommands`, `ShellCommandManager.executeCommand`, `AppPermissionsScreen`/`ProcessLimitRemoverScreen`, `PhoneAgent.ActionHandler`, `RootActionListener`/`DebuggerActionListener`, raw `rm` in `DebuggerUITools`, and the external/remote executors (`MCPBridgeClient.callTool`, `RemoteMcpRuntimeSession.callTool`, `ShowerServerManager`). G02 stays unchecked until the full route inventory is enforced.

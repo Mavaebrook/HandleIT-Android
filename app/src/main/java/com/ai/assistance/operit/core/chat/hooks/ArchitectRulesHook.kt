@@ -8,8 +8,10 @@ package com.ai.assistance.operit.core.chat.hooks
  * separate from salience-ranked optional memories: decay or semantic retrieval must never remove
  * mandatory development constraints.
  *
- * Scope: only development/workspace tasks (a workspace path is present). Casual conversation is
- * left untouched.
+ * Scope (D05): the HandleIT-specific rules are injected ONLY when the trusted project identity is
+ * [ProjectIdentity.Kind.HANDLEIT] and a workspace path is present. The decision is made by
+ * [ProjectPolicyScope.resolve] and is shared by the system-prompt hook and the summary hook, so the
+ * two can never disagree. An unknown identity never inherits HandleIT restrictions.
  */
 object ArchitectRulesProvider {
     const val HOOK_ID = "builtin_architect_rules"
@@ -41,12 +43,16 @@ object ArchitectRulesProvider {
     }
 
     /**
-     * True when the task is a development/workspace task (a workspace path is present).
-     * Casual conversation has no workspace path and is therefore not scoped in.
+     * Resolve the project policy scope for this hook invocation (D05).
+     *
+     * The identity is read from trusted metadata only (see [ProjectIdentity.fromMetadata]); a
+     * workspace path is required for any development scope. Both the system-prompt hook and the
+     * summary hook call this so they always agree.
      */
-    fun isDevelopmentTask(workspacePath: String?, metadata: Map<String, Any?>): Boolean {
-        val resolved = workspacePath ?: metadata["workspacePath"] as? String
-        return !resolved.isNullOrBlank()
+    fun resolveScope(workspacePath: String?, metadata: Map<String, Any?>): ProjectPolicyScope {
+        val resolvedWorkspace = workspacePath ?: metadata["workspacePath"] as? String
+        val identity = ProjectIdentity.fromMetadata(metadata)
+        return ProjectPolicyScope.resolve(identity, resolvedWorkspace)
     }
 }
 
@@ -57,7 +63,13 @@ class ArchitectRulesSystemPromptHook : SystemPromptComposeHook {
      * Append the pinned architect rules and, when present, the bounded similar-task preflight block
      * to the SYSTEM prompt.
      *
-     * D06: the preflight block is now FENCED UNTRUSTED DATA. The block produced by
+     * D05: the HandleIT rules block is gated on `scope.appliesHandleItRules`, i.e. it is appended
+     * only for a trusted [ProjectIdentity.Kind.HANDLEIT] identity with a workspace. The optional
+     * preflight block is gated on `scope.allowsGenericPreflight`, so a known non-HandleIT project
+     * keeps generic preflight without inheriting HandleIT restrictions. When neither applies the
+     * hook returns null and the prompt is left untouched.
+     *
+     * D06: the preflight block is FENCED UNTRUSTED DATA. The block produced by
      * `TaskPreflightFormatter.buildPreflightBlock` already carries its own fixed authoritative
      * framing sentence and its `<retrieved_memory trust="untrusted" ...>` fence, so this hook adds
      * NO framing of its own and appends the block EXACTLY ONCE, separated by `\n\n`.
@@ -72,16 +84,32 @@ class ArchitectRulesSystemPromptHook : SystemPromptComposeHook {
             return null
         }
         val workspacePath = context.metadata["workspacePath"] as? String
-        if (!ArchitectRulesProvider.isDevelopmentTask(workspacePath, context.metadata)) {
+        val scope = ArchitectRulesProvider.resolveScope(workspacePath, context.metadata)
+        if (scope == ProjectPolicyScope.NONE) {
             return null
         }
         val current = context.systemPrompt ?: return null
-        val block = ArchitectRulesProvider.buildArchitectRulesBlock(context.useEnglish == true)
-        val preflight = (context.metadata["architectPreflightBlock"] as? String)?.takeIf { it.isNotBlank() }
+        val block =
+            if (scope.appliesHandleItRules) {
+                ArchitectRulesProvider.buildArchitectRulesBlock(context.useEnglish == true)
+            } else {
+                null
+            }
+        val preflight =
+            if (scope.allowsGenericPreflight) {
+                (context.metadata["architectPreflightBlock"] as? String)?.takeIf { it.isNotBlank() }
+            } else {
+                null
+            }
+        if (block == null && preflight == null) {
+            return null
+        }
         val appended = buildString {
             append(current)
-            append("\n\n")
-            append(block)
+            if (block != null) {
+                append("\n\n")
+                append(block)
+            }
             if (preflight != null) {
                 append("\n\n")
                 append(preflight)
@@ -94,12 +122,21 @@ class ArchitectRulesSystemPromptHook : SystemPromptComposeHook {
 class ArchitectRulesSummaryHook : SummaryGenerateHook {
     override val id: String = ArchitectRulesProvider.HOOK_ID + "_summary"
 
+    /**
+     * Append the pinned architect rules to the summary prompt.
+     *
+     * D05: uses the SAME [ArchitectRulesProvider.resolveScope] decision as the system-prompt hook,
+     * so the summary can never disagree with the prompt about which project requirements apply.
+     * The rules block is appended only when `scope.appliesHandleItRules` is true; otherwise the
+     * summary prompt is left untouched. This hook does not append the preflight block.
+     */
     override fun onEvent(context: SummaryHookContext): SummaryHookMutation? {
         if (context.stage != "before_prepare_summary_prompt") {
             return null
         }
         val workspacePath = context.metadata["workspacePath"] as? String
-        if (!ArchitectRulesProvider.isDevelopmentTask(workspacePath, context.metadata)) {
+        val scope = ArchitectRulesProvider.resolveScope(workspacePath, context.metadata)
+        if (!scope.appliesHandleItRules) {
             return null
         }
         val current = context.summaryPrompt ?: return null

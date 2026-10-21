@@ -138,6 +138,7 @@ class ConversationService(
             multiServiceManager: MultiServiceManager,
             summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
+            workspacePath: String? = null,
     ): String {
         try {
             val useEnglish = !LocaleUtils.usesChineseContent(context)
@@ -164,7 +165,8 @@ class ConversationService(
             val baseSummaryMetadata =
                 mapOf(
                     "providerModel" to summaryService.providerModel,
-                    "sourceMessageCount" to summaryHistory.size
+                    "sourceMessageCount" to summaryHistory.size,
+                    "workspacePath" to workspacePath
                 ) + activePromptMetadata
 
             val beforePrepareContext =
