@@ -433,8 +433,9 @@ object MemoryLibrary {
                         if (updatedMemory != null) {
                             createdMemories[updatedMemory.title] = updatedMemory
                             // Self-learning: reinforce only on genuine novelty (content actually
-                            // changed), never on an echo re-statement of identical content.
-                            if (update.newContent != memoryToUpdate.content) {
+                            // changed after normalization), never on an echo re-statement of
+                            // identical content.
+                            if (MemoryContentNovelty.isNovel(memoryToUpdate.content, update.newContent)) {
                                 memoryRepository.reinforceMemory(updatedMemory)
                             }
                         }
@@ -462,7 +463,7 @@ object MemoryLibrary {
                         existingMemory.content = mainProblem.content
                         memoryRepository.saveMemory(existingMemory)
                         // Self-learning: reinforce only on genuine novelty, not on identical echo.
-                        if (mainProblem.content != previousContent) {
+                        if (MemoryContentNovelty.isNovel(previousContent, mainProblem.content)) {
                             memoryRepository.reinforceMemory(existingMemory)
                         }
                         existingMemory
