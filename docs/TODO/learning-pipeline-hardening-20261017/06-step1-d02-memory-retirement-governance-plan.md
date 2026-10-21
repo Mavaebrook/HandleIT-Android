@@ -231,3 +231,12 @@ Commits:
 Files changed: `MemoryRetirementGovernance.kt` (new), `MemoryRetirementGovernanceTest.kt` (new), `MemoryRepository.kt` (additive, 86 lines), `MemoryLibrary.kt` (gate wiring), this document.
 
 No ObjectBox schema change. `app/objectbox-models/default.json` is byte-identical to the base commit.
+
+### CI evidence
+
+Both hosted workflows succeeded on code commit `44a3361681252c464a84f46acc8e5d9725bb65f7`:
+
+- Android Build run [39542091105](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39542091105) — success
+- Android Tests run [39542094153](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39542094153) — success
+
+Pull request: [#4](https://github.com/Mavaebrook/HandleIT-Android/pull/4), open and unmerged, awaiting review.

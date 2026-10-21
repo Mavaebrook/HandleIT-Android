@@ -215,4 +215,4 @@ No ObjectBox schema change. `default.json` unchanged. No `entity12`/`MemoryLedge
 
 Known limitation: production never auto-retires today, because the data model has no corroborating evidence that a correction genuinely applies. Every `CORRECTS`/`SUPERSEDES` link records a pending decision and leaves the fact active. See the plan document's incomplete-criteria section.
 
-CI: pending. Builds and tests run only in GitHub-hosted Android Build and Android Tests workflows.
+CI: both hosted workflows succeeded on code commit `44a3361681252c464a84f46acc8e5d9725bb65f7` — [Android Build 39542091105](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39542091105) and [Android Tests 39542094153](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39542094153). Pull request [#4](https://github.com/Mavaebrook/HandleIT-Android/pull/4) is open and unmerged, awaiting review.
