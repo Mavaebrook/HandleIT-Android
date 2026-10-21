@@ -422,6 +422,7 @@ object MemoryLibrary {
                 analysis.updatedEntities.forEach { update ->
                     val memoryToUpdate = memoryRepository.findMemoryByTitle(update.titleToUpdate)
                     if (memoryToUpdate != null) {
+                        val previousContent = memoryToUpdate.content
                         AppLogger.d(TAG, "正在更新记忆: '${update.titleToUpdate}'. 原因: ${update.reason}")
                         val updatedMemory = memoryRepository.updateMemory(
                                 memory = memoryToUpdate,
@@ -434,8 +435,9 @@ object MemoryLibrary {
                             createdMemories[updatedMemory.title] = updatedMemory
                             // Self-learning: reinforce only on genuine novelty (content actually
                             // changed after normalization), never on an echo re-statement of
-                            // identical content.
-                            if (MemoryContentNovelty.isNovel(memoryToUpdate.content, update.newContent)) {
+                            // identical content. previousContent is captured before updateMemory
+                            // mutates the entity in place.
+                            if (MemoryContentNovelty.isNovel(previousContent, update.newContent)) {
                                 memoryRepository.reinforceMemory(updatedMemory)
                             }
                         }
