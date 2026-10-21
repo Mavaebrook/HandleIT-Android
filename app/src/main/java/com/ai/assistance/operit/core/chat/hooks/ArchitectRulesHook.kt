@@ -53,6 +53,20 @@ object ArchitectRulesProvider {
 class ArchitectRulesSystemPromptHook : SystemPromptComposeHook {
     override val id: String = ArchitectRulesProvider.HOOK_ID
 
+    /**
+     * Append the pinned architect rules and, when present, the bounded similar-task preflight block
+     * to the SYSTEM prompt.
+     *
+     * D06: the preflight block is now FENCED UNTRUSTED DATA. The block produced by
+     * `TaskPreflightFormatter.buildPreflightBlock` already carries its own fixed authoritative
+     * framing sentence and its `<retrieved_memory trust="untrusted" ...>` fence, so this hook adds
+     * NO framing of its own and appends the block EXACTLY ONCE, separated by `\n\n`.
+     *
+     * Honest limitation: the block is still delivered inside the SYSTEM message. Fencing and
+     * escaping reduce, but do not eliminate, the chance that retrieved text is read as
+     * instructions; a true lower-trust message boundary would require provider-level plumbing that
+     * does not exist here.
+     */
     override fun onEvent(context: PromptHookContext): PromptHookMutation? {
         if (context.stage != "compose_system_prompt_sections") {
             return null
