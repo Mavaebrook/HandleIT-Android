@@ -27,7 +27,7 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 - [ ] C06 Add the plan-time gap check: retrieve 3-5 episodes, test conditions, emit at most 3 cautions, record accept/dismiss, retire repeatedly dismissed lessons. (N01)
 - [ ] G01 Log which episodes and skills were injected for a task, then update helpful and harmful counters from the deterministic outcome (not model self-judgement); counters inform promotion and retirement but are one input, not the whole decision. (G01) — placed after Stage C and before Stage F, because F depends on it.
 - [ ] D01 Wire `ReflectorCurator.curate`, `SkillRevisionLifecycle` and `SkillRevisionRepository` into production, or record them as library-only. (R07)
-- [ ] D02 Add a governance gate before retiring a `CORRECTS`/`SUPERSEDES` target: verify direction and recency, check active user constraints, make retirement reversible. (R08)
+- [x] D02 Add a governance gate before retiring a `CORRECTS`/`SUPERSEDES` target: verify direction and recency, check active user constraints, make retirement reversible. (R08) Implemented on branch `fix/memory-retirement-governance` (base `838deba5`); see [06-step1-d02-memory-retirement-governance-plan.md](06-step1-d02-memory-retirement-governance-plan.md). Production retirement currently always defers to a pending decision (no corroborating evidence source yet); policy-level retirement covered by unit tests.
 - [ ] D03 Raise `MIN_INDEPENDENT_EVIDENCE`, require helpful outcomes, collapse paraphrased evidence, and check candidate steps rather than self-reported constraints. (R09)
 - [ ] D04 Fix memory reinforcement on raw text inequality, the per-memory salience N+1 query, and the unconditional `basePropagationScore`. (R10)
 - [ ] D05 Scope `ArchitectRulesHook` per project, or document the prompt-only enforcement gap explicitly. (R11)
@@ -203,3 +203,16 @@ Plan and acceptance:
 - [x] Review the final diff and satisfy the authorized merge gate: both hosted workflows succeeded on the cleanup code commit. The PR records the subsequent merge event.
 
 CI for cleanup code commit `1794c64fab569fc913c691bae5ad1c81cd7ad72d` succeeded: [Android Build 39517747866](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39517747866) and [Android Tests 39517750560](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39517750560). This checkpoint is documentation-only on top of that code; no source or workflow changes followed the successful runs. Merge is authorized; see [PR #2](https://github.com/Mavaebrook/HandleIT-Android/pull/2) for its merge state. A01 remains PENDING; merge does not establish device acceptance. No schema, package, signing, retrieval-ranking, or resolution-policy change.
+
+
+## D02 memory-retirement governance (2026-10-21)
+
+Branch `fix/memory-retirement-governance`, base `838deba5c3f7ea86c71265046a09a039e86a0d94`.
+
+Scope delivered: a pure `MemoryRetirementGovernance` policy object, an audited reversible retirement path in `MemoryRepository` using existing `MemoryProperty` key-value storage, an explicit `restoreMemory` operation, and a governance gate wired into `MemoryLibrary` that replaces the direct `markMemoryInactive` calls.
+
+No ObjectBox schema change. `default.json` unchanged. No `entity12`/`MemoryLedger` change. No D05/G02, D06, MCP, ReflectorCurator, H01, promotion, graph, vector caching, UI, signing or orchestrator changes.
+
+Known limitation: production never auto-retires today, because the data model has no corroborating evidence that a correction genuinely applies. Every `CORRECTS`/`SUPERSEDES` link records a pending decision and leaves the fact active. See the plan document's incomplete-criteria section.
+
+CI: pending. Builds and tests run only in GitHub-hosted Android Build and Android Tests workflows.

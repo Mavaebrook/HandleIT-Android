@@ -98,6 +98,8 @@ The reasons are an enum, so they are stable, testable and storable as a property
 
 `ACCEPTED` is the only reason that pairs with `Retire`. Every other reason maps to `LeaveActive` or `PendingDecision`, and the mapping is fixed in the object so a caller cannot reinterpret it.
 
+In the implemented wiring, `correctionApplicable` is set to `false` unconditionally. The data model contains no corroborating evidence that a correction genuinely applies: the link type is model-asserted, a timestamp only orders writes, and the link description is guaranteed non-blank by the parser so it cannot serve as evidence. Production therefore never auto-retires. Every `CORRECTS`/`SUPERSEDES` link resolves to `PendingDecision(INSUFFICIENT_EVIDENCE)` and records a pending decision, leaving the fact active. The policy's `Retire` path is exercised by unit tests and activates only once a real evidence source exists.
+
 ### Reversible retirement
 
 Add `MemoryRepository` methods that record prior state and audit provenance as `MemoryProperty` rows. `MemoryProperty` is an existing entity with `key` and `value` string fields, so this is key-value storage in existing storage and requires no schema change.
@@ -141,7 +143,7 @@ Three invariants are stated explicitly and must hold in the implementation:
 - [ ] A same-title ambiguity does not retire any candidate
 - [ ] A protected user constraint or user correction is preserved
 - [ ] Missing evidence leaves the memory active and records a pending decision
-- [ ] An accepted, justified retirement still works
+- [ ] An accepted, justified retirement still works (policy level and unit tests; not reachable end-to-end in production, see incomplete criteria)
 - [ ] The previous status is auditable after a retirement
 - [ ] Explicit restoration returns the memory to its prior status
 - [ ] Retrieval after restoration returns the fact again
@@ -175,6 +177,14 @@ A timestamp proves only that one row was created before another. It does not pro
 
 The design therefore treats a timestamp alone as insufficient. `TARGET_NEWER_THAN_SOURCE` is a reason to leave the memory active, but the absence of that condition is not proof of a genuine correction. Genuine-correction detection is limited to what the link type plus explicit evidence flags provide. When those are absent the outcome is `PendingDecision`, not `Retire`. This job does not claim semantic contradiction detection.
 
+### Production retirement is currently always deferred
+
+Because `correctionApplicable` is `false` in production, no `CORRECTS`/`SUPERSEDES` link retires a memory today. Every such link records a pending decision and leaves the fact active.
+
+This is the strongest bounded safe change available. The alternative — treating a model-asserted link type or a timestamp as sufficient evidence — would fabricate authority the data model does not contain, which the authorized scope forbids. The acceptance criterion "an accepted, justified retirement still works" is therefore satisfied at the policy level and by unit tests, but not reachable end-to-end in production until a genuine evidence source is added.
+
+Closing this needs a product decision about what constitutes corroborating evidence for a correction, and that decision likely implies a schema or API change, both of which are out of scope here.
+
 ## Verification plan
 
 All builds and tests run only in the GitHub-hosted Android Build and Android Tests workflows. Nothing is built or tested locally, on the VPS, or in PRoot.
@@ -205,3 +215,19 @@ Reverting the commit restores the prior behaviour exactly: the call site returns
 There is no data migration. The new property keys are written only by the new audited retirement method, so a revert leaves any already-written audit rows in place as inert key-value data. They are not read by any code path after a revert, and they do not affect retrieval, because `searchMemories` at `MemoryRepository.kt` line 1420 filters only on `status`.
 
 No schema change means no `default.json` regeneration and no upgrade risk. A01 device verification remains PENDING and is unaffected by this job.
+
+## Implementation record
+
+Branch `fix/memory-retirement-governance`, based on `838deba5c3f7ea86c71265046a09a039e86a0d94`.
+
+Commits:
+
+- `6e266045` plan document
+- `ac940edb` pure `MemoryRetirementGovernance` policy and JVM regressions
+- `c6c94346` audited reversible retirement and explicit restore in `MemoryRepository`
+- `1be9f718` governance gate wired into `MemoryLibrary`
+- `ea048df8` corrections: already-inactive guard, honest evidence flag, title-ambiguity counting
+
+Files changed: `MemoryRetirementGovernance.kt` (new), `MemoryRetirementGovernanceTest.kt` (new), `MemoryRepository.kt` (additive, 86 lines), `MemoryLibrary.kt` (gate wiring), this document.
+
+No ObjectBox schema change. `app/objectbox-models/default.json` is byte-identical to the base commit.
