@@ -1,14 +1,13 @@
 # Changelog
 
+All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
+
 ## 2026-10-20 — PR #2 diagnostic redaction
 
 - Redact retained recovery bytes from `ListFieldIntegrity` and unresolved codec `toString()` results, including nested episode/revision diagnostics. Original properties and verbatim re-save behavior remain intact.
-- Add a sentinel regression for corrupt, unsupported-version, and ambiguous payloads; fresh GitHub-hosted Build/Tests are PENDING for this change.
+- Add a sentinel regression for corrupt, unsupported-version, and ambiguous payloads; GitHub-hosted [Build](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39517747866) and [Tests](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39517750560) passed on code commit `1794c64fab569fc913c691bae5ad1c81cd7ad72d`.
 - Document that unresolved evidence contributes zero and edits to unresolved lists are ignored in favor of the captured bytes. No explicit resolution API is introduced.
 - Verified the prior documentation correction at `5cf24170`; the older repair evidence below applies to `c50b399b`, not this cleanup. A01 device verification remains PENDING.
-
-
-All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
 ## 2026-10-19 — Learning pipeline hardening: Step 1 codec & data integrity repair
 
@@ -28,7 +27,7 @@ Bounded repair of the Step 1 codec and data-integrity work after the independent
 - Added `Step1CodecIntegrityRegressionTest` + `Step1CodecIntegrityRedRegressionTest` (see TODO index for current counts) covering corrupt prerequisites/constraints/steps, applicability ineligibility, formatter caution, unconditional save preservation, lifecycle rejection (candidate and baseline), the provenance policy (Ambiguous vs Corrupt vs UnsupportedVersion vs Legacy), lossless round-trip, idempotent migration, healthy empty lists, later-field row immutability, and integrity preservation through `copy` including `applicableConstraintsJoined` unresolved -> ineligible and `UNSUPPORTED_VERSION` integrity status.
 
 ### CI
-- Current code SHA `c50b399b0c6d84bfb15c38000d314a8fd4537c9e` (base `f495c1083b204ee1c50eb333600a68c3a32c963d`). Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39461571548), Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39461574664). `08ab06b767d0d338d48f13e17957b750d08e77c0` is a historical intermediate only: it added `UnresolvedWriteGuard`, which was later removed. It is superseded by `02e8f029` (red-first regressions for unresolved-write erasure, ineligible rendering, and raw reason leakage) and `66887f07` (unconditional preservation from captured `ListFieldIntegrity.rawStored`, gated ineligible rendering, fixed reason codes, `UnresolvedWriteGuard` removed). `02e8f029`'s Android Tests run 39421303124 failed intentionally (red-first); its Android Build succeeded. Intermediate failures and the two independent-review fix rounds are recorded honestly in the TODO index. JVM/source evidence only; device/DB upgrade verification (A01) remains PENDING. Final acceptance remains with the human reviewer.
+- Before the diagnostic cleanup above, verified code SHA `c50b399b0c6d84bfb15c38000d314a8fd4537c9e` (base `f495c1083b204ee1c50eb333600a68c3a32c963d`). Android Build success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39461571548), Android Tests success (https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39461574664). `08ab06b767d0d338d48f13e17957b750d08e77c0` is a historical intermediate only: it added `UnresolvedWriteGuard`, which was later removed. It is superseded by `02e8f029` (red-first regressions for unresolved-write erasure, ineligible rendering, and raw reason leakage) and `66887f07` (unconditional preservation from captured `ListFieldIntegrity.rawStored`, gated ineligible rendering, fixed reason codes, `UnresolvedWriteGuard` removed). `02e8f029`'s Android Tests run 39421303124 failed intentionally (red-first); its Android Build succeeded. Intermediate failures and the two independent-review fix rounds are recorded honestly in the TODO index. JVM/source evidence only; device/DB upgrade verification (A01) remains PENDING. Final acceptance remains with the human reviewer.
 
 ## 2026-10-19 — Learning pipeline hardening: Step 1 relational-memory repair
 
