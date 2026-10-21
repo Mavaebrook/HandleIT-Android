@@ -2,6 +2,31 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-20 — Learning pipeline hardening: D06 safe memory rendering and G02 execution-route audit
+
+D06 is implemented: retrieved episode text is now rendered inside a fixed, sanitized, provenance-labelled fence instead of being interpolated verbatim into the SYSTEM prompt. G02 is audit-only: the execution-route audit is complete and recorded, but no enforcement is implemented. A01 device evidence is recorded as PARTIAL, based on user-reported device observation rather than CI verification. Documentation and source changes only; no build or test was run on the VPS or any local machine.
+
+### Fixed
+- Retrieved episode text is now rendered inside a fixed `<retrieved_memory trust="untrusted">` fence, separate from the fixed authoritative framing sentence, instead of being interpolated verbatim into the SYSTEM prompt.
+- Every interpolated field is sanitized: control characters neutralized, `&`/`<`/`>` escaped, whitespace collapsed, length-capped. CJK and other Unicode preserved.
+- Provenance attributes carry only values that exist on TaskEpisode; `source_chat` and `confidence` render as `unknown`, never fabricated or inferred from outcome.
+- Whole-block budget enforced by adding episodes one at a time so framing and closing fence are always emitted and the block is never sliced mid-tag.
+- Unresolved-integrity gate preserved: such rows render only the neutral task line and fixed caution, no resolution/cause/prereq content.
+
+### Tests
+- Regressions at the renderer seam for fake system/assistant delimiters, embedded instructions, control characters, long inputs, CJK, missing provenance, unresolved rows, duplicate-block and empty-input cases.
+- Existing codec/redaction tests preserved.
+
+### CI
+- Android Build: <pending>
+- Android Tests: <pending>
+
+### Notes
+- Honest limitation: fencing and escaping reduce but do not eliminate prompt injection. The block still rides in the SYSTEM message, and a true lower-trust message boundary would need provider-level plumbing that does not exist.
+- G02 enforcement is not implemented; the execution-route audit is recorded in `docs/TODO/learning-pipeline-hardening-20261017/07-step1-g02-execution-route-audit.md`.
+- A01 device evidence is user-reported, not CI-verified. Historical entity preservation is NOT VERIFIED, and no compatible populated baseline exists.
+- Invariants preserved: `app/objectbox-models/default.json` is byte-for-byte unchanged, no new entities, columns or UIDs, and no `entity12`/`MemoryLedger` edits.
+
 ## 2026-10-20 — PR #2 diagnostic redaction
 
 - Redact retained recovery bytes from `ListFieldIntegrity` and unresolved codec `toString()` results, including nested episode/revision diagnostics. Original properties and verbatim re-save behavior remain intact.
