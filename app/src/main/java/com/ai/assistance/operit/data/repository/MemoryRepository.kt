@@ -436,7 +436,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
      */
     suspend fun restoreMemory(memory: Memory): Boolean = withContext(Dispatchers.IO) {
         if (memory.id <= 0L) return@withContext false
-        store.runInTx {
+        store.callInTx {
             val currentStatus = loadMemorySalienceMetadata(memory).status
             val recordedPrevStatus = readProperty(memory, PROP_RETIRED_PREV_STATUS)
             val recordedRetiredAt = readProperty(memory, PROP_RETIRED_AT)
