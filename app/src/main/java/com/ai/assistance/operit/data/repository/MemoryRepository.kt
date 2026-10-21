@@ -1572,7 +1572,6 @@ class MemoryRepository(private val context: Context, profileId: String) {
 
         var edgesTraversed = 0
         val graphPropagationWeight = effectiveEdgeWeight
-        val basePropagationScore = 0.03 * effectiveEdgeWeight // Give a minimum score boost for any connection
 
         topMemoriesForExpansion.forEach { (sourceId, _) ->
             val sourceMemory = memoriesToSearch.find { it.id == sourceId } ?: return@forEach
@@ -1587,7 +1586,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
                 val targetMemory = link.target.target
                 if (targetMemory != null && MemoryGraphScopeFilter.shouldPropagateTo(allowedScopedIds, targetMemory.id)) {
                     // 边权重越高，传播的分数越多
-                    val propagatedScore = (sourceScore * link.weight * graphPropagationWeight) + basePropagationScore
+                    val propagatedScore = MemoryPropagationScoring.propagatedScore(sourceScore, link.weight, graphPropagationWeight)
                     scores[targetMemory.id] = scores.getOrDefault(targetMemory.id, 0.0) + propagatedScore
                     getScoreParts(targetMemory.id).edgeScore += propagatedScore
                     edgesTraversed++
@@ -1599,7 +1598,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
                 val targetMemory = link.source.target
                 if (targetMemory != null && MemoryGraphScopeFilter.shouldPropagateTo(allowedScopedIds, targetMemory.id)) {
                     // 边权重越高，传播的分数越多
-                    val propagatedScore = (sourceScore * link.weight * graphPropagationWeight) + basePropagationScore
+                    val propagatedScore = MemoryPropagationScoring.propagatedScore(sourceScore, link.weight, graphPropagationWeight)
                     scores[targetMemory.id] = scores.getOrDefault(targetMemory.id, 0.0) + propagatedScore
                     getScoreParts(targetMemory.id).edgeScore += propagatedScore
                     edgesTraversed++
