@@ -13,6 +13,8 @@ Repair existing PR #4 (not a new D02 implementation): merge current main, fix co
 
 ## Commits on the branch (newest first)
 
+- `8235b709` fix(learning): use value-returning callInTx in restoreMemory to fix compile
+- `45de0a72` docs(learning): add D02 repair checkpoint with tested SHA and pending CI run IDs
 - `ed90b28b` docs(learning): correct D02 accounting to PARTIAL and record integrity repair
 - `5a3832ba` fix(learning): make D02 retire/restore atomic and guard silent reactivation
 - `0b997e66` Merge origin/main (5b3277cf) into fix/memory-retirement-governance
@@ -31,12 +33,29 @@ Current main `5b3277cf` (PR #3 merged) merged at `0b997e66` without rewriting hi
 - Restore retains retirement provenance, stamps `restored_at`, clears only the consumed restorable marker and pending reason.
 - Five new pure JVM tests for `evaluateRestore` (pure decision tests, not persistence evidence).
 
+## Compiler repair (8235b709)
+
+The integrity repair above did not compile. `restoreMemory` is declared `Boolean`, but in ObjectBox 5.3.0 `BoxStore.runInTx(Runnable)` returns `Unit`, so the `when`-expression result was discarded and `:app:compileDebugKotlin` failed with:
+
+```
+MemoryRepository.kt:439:9 Return type mismatch: expected 'Boolean', actual 'Unit'
+```
+
+Fix: `restoreMemory` now uses `store.callInTx(Callable<R>)`, the supported value-returning write transaction in ObjectBox 5.3.0, instead of `store.runInTx`.
+
+- Atomicity preserved: eligibility checks and all writes still run in a single write transaction; `callInTx` commits on success and rolls back on exception.
+- `Boolean` contract preserved: the `when` result (`true` on restore, `false` on refusal) is now the transaction's return value.
+- Retained provenance, consumed-marker handling and conservative no-auto-retirement behavior are unchanged.
+- `retireMemoryWithAudit` still uses `runInTx` — correct there, since it returns `Unit`.
+
 ## Exact tested SHA and CI
 
-CI dispatched on head `ed90b28b68f8e4f07bfed39e49c5b5636c6ddcf5` (this checkpoint commit is docs-only and does not change the tested code):
+**The previous CI runs on `ed90b28b` FAILED — they are not pending and not green.**
 
-- Android Build run `39580341182` — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39580341182 — PENDING at checkpoint time
-- Android Tests run `39580344481` — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39580344481 — PENDING at checkpoint time
+- Android Build run `39580341182` — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39580341182 — **FAILED** at `:app:compileDebugKotlin` with `MemoryRepository.kt:439:9 Return type mismatch: expected 'Boolean', actual 'Unit'`.
+- Android Tests run `39580344481` — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39580344481 — **FAILED** with the same compile error.
+
+Hosted CI has **not** been re-run on the new head `8235b709`. Its status is **PENDING / not-yet-run** at this checkpoint; no green result is claimed.
 
 Historical (pre-merge) green CI on `44a33616`: Build `39542091105`, Tests `39542094153`.
 
@@ -45,11 +64,13 @@ Historical (pre-merge) green CI on `44a33616`: Build `39542091105`, Tests `39542
 - Production `correctionApplicable` hardcoded `false`; no corroborating evidence source.
 - No active-user-constraint provenance (`Memory` has no constraint model).
 - Restoration has no production UI/caller.
-- Persistence/retrieval acceptance not exercised by any test; transactional wiring compile-verified only.
-- Green CI is not device acceptance and not a complete security gate.
+- Persistence/retrieval acceptance (checklist items 6, 7, 8) is incomplete and unchecked.
+- Existing tests are pure-Boolean policy tests over `MemoryRetirementGovernance`; they do **not** prove ObjectBox transaction or persistence behavior. The transactional wiring is compile-verified only.
+- Checking `INACTIVE` plus an audit record is a local precondition, not proof about what other operations may have done; broader authority/provenance semantics are left to independent review.
+- Green CI would not be device acceptance and not a complete security gate.
 
 ## Next action
 
-1. Confirm the two hosted runs on `ed90b28b` are green (do not poll; check the run links).
-2. Independent review by Codex (separate gate; this job does not self-certify merge readiness).
+1. Re-run hosted Android Build + Android Tests on the new head `8235b709`; record the run IDs and results here.
+2. Independent review is a separate gate (this job does not self-certify merge readiness).
 3. Do not merge without explicit authorization.
