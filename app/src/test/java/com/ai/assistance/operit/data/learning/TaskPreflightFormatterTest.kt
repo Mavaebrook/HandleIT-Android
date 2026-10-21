@@ -364,17 +364,27 @@ class TaskPreflightFormatterTest {
      */
     @Test
     fun buildPreflightBlock_unresolvedRow_rendersOnlyTaskAndCaution_noResolutionOrCause() {
-        // A truncated versioned envelope: brace-starting, JSON-object-shaped, carries a `v` key.
-        // Decoding it yields an unresolved (CORRUPT) requiredPrerequisites field, which is exactly
-        // the storage state that makes an episode INELIGIBLE_UNRESOLVED_INTEGRITY.
-        val corruptStored = "{\"v\":1,\"items\":[\"a\""
-        val episode = TaskEpisodeEntity(
+        // Hand-construct the unresolved integrity instead of going through
+        // TaskEpisodeEntity.toEpisode(): the entity read path logs via AppLogger.e, which calls
+        // android.util.Log.e and throws "not mocked" on a plain JVM test. Building RowListIntegrity
+        // directly exercises the same INELIGIBLE_UNRESOLVED_INTEGRITY branch without that side
+        // effect, and without toggling global logging state.
+        val episode = episode(
             id = 7L,
             taskSummary = "in-place apk update failed",
             resolutionSummary = "SECRET_RESOLUTION",
             causeSummary = "SECRET_CAUSE",
-            requiredPrerequisitesJoined = corruptStored
-        ).toEpisode()
+            listIntegrity = RowListIntegrity(
+                mapOf(
+                    TaskEpisodeEntity.FIELD_REQUIRED_PREREQUISITES to ListFieldIntegrity(
+                        fieldName = TaskEpisodeEntity.FIELD_REQUIRED_PREREQUISITES,
+                        status = ListFieldIntegrity.Status.CORRUPT,
+                        reason = "malformed-envelope",
+                        rawStored = "{\"v\":1,\"items\":[\"a\""
+                    )
+                )
+            )
+        )
 
         // Sanity: the fixture really is the unresolved-integrity case.
         assertEquals(
