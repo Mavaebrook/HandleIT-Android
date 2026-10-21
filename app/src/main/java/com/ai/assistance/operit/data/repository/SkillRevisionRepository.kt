@@ -23,6 +23,22 @@ class SkillRevisionRepository(
     private val store = ObjectBoxManager.get(context, profileId)
     private val revisionBox: Box<SkillRevisionEntity> = store.boxFor()
 
+    /**
+     * Persist [revision].
+     *
+     * ## Unresolved list fields
+     *
+     * A revision read from a row whose list bytes could not be decoded carries `emptyList()` for
+     * that field (see [SkillRevisionEntity.toRevision]) and records the fact in
+     * [SkillRevision.listIntegrity]. Re-encoding such a field would write `{"v":1,"items":[]}` and
+     * DESTROY the original bytes.
+     *
+     * That cannot happen here: [SkillRevisionEntity.fromRevision] writes an unresolved field back
+     * with the raw bytes captured at read time in
+     * [com.ai.assistance.operit.data.learning.ListFieldIntegrity.rawStored]. The invariant lives in
+     * the entity write path, so this method needs no caller-supplied raw map and performs no DB read
+     * before the put.
+     */
     fun save(revision: SkillRevision): Long {
         return revisionBox.put(SkillRevisionEntity.fromRevision(revision))
     }
@@ -52,8 +68,8 @@ class SkillRevisionRepository(
      *    [MigrationReport.alreadyVersioned];
      *  - at least one legacy field and no corrupt field → the row is rewritten with the migrated
      *    content, counted in [MigrationReport.migrated];
-     *  - any corrupt or unsupported-version field → the row is left ENTIRELY untouched, both in
-     *    memory and on disk: no field of it is mutated and it is not written, so a partially
+     *  - any corrupt, unsupported-version or ambiguous field → the row is left ENTIRELY untouched,
+     *    both in memory and on disk: no field of it is mutated and it is not written, so a partially
      *    migrated row cannot exist. Counted in [MigrationReport.skippedCorrupt] and logged with the
      *    row id and field name.
      *
@@ -97,8 +113,8 @@ class SkillRevisionRepository(
      * Migrate one bounded batch inside the caller's transaction. Returns the counts for the batch.
      *
      * Two-phase per row: the whole row is planned first ([RowMigrationPlanner.plan]) and the entity
-     * is mutated only when the plan says the row is eligible. A row with any corrupt or unsupported
-     * field is left entirely untouched, so it can never be half-migrated in memory.
+     * is mutated only when the plan says the row is eligible. A row with any corrupt, unsupported or
+     * ambiguous field is left entirely untouched, so it can never be half-migrated in memory.
      */
     private fun migrateBatch(batch: List<SkillRevisionEntity>): MigrationReport {
         var migrated = 0

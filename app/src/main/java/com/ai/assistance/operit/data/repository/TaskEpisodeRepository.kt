@@ -33,7 +33,26 @@ class TaskEpisodeRepository(
      */
     private val vectorIndex = TaskEpisodeVectorIndex(context, profileId)
 
+    /**
+     * Persist [episode].
+     *
+     * ## Unresolved list fields
+     *
+     * An episode read from a row whose list bytes could not be decoded carries `emptyList()` for
+     * that field (see [TaskEpisodeEntity.toEpisode]) and records the fact in
+     * [TaskEpisode.listIntegrity]. Re-encoding such a field would write `{"v":1,"items":[]}` and
+     * DESTROY the original bytes.
+     *
+     * That cannot happen here: [TaskEpisodeEntity.fromEpisode] writes an unresolved field back with
+     * the raw bytes captured at read time in
+     * [com.ai.assistance.operit.data.learning.ListFieldIntegrity.rawStored]. The invariant lives in
+     * the entity write path, so this method needs no caller-supplied raw map and performs no DB read
+     * before the put.
+     */
     override fun save(episode: TaskEpisode): Long {
+        // Unresolved list fields are preserved from the domain object's captured
+        // listIntegrity.rawStored inside TaskEpisodeEntity.fromEpisode. No DB read is needed, so
+        // there is no read/put race and no all-or-nothing caller map to get wrong.
         return episodeBox.put(TaskEpisodeEntity.fromEpisode(episode))
     }
 
@@ -151,8 +170,8 @@ class TaskEpisodeRepository(
      *    [MigrationReport.alreadyVersioned];
      *  - at least one legacy field and no corrupt field → the row is rewritten with the migrated
      *    content, counted in [MigrationReport.migrated];
-     *  - any corrupt or unsupported-version field → the row is left ENTIRELY untouched, both in
-     *    memory and on disk: no field of it is mutated and it is not written, so a partially
+     *  - any corrupt, unsupported-version or ambiguous field → the row is left ENTIRELY untouched,
+     *    both in memory and on disk: no field of it is mutated and it is not written, so a partially
      *    migrated row cannot exist. Counted in [MigrationReport.skippedCorrupt] and logged with the
      *    row id and field name.
      *
@@ -196,8 +215,8 @@ class TaskEpisodeRepository(
      * Migrate one bounded batch inside the caller's transaction. Returns the counts for the batch.
      *
      * Two-phase per row: the whole row is planned first ([RowMigrationPlanner.plan]) and the entity
-     * is mutated only when the plan says the row is eligible. A row with any corrupt or unsupported
-     * field is left entirely untouched, so it can never be half-migrated in memory.
+     * is mutated only when the plan says the row is eligible. A row with any corrupt, unsupported or
+     * ambiguous field is left entirely untouched, so it can never be half-migrated in memory.
      */
     private fun migrateBatch(batch: List<TaskEpisodeEntity>): MigrationReport {
         var migrated = 0

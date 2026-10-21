@@ -38,14 +38,29 @@ import kotlinx.serialization.json.Json
  * An empty list encodes to `{"v":1,"items":[]}` — never to `""`. `""` is therefore unambiguously a
  * legacy value (see below), which is what makes the legacy/current split decidable.
  *
- * ## Legacy detection rule (precise)
+ * ## Decode outcome (five-way, precise)
  *
- * A stored value is treated as LEGACY — decoded with the exact old newline-join semantics — if and
- * only if it does NOT look like the version envelope. "Looks like the version envelope" is defined
- * by [looksLikeEnvelope] as a cheap shape pre-check: after stripping leading whitespace the value
- * starts with `{`. That pre-check does NOT locate a closing brace; the authoritative decision is the
- * strict JSON parse in [decode], which rejects truncated input and trailing junk as
- * [DecodedList.Corrupt]. A value that does not start with `{` is legacy by definition.
+ * [decode] returns exactly one of five [DecodedList] variants. The order of checks is:
+ *
+ *  1. **Shape pre-check.** If [looksLikeEnvelope] is false — the value does not start with `{`
+ *     after leading whitespace — it is [DecodedList.Legacy] by the established format, decoded with
+ *     the exact old newline-join semantics. A newline in the value does NOT prove legacy; the only
+ *     thing that proves legacy is the absence of a brace-starting shape, which is the format the
+ *     old writer produced.
+ *  2. **Strict envelope parse.** If the value is brace-starting, it is parsed strictly into
+ *     [Envelope]:
+ *      - parse succeeds and `v` is in [SUPPORTED_VERSIONS] → [DecodedList.Versioned];
+ *      - parse succeeds and `v` is not supported → [DecodedList.UnsupportedVersion];
+ *      - parse fails → step 3.
+ *  3. **Prefix-based classification.** When the strict parse fails, the value is classified by a
+ *     cheap, parse-independent prefix test ([looksLikeEnvelopePrefix]) rather than by re-parsing it:
+ *      - it starts with an envelope-shaped prefix — `{`, optional whitespace, `"v"`, optional
+ *        whitespace, `:` — → [DecodedList.Corrupt]. This covers truncated input, trailing junk, a
+ *        non-integer `v`, a missing or wrongly-typed `items`, and extra keys: all of them clearly
+ *        intended to be an envelope, so none of them may become Legacy or Ambiguous.
+ *      - it is brace-starting but does NOT start with that prefix → [DecodedList.Ambiguous]. Its
+ *        provenance (legacy literal vs envelope) cannot be proven, so the bytes are preserved
+ *        verbatim.
  *
  * Consequences, all deliberate:
  *
@@ -55,32 +70,45 @@ import kotlinx.serialization.json.Json
  *  - `"{\"v\":1,\"items\":[\"a\"]}"` looks like the envelope → parsed as current format.
  *  - `"{\"v\":1,\"items\":[\"a}b\"]}"` (a `}` inside a string item) looks like the envelope → the
  *    strict JSON parse handles the brace inside the string literal correctly.
- *  - `"{\"v\":1,\"items\":[\"a\""` (truncated) looks like the envelope → [DecodedList.Corrupt]. It is
- *    NEVER reinterpreted as legacy and NEVER returned as an empty list.
- *  - `"{\"v\":1,\"items\":[\"a\"]}garbage"` (trailing junk) looks like the envelope → [DecodedList.Corrupt].
+ *  - `"{\"v\":1,\"items\":[\"a\""` (truncated) starts with the envelope prefix → [DecodedList.Corrupt].
+ *    It is NEVER reinterpreted as legacy and NEVER returned as an empty list.
+ *  - `"{\"v\":1,\"items\":[\"a\"]}garbage"` (trailing junk) starts with the envelope prefix →
+ *    [DecodedList.Corrupt].
  *  - `"{\"v\":999,\"items\":[]}"` parses but the version is unknown → [DecodedList.UnsupportedVersion].
- *  - A legacy item that happens to be a JSON object, e.g. a single item `{"a":1}` stored by the old
- *    join, looks like the envelope and will be reported as [DecodedList.Corrupt] rather than being
- *    silently decoded as legacy. That is the intended trade-off: the alternative (guessing) is how
- *    corruption gets destroyed. The row is never rewritten by a read, so the original bytes survive
- *    for inspection and for [StringListMigration], which leaves it unchanged.
+ *  - `"{\"v\":\"1\",\"items\":[]}"` (non-integer `v`) starts with the envelope prefix →
+ *    [DecodedList.Corrupt]: it intended to be an envelope.
+ *  - `"{\"a\":1}"` (a legacy item that happens to be a JSON object, with no `v`) is brace-starting
+ *    but does NOT start with the envelope prefix → [DecodedList.Ambiguous]. Its provenance cannot be
+ *    proven. The bytes are preserved verbatim and the caller must not treat it as healthy-empty and
+ *    must not rewrite it.
+ *  - `"{not json"` (brace-starting, not envelope-shaped) → [DecodedList.Ambiguous], preserved
+ *    verbatim.
  *
  * ## Compatibility policy (what the discriminator can and cannot prove)
  *
- * The discriminator is STRUCTURAL, not a magic prefix: a value is an envelope when it starts with
- * `{` and parses as a single JSON object carrying a recognized `v`. There is no sentinel string
- * that legacy rows could never contain.
+ * The discriminator is STRUCTURAL, not a magic sentinel: a value is an envelope when it starts with
+ * `{` and parses as a single JSON object carrying a recognized `v`. There is no sentinel string that
+ * legacy rows could never contain.
  *
  * A magic prefix alone could not prove collision-free separation from arbitrary preexisting legacy
  * text either — any prefix can in principle appear in legacy content — and, more concretely, the
  * f39e4358 build already wrote UNPREFIXED `{"v":1,"items":...}` envelopes, so introducing a prefix
  * now would strand those rows. The envelope format is therefore kept as-is.
  *
- * The honest consequence: a legacy row whose ENTIRE content happens to be a single JSON object with
- * a `v` field is indistinguishable from an envelope. Such a row is treated as versioned — or as
- * [DecodedList.Corrupt] / [DecodedList.UnsupportedVersion] when it does not match the envelope
- * shape or version. This is a documented limitation, not universal unambiguous detection.
- * [StringListMigration] leaves Corrupt/UnsupportedVersion rows untouched and reports
+ * The honest statement of the limit: **strict JSON proves syntax, not historical intent.** A value
+ * that parses as an envelope is treated as an envelope; that is a structural inference, not proof
+ * that the old writer never produced those bytes. Likewise **a newline does not prove legacy** — it
+ * is merely consistent with the old join.
+ *
+ * When the strict parse fails, the Corrupt-vs-Ambiguous split is decided by a parse-independent
+ * prefix test, not by a lenient re-parse: a value that starts with the envelope-shaped prefix
+ * (`{` … `"v"` … `:`) is a recognized-but-malformed versioned payload and is reported as
+ * [DecodedList.Corrupt]; a brace-starting value that does not start with that prefix is preserved as
+ * [DecodedList.Ambiguous] rather than guessed. This is deterministic and does not depend on any JSON
+ * parse succeeding, so truncated input and trailing junk are reliably Corrupt instead of falling
+ * through to Ambiguous.
+ *
+ * [StringListMigration] leaves Corrupt, UnsupportedVersion and Ambiguous rows untouched and reports
  * [StringListMigration.Outcome.NEEDS_ATTENTION], so nothing is destroyed or guessed at.
  *
  * Both generations of stored data are handled:
@@ -89,6 +117,29 @@ import kotlinx.serialization.json.Json
  *    the migration with the old semantics preserved.
  *  - Existing Step1 envelopes (`{"v":1,...}`) parse as [DecodedList.Versioned] and are left
  *    byte-identical, so the migration is idempotent.
+ *
+ * ## Envelope-shaped legacy literal collision: PARTIAL / BLOCKED
+ *
+ * There is one case this codec CANNOT resolve under the fixed schema, and it is stated here
+ * explicitly rather than papered over with a heuristic:
+ *
+ *  - A pre-Step1 legacy value that happens to be a well-formed envelope-shaped JSON object
+ *    (e.g. a legacy item literally equal to `{"v":1,"items":["a"]}`) is byte-indistinguishable
+ *    from a real versioned envelope. The strict parse succeeds, so it is decoded as
+ *    [DecodedList.Versioned] and reported HEALTHY. Its provenance (legacy literal vs. real
+ *    envelope) is NOT provable from the bytes alone.
+ *
+ * Status: **PARTIAL / BLOCKED.** This is a documented, accepted limitation, not a defect to be
+ * fixed by more parsing. No additional heuristic can separate the two cases without a durable
+ * discriminator that the fixed schema does not carry. The unresolved bytes are never destroyed:
+ * a value that fails the strict parse is preserved verbatim as [DecodedList.Corrupt] or
+ * [DecodedList.Ambiguous] and is never rewritten. Only the *successfully-parsed* collision case
+ * is silently treated as an envelope, and that is the honest structural inference described above.
+ *
+ * The durable fix (a persistent per-field format discriminator, or a one-time migration that
+ * stamps provenance) is a schema change and is OUT OF SCOPE for this repair; it is recorded as a
+ * design decision in the Step 1 plan doc, not implemented here. This codec does NOT claim
+ * universal legacy/envelope compatibility.
  *
  * ## Legacy data is already lossy
  *
@@ -130,7 +181,7 @@ object StringListCodec {
     data class Envelope(val v: Int, val items: List<String>)
 
     /**
-     * Typed result of [decode]. Exactly one of the four cases applies; there is no "unknown" case
+     * Typed result of [decode]. Exactly one of the five cases applies; there is no "unknown" case
      * and no case that silently degrades into another.
      */
     sealed class DecodedList {
@@ -152,16 +203,38 @@ object StringListCodec {
          * shape, missing `items`, non-string item, trailing junk, ...). This is corruption and must
          * be surfaced, never reinterpreted as legacy and never returned as an empty list.
          *
-         * [reason] is a short, non-sensitive description for logging; [stored] is the original value
-         * so a caller can inspect or preserve it.
+         * [reason] is a FIXED, short, non-sensitive code for logging (never the parser message, which
+         * embeds a verbatim prefix of the stored input); [stored] is the original value so a caller
+         * can inspect or preserve it.
          */
-        data class Corrupt(val stored: String, val reason: String) : DecodedList()
+        data class Corrupt(val stored: String, val reason: String) : DecodedList() {
+            // Preserve recovery bytes without exposing them through diagnostic stringification.
+            override fun toString(): String = "Corrupt(stored=<redacted>, reason=$reason)"
+        }
 
         /**
          * The value is a well-formed envelope whose `v` this codec does not support (a newer format
          * written by a later app version). The items are NOT guessed at.
          */
-        data class UnsupportedVersion(val version: Int, val stored: String) : DecodedList()
+        data class UnsupportedVersion(val version: Int, val stored: String) : DecodedList() {
+            // Preserve recovery bytes without exposing them through diagnostic stringification.
+            override fun toString(): String = "UnsupportedVersion(version=$version, stored=<redacted>)"
+        }
+
+        /**
+         * The stored bytes are brace-starting but do NOT start with the envelope-shaped prefix
+         * (`{` … `"v"` … `:`), so they could be either a legacy literal string that happens to be
+         * brace-starting OR a versioned envelope whose provenance cannot be proven.
+         *
+         * The bytes are preserved verbatim in [stored]; [reason] is a FIXED, short, non-sensitive
+         * code for logging (it never contains any part of the stored input). The caller must NOT
+         * treat this as healthy-empty and must NOT rewrite it. This is the explicit honest
+         * compatibility policy for brace-starting legacy text: the codec refuses to guess.
+         */
+        data class Ambiguous(val stored: String, val reason: String) : DecodedList() {
+            // Preserve recovery bytes without exposing them through diagnostic stringification.
+            override fun toString(): String = "Ambiguous(stored=<redacted>, reason=$reason)"
+        }
     }
 
     /**
@@ -186,15 +259,17 @@ object StringListCodec {
         json.encodeToString(Envelope.serializer(), Envelope(v = CURRENT_VERSION, items = values))
 
     /**
-     * Decode a stored column value. See the class KDoc for the exact legacy-detection rule and for
-     * what each result means.
+     * Decode a stored column value. See the class KDoc for the exact five-way outcome and for what
+     * each result means.
      *
-     * Order of checks: shape ([looksLikeEnvelope]) → strict JSON parse ([DecodedList.Corrupt] on
-     * failure) → version check ([DecodedList.UnsupportedVersion]) → [DecodedList.Versioned].
+     * Order of checks: shape ([looksLikeEnvelope]) → strict JSON parse → version check
+     * ([DecodedList.UnsupportedVersion]) → [DecodedList.Versioned]; on strict-parse failure, a
+     * parse-independent prefix test ([looksLikeEnvelopePrefix]) decides between
+     * [DecodedList.Corrupt] (recognized-but-malformed versioned payload: starts with the
+     * envelope-shaped prefix `{` … `"v"` … `:`) and [DecodedList.Ambiguous] (brace-starting text
+     * whose provenance cannot be proven).
      *
-     * Never throws for malformed input: a value that looks like the envelope but does not parse is
-     * returned as [DecodedList.Corrupt], and an unknown version as
-     * [DecodedList.UnsupportedVersion]. A value that does not look like the envelope is legacy by
+     * Never throws for malformed input. A value that does not look like the envelope is legacy by
      * definition and is decoded with the old semantics.
      */
     fun decode(stored: String): DecodedList {
@@ -203,19 +278,70 @@ object StringListCodec {
         }
         val envelope = try {
             json.decodeFromString(Envelope.serializer(), stored)
-        } catch (e: kotlinx.serialization.SerializationException) {
-            // Not a fallback: a value that looks like the envelope and fails to parse is corruption.
-            // Returning Legacy here would silently reinterpret (and later rewrite) damaged data.
-            return DecodedList.Corrupt(stored = stored, reason = e.message ?: "invalid envelope JSON")
-        } catch (e: IllegalArgumentException) {
-            // kotlinx.serialization throws IllegalArgumentException for some malformed inputs
-            // (e.g. a non-string element). Same reasoning as above: corruption, not legacy.
-            return DecodedList.Corrupt(stored = stored, reason = e.message ?: "invalid envelope JSON")
+        } catch (_: kotlinx.serialization.SerializationException) {
+            // A value that looks like the envelope and fails to parse is either a recognized-but-
+            // malformed versioned payload (Corrupt) or brace-starting text whose provenance cannot be
+            // proven (Ambiguous). It is never silently reinterpreted as legacy. The reason is a FIXED
+            // code, never the parser message: kotlinx.serialization messages embed a verbatim prefix
+            // of the stored input ("JSON input: ..."), which would leak untrusted bytes into logs.
+            return classifyUnparseable(stored, "malformed-envelope")
+        } catch (_: IllegalArgumentException) {
+            // kotlinx.serialization can throw IllegalArgumentException for some malformed inputs.
+            // Same fixed-code reasoning as above.
+            return classifyUnparseable(stored, "malformed-envelope")
         }
         if (envelope.v !in SUPPORTED_VERSIONS) {
             return DecodedList.UnsupportedVersion(version = envelope.v, stored = stored)
         }
         return DecodedList.Versioned(version = envelope.v, items = envelope.items)
+    }
+
+    /**
+     * Decide between [DecodedList.Corrupt] and [DecodedList.Ambiguous] for a brace-starting value
+     * that failed the strict [Envelope] parse.
+     *
+     * The decision is a cheap, parse-independent prefix test ([looksLikeEnvelopePrefix]); it does
+     * NOT depend on any JSON parse succeeding, so truncated input and trailing junk are reliably
+     * classified:
+     *  - starts with the envelope-shaped prefix (`{` … `"v"` … `:`) → [DecodedList.Corrupt]
+     *    (truncated, trailing junk, non-integer `v`, missing/wrong `items`, extra keys, ...);
+     *  - brace-starting but not envelope-shaped → [DecodedList.Ambiguous], preserved verbatim.
+     */
+    private fun classifyUnparseable(stored: String, strictReason: String): DecodedList {
+        return if (looksLikeEnvelopePrefix(stored)) {
+            // It clearly intended to be an envelope (starts with {"v"...): a malformed recognized
+            // versioned payload. Truncated, trailing junk, wrong item types, extra keys, non-integer v,
+            // missing items all land here. Never reinterpreted as legacy or ambiguous.
+            DecodedList.Corrupt(stored = stored, reason = strictReason)
+        } else {
+            // Brace-starting but not envelope-shaped: provenance (legacy literal vs envelope) cannot be
+            // proven. Preserve verbatim.
+            DecodedList.Ambiguous(
+                stored = stored,
+                reason = "brace-starting value is not envelope-shaped; provenance unprovable"
+            )
+        }
+    }
+
+    /**
+     * True when [stored], after leading whitespace, starts with an envelope-shaped prefix:
+     * `{` then optional whitespace then `"v"` then optional whitespace then `:`.
+     * This is a cheap, parse-independent test used only to distinguish a malformed recognized
+     * versioned payload (Corrupt) from brace-starting text of unprovable provenance (Ambiguous).
+     */
+    private fun looksLikeEnvelopePrefix(stored: String): Boolean {
+        var i = stored.indexOfFirst { !it.isWhitespace() }
+        if (i < 0 || stored[i] != '{') return false
+        i++
+        while (i < stored.length && stored[i].isWhitespace()) i++
+        if (i >= stored.length || stored[i] != '"') return false
+        i++
+        if (i >= stored.length || stored[i] != 'v') return false
+        i++
+        if (i >= stored.length || stored[i] != '"') return false
+        i++
+        while (i < stored.length && stored[i].isWhitespace()) i++
+        return i < stored.length && stored[i] == ':'
     }
 
     /**
@@ -232,8 +358,9 @@ object StringListCodec {
      * True when [stored] starts with `{` after leading whitespace.
      *
      * This is only a cheap shape pre-check; the authoritative decision is the strict JSON parse in
-     * [decode], which rejects truncated input and trailing junk as [DecodedList.Corrupt]. A value
-     * that does not start with `{` is legacy by definition.
+     * [decode], which rejects truncated input and trailing junk as [DecodedList.Corrupt] and
+     * classifies unprovable brace-starting text as [DecodedList.Ambiguous]. A value that does not
+     * start with `{` is legacy by definition.
      */
     fun looksLikeEnvelope(stored: String): Boolean {
         val start = stored.indexOfFirst { !it.isWhitespace() }
@@ -253,8 +380,9 @@ object StringListCodec {
  *  - already versioned (current format) → returned unchanged, [Outcome.ALREADY_VERSIONED];
  *  - legacy → decoded with the old semantics, then re-encoded with the envelope,
  *    [Outcome.MIGRATED];
- *  - corrupt or unsupported version → returned unchanged, [Outcome.NEEDS_ATTENTION]. The row is
- *    never destroyed, never blanked and never guessed at; the caller logs it.
+ *  - corrupt, unsupported version or ambiguous → returned unchanged, [Outcome.NEEDS_ATTENTION]. The
+ *    row is never destroyed, never blanked and never guessed at; the caller logs it. An ambiguous
+ *    brace-starting value is NEVER migrated and NEVER rewritten.
  *
  * Idempotent: migrating an already-migrated value returns it unchanged, so running the migration
  * twice produces the same bytes.
@@ -277,7 +405,10 @@ object StringListMigration {
         /** The value was already in the current versioned format; it is unchanged. */
         ALREADY_VERSIONED,
 
-        /** The value is corrupt or of an unsupported version; it is unchanged and needs attention. */
+        /**
+         * The value is corrupt, of an unsupported version, or ambiguous; it is unchanged and needs
+         * attention.
+         */
         NEEDS_ATTENTION
     }
 
@@ -317,6 +448,13 @@ object StringListMigration {
                     value = stored,
                     detail = "unsupported envelope version ${decoded.version}"
                 )
+
+            is StringListCodec.DecodedList.Ambiguous ->
+                ValueMigration(
+                    outcome = Outcome.NEEDS_ATTENTION,
+                    value = stored,
+                    detail = "ambiguous brace-starting value: ${decoded.reason}"
+                )
         }
 }
 
@@ -325,8 +463,8 @@ object StringListMigration {
  *
  * @param migrated number of rows whose content changed (at least one field was legacy).
  * @param alreadyVersioned number of rows whose list fields were all already versioned.
- * @param skippedCorrupt number of rows left untouched because at least one field was corrupt or of
- *   an unsupported version. Those rows are logged by the repository and need attention.
+ * @param skippedCorrupt number of rows left untouched because at least one field was corrupt, of an
+ *   unsupported version, or ambiguous. Those rows are logged by the repository and need attention.
  */
 data class MigrationReport(
     val migrated: Int = 0,

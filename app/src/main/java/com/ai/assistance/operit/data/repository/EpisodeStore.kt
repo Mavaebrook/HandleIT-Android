@@ -10,6 +10,15 @@ import com.ai.assistance.operit.data.model.TaskEpisode
  * has no Robolectric. [TaskEpisodeRepository] is the only production implementation.
  */
 interface EpisodeStore {
+    /**
+     * Persist [episode].
+     *
+     * Unresolved list fields are preserved from the domain object's captured
+     * [com.ai.assistance.operit.data.learning.ListFieldIntegrity.rawStored] inside
+     * [com.ai.assistance.operit.data.model.TaskEpisodeEntity.fromEpisode]: an undecodable field is
+     * written back with its original bytes instead of being re-encoded as an empty envelope. There
+     * is no caller-supplied raw map, so a caller cannot erase those bytes.
+     */
     fun save(episode: TaskEpisode): Long
     suspend fun indexSavedEpisode(episodeId: Long, episode: TaskEpisode)
 }

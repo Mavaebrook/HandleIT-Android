@@ -1,6 +1,21 @@
 package com.ai.assistance.operit.data.learning
 
 import com.ai.assistance.operit.data.model.TaskEpisode
+import com.ai.assistance.operit.data.model.TaskEpisodeEntity
+
+/**
+ * Machine-readable integrity eligibility of a past episode.
+ *
+ * INTEGRITY_ELIGIBLE means ONLY that the episode's stored list bytes decoded (its integrity is
+ * resolved). It does NOT assert that the episode is fully applicable to the present task:
+ * task-relative applicability is computed separately by [TaskEpisodeRetrieval.isPrerequisiteApplicable],
+ * [TaskEpisodeRetrieval.satisfiedPrerequisites] and [TaskEpisodeRetrieval.missingPrerequisites].
+ *
+ * INELIGIBLE_UNRESOLVED_INTEGRITY: the episode's requiredPrerequisites or applicableConstraints
+ * could not be resolved from storage, so applicability cannot be established. The episode must not
+ * be presented as applicable; the formatter emits a fixed caution instead.
+ */
+enum class EpisodeApplicability { INTEGRITY_ELIGIBLE, INELIGIBLE_UNRESOLVED_INTEGRITY }
 
 /**
  * Pure, bounded similar-task retrieval, independent-evidence deduplication, and
@@ -133,6 +148,24 @@ object TaskEpisodeRetrieval {
     fun clampTopK(requested: Int): Int {
         if (requested <= 0) return DEFAULT_TOP_K
         return requested.coerceAtMost(MAX_TOP_K)
+    }
+
+    /**
+     * Machine-readable applicability of [episode] to the present task.
+     *
+     * FAIL CLOSED: when the episode's `requiredPrerequisitesJoined` or
+     * `applicableConstraintsJoined` field could not be resolved from storage, the decoded list is
+     * empty for a reason that has nothing to do with the task, so applicability cannot be
+     * established. Such an episode is reported as [EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY]
+     * and must not be presented as applicable. Only those two fields matter here: they are the ones
+     * the applicability and constraint checks read.
+     */
+    fun episodeApplicability(episode: TaskEpisode): EpisodeApplicability {
+        val unresolved = episode.listIntegrity.fields.filterKeys {
+            it == TaskEpisodeEntity.FIELD_REQUIRED_PREREQUISITES ||
+                it == TaskEpisodeEntity.FIELD_APPLICABLE_CONSTRAINTS
+        }.values.any { it.isUnresolved }
+        return if (unresolved) EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY else EpisodeApplicability.INTEGRITY_ELIGIBLE
     }
 
     /**

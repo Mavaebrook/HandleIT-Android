@@ -242,18 +242,18 @@ class StringListCodecTest {
     }
 
     @Test
-    fun decode_legacyJsonShapedSingleItem_isLegacyWhenNotEnvelope() {
-        // Documented, honest limitation: a legacy row whose entire content is a single JSON object
-        // is indistinguishable from an envelope. `{"a":1}` starts with "{" and parses as a JSON
-        // object, but it has no `v`/`items`, so strict envelope deserialization fails and the value
-        // surfaces as Corrupt. It is retained untouched (the migration reports NEEDS_ATTENTION), so
-        // nothing is destroyed or guessed at.
+    fun decode_legacyJsonShapedSingleItem_isAmbiguousNotLegacy() {
+        // Honest compatibility policy: a legacy row whose entire content is a single JSON object is
+        // indistinguishable from an envelope. `{"a":1}` starts with "{" and parses as a JSON
+        // object, but it has no `v`/`items`, so its provenance cannot be proven. It surfaces as
+        // Ambiguous and is retained untouched (the migration reports NEEDS_ATTENTION), so nothing
+        // is destroyed or guessed at.
         val stored = """{"a":1}"""
 
         val decoded = StringListCodec.decode(stored)
 
-        assertTrue("expected Corrupt but was $decoded", decoded is StringListCodec.DecodedList.Corrupt)
-        assertEquals(stored, (decoded as StringListCodec.DecodedList.Corrupt).stored)
+        assertTrue("expected Ambiguous but was $decoded", decoded is StringListCodec.DecodedList.Ambiguous)
+        assertEquals(stored, (decoded as StringListCodec.DecodedList.Ambiguous).stored)
     }
 
     @Test
