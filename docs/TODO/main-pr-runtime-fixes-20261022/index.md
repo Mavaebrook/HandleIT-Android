@@ -14,4 +14,3 @@ Status: implementation in progress, 2026-10-22. Base: `5b3277cf`.
 Acceptance: appropriate checks run on the merge candidate; required selected lanes cannot be skipped successfully; signing remains unchanged for push/manual builds. Required-check enforcement needs repository administrator configuration after verification. Runtime fixes must pass hosted JVM tests before merge. No local Gradle builds or tests will run.
 
 See [implementation and validation](01-progress.md). Existing D02/D04/D05 reviews and the model handoff remain separate.
-
