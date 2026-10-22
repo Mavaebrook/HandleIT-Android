@@ -2,6 +2,11 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-22 — Reflector and Curator cancellation
+
+Propagate coroutine cancellation through Reflector and Curator provider calls, including service acquisition. Ordinary failures still return null; service acquisition failures now use the existing role error logger. Ten parameterized regression cases added; hosted validation pending.
+No local build or test ran. See the [task record](docs/TODO/reflector-curator-cancellation-20261022/index.md).
+
 ## 2026-10-22 — Main PR validation
 
 PR Check now targets `main` and calls the existing Android Build and Android Tests
