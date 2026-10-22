@@ -1,6 +1,7 @@
 name: Android Build
 
 on:
+  workflow_call:
   workflow_dispatch:
     inputs:
       gradle_task:
@@ -201,6 +202,7 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Configure APK signing keystore
+        if: github.event_name != 'pull_request'
         shell: bash
         env:
           HANDLEIT_KEYSTORE_BASE64: ${{ secrets.HANDLEIT_KEYSTORE_BASE64 }}
@@ -228,7 +230,7 @@ jobs:
         run: |
           set -euo pipefail
           case "$EVENT_NAME" in
-            push) gradle_task=assembleDebug ;;
+            push|pull_request) gradle_task=assembleDebug ;;
             workflow_dispatch) gradle_task="$DISPATCH_GRADLE_TASK" ;;
             *) echo "Unsupported workflow event: $EVENT_NAME" >&2; exit 2 ;;
           esac
@@ -247,7 +249,7 @@ jobs:
           retention-days: 14
 
       - name: Upload successful Android outputs
-        if: success()
+        if: success() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: operit-android-${{ github.run_number }}
