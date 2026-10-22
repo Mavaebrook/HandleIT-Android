@@ -2,6 +2,17 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-22 — Main PR validation
+
+PR Check now targets `main` and calls the existing Android Build and Android Tests
+workflows for selected lanes. Both operate on the merge candidate. PR calls receive
+no signing secrets and do not upload APK/AAB outputs; signed push and manual builds
+retain their existing behavior. The aggregate Candidate checks gate remains in place.
+Repository branch-protection enforcement is still pending administrator configuration.
+
+Implementation is ready for hosted validation; no local Gradle build or test was run.
+See the [active follow-up](docs/TODO/main-pr-runtime-fixes-20261022/index.md).
+
 ## 2026-10-20 — Learning pipeline hardening: D06 safe memory rendering and G02 execution-route audit
 
 D06 is implemented: retrieved episode text is now rendered inside a fixed, sanitized, provenance-labelled fence instead of being interpolated verbatim into the SYSTEM prompt. G02 is audit-only: the execution-route audit is complete and recorded, but no enforcement is implemented. A01 device evidence is recorded as PARTIAL, based on user-reported device observation rather than CI verification. Documentation and source changes only; no build or test was run on the VPS or any local machine.
