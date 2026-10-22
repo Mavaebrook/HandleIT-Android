@@ -2,6 +2,11 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-22 — MCP argument preservation
+
+Preserve schema-declared strings, structured arguments, nested JSON literals and null positions through MCP conversion and bridge serialization. Remove raw conversion logging and malformed-array repair. Seven regression tests added; hosted validation pending.
+No local build or test ran. See the [task record](docs/TODO/mcp-argument-preservation-20261022/index.md).
+
 ## 2026-10-22 — Main PR validation
 
 PR Check now targets `main` and calls the existing Android Build and Android Tests
