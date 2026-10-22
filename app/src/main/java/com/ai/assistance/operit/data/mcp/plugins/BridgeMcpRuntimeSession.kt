@@ -35,7 +35,7 @@ class BridgeMcpRuntimeSession(
         name: String,
         arguments: Map<String, Any?>
     ): McpRuntimeCallResult {
-        val response = bridgeClient.callTool(name, arguments.toJsonObject())
+        val response = bridgeClient.callTool(name, arguments.toMcpBridgeArguments())
         if (response == null) {
             return McpRuntimeCallResult(false, null, "MCP bridge returned no response")
         }
@@ -53,7 +53,7 @@ class BridgeMcpRuntimeSession(
     }
 }
 
-private fun Map<String, Any?>.toJsonObject(): JSONObject = JSONObject().also { target ->
+internal fun Map<String, Any?>.toMcpBridgeArguments(): JSONObject = JSONObject().also { target ->
     forEach { (key, value) -> target.put(key, value.toJsonValue()) }
 }
 

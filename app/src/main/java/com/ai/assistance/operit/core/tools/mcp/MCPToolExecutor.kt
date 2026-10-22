@@ -25,6 +25,19 @@ class MCPToolExecutor(private val context: Context, private val mcpManager: MCPM
     companion object {
         private const val TAG = "MCPToolExecutor"
         private const val REPLACEMENT_CHARACTER = '\uFFFD'
+
+        /** Shared production boundary for arguments sent to either MCP transport. */
+        internal fun convertParameterTypes(
+                parameters: Map<String, Any>,
+                toolInfo: McpRuntimeTool?
+        ): Map<String, Any> {
+            val properties = toolInfo?.inputSchemaObject()?.optJSONObject("properties")
+            return parameters.mapValues { (name, value) ->
+                // A missing, union, or non-string type is not permission to guess from contents.
+                val expectedType = properties?.optJSONObject(name)?.opt("type") as? String
+                MCPToolParameter.smartConvert(value, expectedType)
+            }
+        }
     }
 
     private data class ArgumentIntegrityViolation(
@@ -371,42 +384,6 @@ class MCPToolExecutor(private val context: Context, private val mcpManager: MCPM
             AppLogger.w(TAG, "获取工具信息失败: ${e.message}")
             return null
         }
-    }
-
-    /**
-     * 自动转换参数类型
-     *
-     * 将字符串参数转换为适当的类型（包括 number、boolean、array 等）
-     * 支持递归处理数组内的元素
-     */
-    private fun convertParameterTypes(
-            parameters: Map<String, Any>,
-            toolInfo: McpRuntimeTool?
-    ): Map<String, Any> {
-        val result = mutableMapOf<String, Any>()
-
-        parameters.forEach { (name, value) ->
-            // 尝试从工具定义中获取参数类型（从 inputSchema.properties 中获取）
-            val expectedType =
-                    toolInfo?.inputSchemaObject()?.optJSONObject("properties")?.let {
-                                properties ->
-                        properties.optJSONObject(name)?.optString("type")
-                    }
-
-            // 使用 MCPToolParameter.smartConvert 进行智能类型转换
-            val convertedValue = MCPToolParameter.smartConvert(value, expectedType)
-
-            if (convertedValue != value) {
-                AppLogger.d(
-                        TAG,
-                        "参数 $name 从 ${value::class.java.simpleName} 转换为 ${convertedValue::class.java.simpleName}: $value -> $convertedValue"
-                )
-            }
-
-            result[name] = convertedValue
-        }
-
-        return result
     }
 
     override fun validateParameters(tool: AITool): ToolValidationResult {
