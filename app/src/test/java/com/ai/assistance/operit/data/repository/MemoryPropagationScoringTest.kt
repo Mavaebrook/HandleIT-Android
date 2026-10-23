@@ -79,4 +79,61 @@ class MemoryPropagationScoringTest {
 
         assertEquals(0.0, actual, 1e-9)
     }
+
+    @Test
+    fun addContribution_nonPositiveEdges_doNotCreateCandidatesAtZeroThreshold() {
+        val scores = mutableMapOf(1L to 2.0)
+        val scoreParts = mutableMapOf<Long, Double>()
+
+        listOf(2L to 0.0f, 3L to -0.5f).forEach { (targetId, edgeWeight) ->
+            val contribution = MemoryPropagationScoring.propagatedScore(2.0, edgeWeight, 1.0)
+            MemoryPropagationScoring.addContribution(scores, targetId, contribution) {
+                scoreParts[targetId] = it
+            }
+        }
+
+        // A zero threshold would admit accidental 0.0 map entries.
+        assertEquals(setOf(1L), scores.filterValues { it >= 0.0 }.keys)
+        assertTrue(scoreParts.isEmpty())
+    }
+
+    @Test
+    fun addContribution_zeroSourceOrGlobalWeight_doesNotCreateCandidates() {
+        val scores = mutableMapOf<Long, Double>()
+        var scorePartUpdates = 0
+        listOf(0.0 to 1.0, 2.0 to 0.0).forEach { (sourceScore, globalWeight) ->
+            val contribution = MemoryPropagationScoring.propagatedScore(sourceScore, 0.5f, globalWeight)
+            MemoryPropagationScoring.addContribution(scores, 2L, contribution) { scorePartUpdates++ }
+        }
+        assertTrue(scores.isEmpty())
+        assertEquals(0, scorePartUpdates)
+    }
+
+    @Test
+    fun addContribution_nonPositiveContribution_preservesIndependentRetrievalScore() {
+        val scores = mutableMapOf(2L to 0.25)
+        var scorePartUpdates = 0
+        listOf(0.0, -0.5).forEach { contribution ->
+            MemoryPropagationScoring.addContribution(scores, 2L, contribution) { scorePartUpdates++ }
+        }
+        assertEquals(0.25, scores.getValue(2L), 1e-9)
+        assertEquals(0, scorePartUpdates)
+    }
+
+    @Test
+    fun addContribution_positiveEdges_accumulateCandidateAndScoreParts() {
+        val scores = mutableMapOf(2L to 0.25)
+        val scoreParts = mutableMapOf<Long, Double>()
+        // Existing and previously absent targets both receive repeated positive contributions.
+        listOf(2L, 3L, 2L, 3L).forEach { targetId ->
+            val contribution = MemoryPropagationScoring.propagatedScore(2.0, 0.5f, 1.0)
+            MemoryPropagationScoring.addContribution(scores, targetId, contribution) {
+                scoreParts[targetId] = scoreParts.getOrDefault(targetId, 0.0) + it
+            }
+        }
+        assertEquals(2.25, scores.getValue(2L), 1e-9)
+        assertEquals(2.0, scores.getValue(3L), 1e-9)
+        assertEquals(mapOf(2L to 2.0, 3L to 2.0), scoreParts)
+        assertEquals(setOf(2L, 3L), scores.filterValues { it >= 0.0 }.keys)
+    }
 }

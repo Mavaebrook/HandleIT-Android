@@ -1587,8 +1587,9 @@ class MemoryRepository(private val context: Context, profileId: String) {
                 if (targetMemory != null && MemoryGraphScopeFilter.shouldPropagateTo(allowedScopedIds, targetMemory.id)) {
                     // 边权重越高，传播的分数越多
                     val propagatedScore = MemoryPropagationScoring.propagatedScore(sourceScore, link.weight, graphPropagationWeight)
-                    scores[targetMemory.id] = scores.getOrDefault(targetMemory.id, 0.0) + propagatedScore
-                    getScoreParts(targetMemory.id).edgeScore += propagatedScore
+                    MemoryPropagationScoring.addContribution(scores, targetMemory.id, propagatedScore) { contribution ->
+                        getScoreParts(targetMemory.id).edgeScore += contribution
+                    }
                     edgesTraversed++
                 }
             }
@@ -1599,8 +1600,9 @@ class MemoryRepository(private val context: Context, profileId: String) {
                 if (targetMemory != null && MemoryGraphScopeFilter.shouldPropagateTo(allowedScopedIds, targetMemory.id)) {
                     // 边权重越高，传播的分数越多
                     val propagatedScore = MemoryPropagationScoring.propagatedScore(sourceScore, link.weight, graphPropagationWeight)
-                    scores[targetMemory.id] = scores.getOrDefault(targetMemory.id, 0.0) + propagatedScore
-                    getScoreParts(targetMemory.id).edgeScore += propagatedScore
+                    MemoryPropagationScoring.addContribution(scores, targetMemory.id, propagatedScore) { contribution ->
+                        getScoreParts(targetMemory.id).edgeScore += contribution
+                    }
                     edgesTraversed++
                 }
             }

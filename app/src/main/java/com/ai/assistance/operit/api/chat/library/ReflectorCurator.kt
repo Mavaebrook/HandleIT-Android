@@ -11,6 +11,7 @@ import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.TaskEpisode
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatUtils
+import kotlinx.coroutines.CancellationException
 import org.json.JSONObject
 
 /**
@@ -28,29 +29,35 @@ object ReflectorCurator {
 
     /**
      * Reflector: propose one evidence-backed lesson from a completed task episode.
-     * Returns null on any failure (never throws).
+     * Returns null on provider or parsing failure. Coroutine cancellation propagates to the caller.
      */
     suspend fun reflect(
         context: Context,
         taskDescription: String,
         useEnglish: Boolean
+    ): TaskEpisode? = reflect(
+        taskDescription = taskDescription,
+        useEnglish = useEnglish,
+        callModel = { type, prompt -> callFunctionModel(context, type, prompt) },
+        onFailure = { AppLogger.e(TAG, "Reflector call failed", it) }
+    )
+
+    // The public entry point uses this same path; JVM tests can supply a provider without Android.
+    internal suspend fun reflect(
+        taskDescription: String,
+        useEnglish: Boolean,
+        callModel: suspend (FunctionType, String) -> String,
+        onFailure: (Throwable) -> Unit
     ): TaskEpisode? {
-        val service = runCatching { EnhancedAIService.getInstance(context) }.getOrNull() ?: return null
         val prompt = FunctionalPrompts.reflectorPrompt(useEnglish) + "\n\nTask episode:\n" + taskDescription
-        val raw = runCatching {
-            service.callFunctionModel(
-                functionType = FunctionType.MEMORY,
-                turns = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
-                enableThinking = false,
-                recordTokenUsage = true
-            )
-        }.onFailure { AppLogger.e(TAG, "Reflector call failed", it) }.getOrNull() ?: return null
+        val raw = callModelOrNull(FunctionType.MEMORY, prompt, callModel, onFailure) ?: return null
         return parseEpisode(ChatUtils.removeThinkingContent(raw).trim())
     }
 
     /**
      * Curator: propose a localized candidate skill revision from a lesson and an existing skill.
-     * Returns null on any failure (never throws). The result is always a draft candidate.
+     * Returns null on provider or parsing failure. Coroutine cancellation propagates to the caller.
+     * The result is always a draft candidate.
      */
     suspend fun curate(
         context: Context,
@@ -58,22 +65,52 @@ object ReflectorCurator {
         lessonSummary: String,
         existingSkillContent: String,
         useEnglish: Boolean
+    ): SkillRevision? = curate(
+        skillId = skillId,
+        lessonSummary = lessonSummary,
+        existingSkillContent = existingSkillContent,
+        useEnglish = useEnglish,
+        callModel = { type, prompt -> callFunctionModel(context, type, prompt) },
+        onFailure = { AppLogger.e(TAG, "Curator call failed", it) }
+    )
+
+    internal suspend fun curate(
+        skillId: String,
+        lessonSummary: String,
+        existingSkillContent: String,
+        useEnglish: Boolean,
+        callModel: suspend (FunctionType, String) -> String,
+        onFailure: (Throwable) -> Unit
     ): SkillRevision? {
-        val service = runCatching { EnhancedAIService.getInstance(context) }.getOrNull() ?: return null
         val prompt = FunctionalPrompts.curatorPrompt(useEnglish) +
             "\n\nSkill id: " + skillId +
             "\n\nExisting skill content:\n" + existingSkillContent +
             "\n\nLesson:\n" + lessonSummary
-        val raw = runCatching {
-            service.callFunctionModel(
-                functionType = FunctionType.SUMMARY,
-                turns = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
-                enableThinking = false,
-                recordTokenUsage = true
-            )
-        }.onFailure { AppLogger.e(TAG, "Curator call failed", it) }.getOrNull() ?: return null
+        val raw = callModelOrNull(FunctionType.SUMMARY, prompt, callModel, onFailure) ?: return null
         return parseRevision(ChatUtils.removeThinkingContent(raw).trim(), skillId)
     }
+
+    private suspend fun callFunctionModel(context: Context, type: FunctionType, prompt: String): String =
+        EnhancedAIService.getInstance(context).callFunctionModel(
+            functionType = type,
+            turns = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
+            enableThinking = false,
+            recordTokenUsage = true
+        )
+
+    private suspend fun callModelOrNull(
+        type: FunctionType,
+        prompt: String,
+        callModel: suspend (FunctionType, String) -> String,
+        onFailure: (Throwable) -> Unit
+    ): String? = runCatching {
+        // This includes service acquisition, so cancellation cannot be lost before the model call.
+        callModel(type, prompt)
+    }.onFailure {
+        // A cancelled review must reach the scheduler's cancellation handler, not its retry path.
+        if (it is CancellationException) throw it
+        onFailure(it)
+    }.getOrNull()
 
     internal fun parseEpisode(raw: String): TaskEpisode? {
         val json = extractJsonObject(raw) ?: return null

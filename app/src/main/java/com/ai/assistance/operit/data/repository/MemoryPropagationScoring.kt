@@ -1,19 +1,36 @@
 package com.ai.assistance.operit.data.repository
 
 /**
- * Pure scoring helper for memory graph score propagation.
+ * Scoring and candidate admission for memory graph propagation.
  *
- * Graph expansion propagates a source memory's score to its neighbours across edges. The edge
- * weight is the sole determinant of how much score crosses a link: a zero-weight (or otherwise
+ * Graph expansion propagates a source memory's score to its neighbours across edges. A zero-weight (or otherwise
  * non-positive) link is semantically meaningless and must contribute no score at all, so such
  * neighbours are never boosted into results.
  */
 object MemoryPropagationScoring {
 
     /**
+     * Add a graph contribution without creating zero-only retrieval candidates.
+     *
+     * Both link directions use this gate. The callback updates score parts only when the
+     * candidate score changes; existing scores from other retrieval signals are preserved.
+     */
+    internal fun addContribution(
+        scores: MutableMap<Long, Double>,
+        targetId: Long,
+        contribution: Double,
+        onContribution: (Double) -> Unit
+    ) {
+        if (contribution > 0.0) {
+            scores[targetId] = scores.getOrDefault(targetId, 0.0) + contribution
+            onContribution(contribution)
+        }
+    }
+
+    /**
      * Score propagated from a source memory to a neighbour across one graph edge.
      *
-     * Edge weight is the sole determinant: a zero-weight (or non-positive) link contributes
+     * A zero-weight (or non-positive) link contributes
      * no score, so semantically meaningless neighbours are not boosted into results.
      *
      * @param sourceScore the current score of the source memory.
