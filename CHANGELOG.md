@@ -2,6 +2,12 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-24 — D05 project identity from workspace git config (F1)
+
+PR #6 F1 blocker resolved: the HandleIT architect rules are now established from the workspace's git remote rather than left inert. `ProjectIdentity.resolveFromGitConfig` / `resolveFromWorkspace` map the canonical `github.com/Mavaebrook/HandleIT-Android` remote (HTTPS or SSH) to `HANDLEIT`, any other parseable remote to `OTHER`, and absent/unparseable config to `UNKNOWN`; matching is exact host-and-path, never substring, and the directory basename is never consulted. `ArchitectRulesProvider.resolveScope` prefers an explicit typed metadata identity and falls back to `resolveFromWorkspace`; `ConversationService` populates `ProjectIdentity.METADATA_KEY` in both the summary and system-prompt hook metadata. Six new JVM regressions cover git-config resolution, workspace switch, spoofed metadata, and prompt/summary agreement.
+
+No local build or test run; APK builds remain GitHub-Actions-only. Hosted PR Check is green at head `b4a30c4656f075d10bb07a6b58a6f3901cde30fb` (run https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40089437774): Fast checks passed, Android JVM tests passed (24 tests, 0 failures), Android build skipped by plan scoping (no build-config/native/gradle change), aggregate "Candidate checks" passed. Evidence comment posted; no merge until Argon signs off. See [the plan](docs/TODO/learning-pipeline-hardening-20261017/10-step1-d05-g02-project-policy.md).
+
 ## 2026-10-24 — Argon review hardening (non-blocking notes 1 & 2)
 
 Applied Argon's two non-blocking hardening notes from `Argon-Review-f5ddc3fb75-2026-10-24.txt` (verdict APPROVE-WITH-NOTES, zero blockers). Both are one-line, behavior-preserving polish in `MemoryMetadataStore.kt`, not defect remediation:
@@ -150,6 +156,7 @@ Published the status review, bridge #46–#48 dispatch record, outstanding prima
 D06 is implemented: retrieved episode text is now rendered inside a fixed, sanitized, provenance-labelled fence instead of being interpolated verbatim into the SYSTEM prompt. G02 is audit-only: the execution-route audit is complete and recorded, but no enforcement is implemented. A01 device evidence is recorded as PARTIAL, based on user-reported device observation rather than CI verification. Documentation and source changes only; no build or test was run on the VPS or any local machine.
 
 ### Fixed
+- Scope architect rules to a trusted project identity (D05): HandleIT-specific requirements are injected only for the HandleIT project; other and unknown projects keep generic preflight without inheriting HandleIT restrictions.
 - Retrieved episode text is now rendered inside a fixed `<retrieved_memory trust="untrusted">` fence, separate from the fixed authoritative framing sentence, instead of being interpolated verbatim into the SYSTEM prompt.
 - Every interpolated field is sanitized: control characters neutralized, `&`/`<`/`>` escaped, whitespace collapsed, length-capped. CJK and other Unicode preserved.
 - Provenance attributes carry only values that exist on TaskEpisode; `source_chat` and `confidence` render as `unknown`, never fabricated or inferred from outcome.

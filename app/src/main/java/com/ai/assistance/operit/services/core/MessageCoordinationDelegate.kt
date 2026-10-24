@@ -1790,7 +1790,8 @@ class MessageCoordinationDelegate(
                     messages = snapshotMessages,
                     autoContinue = false,
                     isGroupChat = isGroupChat,
-                    summaryConfig = summaryConfig
+                    summaryConfig = summaryConfig,
+                    workspacePath = currentChat?.workspace
                 ) ?: return@launch
 
                 val currentChatId = chatHistoryDelegate.currentChatId.value
@@ -1911,13 +1912,18 @@ class MessageCoordinationDelegate(
             val afterTimestamp =
                 summaryInsertReferenceMessages.getOrNull(insertPosition)?.timestamp
             val summaryConfig = readSummaryConfig()
+            val currentChat =
+                currentChatId?.let { id ->
+                    chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == id }
+                }
             val summaryMessage =
                 AIMessageManager.summarizeMemory(
                     service,
                     currentMessages,
                     autoContinue,
                     effectiveIsGroupChat,
-                    summaryConfig
+                    summaryConfig,
+                    currentChat?.workspace
                 )
 
             if (summaryMessage != null) {
