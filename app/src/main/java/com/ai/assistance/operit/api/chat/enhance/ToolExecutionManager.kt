@@ -10,6 +10,9 @@ import com.ai.assistance.operit.core.tools.ToolExecutor
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.data.model.ToolInvocation
+import com.ai.assistance.operit.core.chat.hooks.ProjectIdentity
+import com.ai.assistance.operit.core.tools.ToolInvocationContext
+import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.util.stream.StreamCollector
@@ -538,6 +541,27 @@ object ToolExecutionManager {
                 toolExposureMode = toolExposureMode
             )
 
+        // G02: resolve the trusted project identity from the chat's bound workspace, never from
+        // model text. Direct (non-model) dispatch paths pass a null chat id and resolve UNKNOWN.
+        val workspacePath =
+            if (callerChatId.isNullOrBlank()) {
+                null
+            } else {
+                try {
+                    ChatHistoryManager.getInstance(context).getChatWorkspace(callerChatId)
+                } catch (error: Exception) {
+                    AppLogger.e(TAG, "聊天工作区解析失败: callerChatId=$callerChatId", error)
+                    null
+                }
+            }
+        val projectIdentity = ProjectIdentity.resolveFromWorkspace(workspacePath)
+        val invocationContext =
+            ToolInvocationContext(
+                projectIdentity = projectIdentity,
+                chatId = callerChatId,
+                workspacePath = workspacePath
+            )
+
         // 1. 顶层工具暴露模式拦截
         val toolExposurePermittedInvocations = mutableListOf<IndexedValue<ToolInvocation>>()
         for ((index, invocation) in invocations.withIndex()) {
@@ -574,7 +598,7 @@ object ToolExecutionManager {
         for ((index, invocation) in roleCardPermittedInvocations) {
             toolHandler.notifyToolCallRequested(invocation.tool)
             val interceptionTool = resolveToolTarget(invocation.tool).tool
-            when (val interception = toolHandler.checkToolInterception(interceptionTool)) {
+            when (val interception = toolHandler.checkToolInterception(interceptionTool, invocationContext)) {
                 AIToolHookDecision.Allow -> {
                     val (hasPermission, errorResult) =
                         checkToolPermission(context, toolHandler, invocation, toolExposureMode)
