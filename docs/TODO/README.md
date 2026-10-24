@@ -56,3 +56,7 @@ For_Agent: 对项目大规模动工前按本规范协作
 
 
 - [Reviewed memory integration](memory-integration-20261024/index.md)
+
+## Active HandleIT repository handoff
+
+For a new session or a model switch, start with [the repository handoff](repository-handoff-20261021/index.md). It records the current review, bridge jobs, unfinished ownership, validation evidence and resume steps. Recheck live job and PR state before editing.

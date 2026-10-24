@@ -15,9 +15,21 @@ No schema, dependency, or model-call change. Two native ObjectBox regressions in
 
 `main` now requires the aggregate `Candidate checks` status check (strict: branches must be up to date), with administrator enforcement enabled and force-push/deletion disabled. This closes the "pending administrator configuration" item from the 2026-10-22 Main PR validation work. Repository-settings change only; no file, build, or test change.
 
+## 2026-10-24 — Reviewed memory PRs integrated
+
+PR #4 merged at 5526acd0; PR #5 merged at f5ddc3fb75e5eab59f785f5bc72f34f479007b5f after combined hosted validation. Merged application Android Build 40065402652 and Android Tests 40065402642 are pending. PR #7 consolidates the handoff and review evidence. D02/D04 remain partial; PR #6 remains blocked and G02 unenforced. See [the integration record](docs/TODO/repository-handoff-20261021/10-memory-integration-20261024.md).
+
 ## 2026-10-24 — Reviewed memory integration
 
 PR #4 merged at 5526acd0. PR #5 is reconciled with the new main, retaining restoration integrity, normalized reinforcement and positive graph contributions. Shared documentation preserves both change histories. Combined hosted validation is pending; see [the integration record](docs/TODO/memory-integration-20261024/index.md). D02/D04 remain partial.
+
+## 2026-10-24 — PR #4 review and validation accepted
+
+PR #4 at 54b3ade2 passed hosted PR Check 40052350300 and completed independent review. Argon records 10 native ObjectBox and 19 pure governance tests passed, none failed or skipped. The checkpoint is ready for merge review; D02 remains partial. A low-severity retirement-boundary hardening note and coverage gaps are retained in [the acceptance record](docs/TODO/repository-handoff-20261021/09-pr4-restoration-repair-20261024.md). No application code or merge changed in this documentation update.
+
+## 2026-10-24 — PR #4 restoration repair published
+
+PR #4 is reconciled with main at 54b3ade2. Ordinary status writes invalidate restoration eligibility; full structural audit validation and ten native ObjectBox regressions are added. Hosted validation and independent review are pending. D02 remains partial and PRs #4–#7 remain unmerged. See [the repair checkpoint](docs/TODO/repository-handoff-20261021/09-pr4-restoration-repair-20261024.md).
 
 ## 2026-10-23 — D02 restoration eligibility and persistence tests
 
@@ -33,14 +45,18 @@ Both graph link directions now share a positive-contribution mutation gate. Zero
 
 See the [follow-up record](docs/TODO/d04-zero-score-candidates-20261023/index.md). PR #5 remains open for review.
 
+## 2026-10-23 — Independent integration review accepted
+
+Recorded [Argon's completed review](docs/TODO/repository-handoff-20261021/08-argon-integration-review-20261023.md): PR #5 at `210ddf1c` is ready for merge review; F3 is resolved and hosted JVM validation is green. PR #4 restoration and PR #6 identity remain open. Added separate scheduler replay and remote MCP cancellation-state follow-ups, distinguishing a serialization coverage gap from a proven defect. No application changes or merges.
+
 ## 2026-10-22 — MCP argument preservation
 
-Preserve schema-declared strings, structured arguments, nested JSON literals and null positions through MCP conversion and bridge serialization. Remove raw conversion logging and malformed-array repair. Seven regression tests added; hosted validation pending.
+Preserve schema-declared strings, structured arguments, nested JSON literals and null positions through MCP conversion and bridge serialization. Remove raw conversion logging and malformed-array repair. Seven regression tests added; PR Check 39708024114 passed at ae43e582. PR #9 merged at 0b00ed20.
 No local build or test ran. See the [task record](docs/TODO/mcp-argument-preservation-20261022/index.md).
 
 ## 2026-10-22 — Reflector and Curator cancellation
 
-Propagate coroutine cancellation through Reflector and Curator provider calls, including service acquisition. Ordinary failures still return null; service acquisition failures now use the existing role error logger. Ten parameterized regression cases added; hosted validation pending.
+Propagate coroutine cancellation through Reflector and Curator provider calls, including service acquisition. Ordinary failures still return null; service acquisition failures now use the existing role error logger. Ten parameterized regression cases added; PR Check 39708029350 passed at 9597124b. After reconciliation at 9b9ce559, PR #10 merged at f12cfe00. Final-main JVM tests passed; final-main Android Build remains in progress at the last check.
 No local build or test ran. See the [task record](docs/TODO/reflector-curator-cancellation-20261022/index.md).
 
 ## 2026-10-22 — Main PR validation
@@ -51,8 +67,41 @@ no signing secrets and do not upload APK/AAB outputs; signed push and manual bui
 retain their existing behavior. The aggregate Candidate checks gate remains in place.
 Repository branch-protection enforcement was configured on 2026-10-24 (`Candidate checks` required, strict, include administrators).
 
-Implementation is ready for hosted validation; no local Gradle build or test was run.
+PR Check 39707962414 passed at b1719809; PR #8 merged at 8f89bbba. No local Gradle build or test was run.
 See the [active follow-up](docs/TODO/main-pr-runtime-fixes-20261022/index.md).
+
+## 2026-10-22 — Runtime fixes integrated; handoff reconciled
+
+PRs #8–#10 merged in sequence, ending at main f12cfe00. Final-main Android Tests
+39809127516 and Android Build 39809127467 both succeeded on exact main f12cfe00, confirmed on October 23.
+The [integration record](docs/TODO/repository-handoff-20261021/07-integration-20261022.md)
+distinguishes prior PR evidence, the reconciled #10 branch and final-main validation.
+Reconciled handoff documentation with main while preserving both runtime entries and TODO links.
+PRs #4–#7 remain open; no additional merge authorization is implied.
+
+## 2026-10-22 — Argon review context supplement
+
+Recorded the additional [Priority 1/2 review checks and coverage gaps](docs/TODO/repository-handoff-20261021/06-argon-source-context.md).
+Published all nine requested supporting files to the existing Drive review document,
+pinned to base 5b3277cf with source line numbers and Git blob IDs. Findings F1–F4 remain open.
+Documentation/export only; no source changes, tests, or merges.
+
+## 2026-10-22 — Argon review triage
+
+Recorded [verified F1–F4 findings and repair acceptance](docs/TODO/repository-handoff-20261021/05-argon-review-triage.md).
+PR #6 is blocked for merge; PR #4 restoration is blocked for activation.
+Confirmed that PR #5 zero-only graph neighbours can pass a zero relevance threshold,
+while the default positive threshold filters them. Branch documentation cleanup remains open.
+Documentation only; no implementation, merge, or test execution in this triage.
+
+## 2026-10-22 — Handoff refreshed after hosted validation
+
+Updated the [model handoff](docs/TODO/repository-handoff-20261021/index.md) to record
+PRs #8–#10 as implemented and CI-verified, with exact heads and successful full Android
+build/JVM test runs. Removed stale pending implementation and repaired compiler-failure
+instructions. Recorded PR #6's successful Build outcome, remaining integration reviews,
+required-check administration, and the stale local clone warning. Documentation only;
+no merges, source changes, local builds, or new test runs.
 
 ## 2026-10-21 — Learning pipeline hardening: D02 memory-retirement governance (PARTIAL)
 
@@ -91,6 +140,10 @@ Bounded repair of three memory-salience defects from the learning-pipeline harde
 
 ### CI
 - Historical head `7a329587`: Android Build 39581380138 and Android Tests 39581383370 succeeded. Follow-up changes require fresh hosted validation; these runs do not validate the new head.
+
+## 2026-10-21 — Repository handoff for model/session continuity
+
+Published the status review, bridge #46–#48 dispatch record, outstanding primary-assistant tasks and explicit resume instructions in [the repository handoff](docs/TODO/repository-handoff-20261021/index.md), linked from the TODO entry point. This is documentation only; no application behavior, workflow, schema or task-completion status is changed. No build or test was run for this handoff.
 
 ## 2026-10-20 — Learning pipeline hardening: D06 safe memory rendering and G02 execution-route audit
 
