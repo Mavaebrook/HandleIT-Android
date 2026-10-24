@@ -224,4 +224,3 @@ CI (historical): both hosted workflows succeeded on code commit `44a3361681252c4
 ### D02 F2/F4 follow-up — 2026-10-23
 
 Main f12cfe00 is reconciled into PR #4. Ordinary status writes now invalidate prior restoration eligibility atomically; complete structural audit checks and ten real ObjectBox regressions are added. See [the repair record](../d02-restore-eligibility-20261023/index.md) for validation. Hosted execution and independent review are pending at publication. PR #5 remains separate and unmerged; D02 remains partial.
-

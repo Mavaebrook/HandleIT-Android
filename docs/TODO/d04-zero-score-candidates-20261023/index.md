@@ -27,4 +27,3 @@ D04b salience query batching remains unimplemented and unmeasured. ObjectBox 5.3
 ## Validation
 
 Implemented: shared positive-contribution gate, both repository call sites, four candidate-mutation regressions, D04 documentation corrections and reconciliation with main. Hosted validation pending for the new branch head. No local Gradle build or test. Pure JVM coverage does not establish ObjectBox or device acceptance.
-

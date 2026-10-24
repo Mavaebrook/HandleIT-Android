@@ -388,4 +388,3 @@ Implemented the bounded specification in `docs/TODO/reliable-learning-architect-
 ### Notes
 - Full GEPA prompt search, automatic executable-skill synthesis, wholesale memory-backend replacement, new model subscriptions, credential rotation, history rewriting, and signing-key replacement remain deferred.
 - Known unresolved security item: earlier signing-document redaction does not erase exposed passwords from git history. No rotation or history rewrite is performed under this task.
-

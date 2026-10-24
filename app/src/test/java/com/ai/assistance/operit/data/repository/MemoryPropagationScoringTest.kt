@@ -137,4 +137,3 @@ class MemoryPropagationScoringTest {
         assertEquals(setOf(2L, 3L), scores.filterValues { it >= 0.0 }.keys)
     }
 }
-

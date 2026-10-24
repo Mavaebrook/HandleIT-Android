@@ -18,3 +18,5 @@ Documentation conflicts are confined to CHANGELOG.md, docs/TODO/README.md and th
 Combined validation is pending at publication. Old per-PR green results are not substituted for combined validation. Source hunks merging cleanly do not establish end-to-end retrieval or historical phone-data preservation. D02/D04 remain partial; batching is unimplemented, D05 remains blocked and G02 unenforced.
 
 The final evidence will be recorded in the repository handoff when PR #7 is reconciled. Do not repeatedly poll CI or redo the independent reviews without a new defect or source change.
+
+Initial combined run 40064542434 on 23a797a2 failed repository hygiene because merge preparation added blank lines at EOF. Android lanes were skipped. The follow-up removes those blank lines without changing behavior and requires fresh hosted validation.
