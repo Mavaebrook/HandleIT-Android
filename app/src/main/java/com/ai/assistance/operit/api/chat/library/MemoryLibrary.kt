@@ -423,6 +423,7 @@ object MemoryLibrary {
                 analysis.updatedEntities.forEach { update ->
                     val memoryToUpdate = memoryRepository.findMemoryByTitle(update.titleToUpdate)
                     if (memoryToUpdate != null) {
+                        val previousContent = memoryToUpdate.content
                         AppLogger.d(TAG, "正在更新记忆: '${update.titleToUpdate}'. 原因: ${update.reason}")
                         val updatedMemory = memoryRepository.updateMemory(
                                 memory = memoryToUpdate,
@@ -434,8 +435,10 @@ object MemoryLibrary {
                         if (updatedMemory != null) {
                             createdMemories[updatedMemory.title] = updatedMemory
                             // Self-learning: reinforce only on genuine novelty (content actually
-                            // changed), never on an echo re-statement of identical content.
-                            if (update.newContent != memoryToUpdate.content) {
+                            // changed after normalization), never on an echo re-statement of
+                            // identical content. previousContent is captured before updateMemory
+                            // mutates the entity in place.
+                            if (MemoryContentNovelty.isNovel(previousContent, update.newContent)) {
                                 memoryRepository.reinforceMemory(updatedMemory)
                             }
                         }
@@ -463,7 +466,7 @@ object MemoryLibrary {
                         existingMemory.content = mainProblem.content
                         memoryRepository.saveMemory(existingMemory)
                         // Self-learning: reinforce only on genuine novelty, not on identical echo.
-                        if (mainProblem.content != previousContent) {
+                        if (MemoryContentNovelty.isNovel(previousContent, mainProblem.content)) {
                             memoryRepository.reinforceMemory(existingMemory)
                         }
                         existingMemory

@@ -239,6 +239,25 @@ Proposed fix: reinforce only on semantic novelty (normalized comparison, or an e
 
 Acceptance test: a whitespace-only edit does not increment occurrences; a search over N memories issues a constant number of property queries; a zero-weight link contributes no score.
 
+#### R10 status (D04) — 2026-10-21
+
+Branch `fix/memory-reinforcement-d04` (base `origin/main` 5b3277cf). Two of three items implemented; salience batching remains unimplemented and unmeasured.
+
+- **(a) Normalized novelty — DONE** (`3c66a114`). Both `reinforceMemory` guards in `MemoryLibrary.kt` (the updated-entity path and the main-problem path) now call `MemoryContentNovelty.isNovel`, a pure function that normalizes line breaks (`\r\n`/`\r` → `\n`), trims, collapses whitespace runs to a single space, and compares case-insensitively. No embeddings or model calls. JVM test `MemoryContentNoveltyTest` covers whitespace-only, re-wrapped, collapsed-run, case-only (all non-novel) and genuine content changes (novel). The CORRECTS/SUPERSEDES retirement block is untouched.
+- **(c) Propagation floor — DONE** (`1474e674`). Removed `basePropagationScore = 0.03 * effectiveEdgeWeight`, which was added to every traversed edge regardless of relevance. Propagation now goes through the pure `MemoryPropagationScoring.propagatedScore`, where edge weight is the sole determinant and a zero/negative-weight link contributes `0.0`. No other constants retuned. JVM test `MemoryPropagationScoringTest` covers the zero-weight acceptance case. Behavior change recorded in CHANGELOG.
+- **(b) Salience N+1 — NOT IMPLEMENTED (code unchanged).** `MemoryProperty` has no scalar `memoryId`, but ObjectBox 5.3.0 supports standalone `ToMany` relation queries via `QueryBuilder.link(RelationInfo)`. A schema change has not been established as necessary. A follow-up must implement batching and measure query counts against a real ObjectBox store; neither is done here.
+
+#### Independent review (2026-10-21)
+
+- **F1 (HIGH, fixed).** `MemoryLibrary.kt` `updatedEntities` guard compared post-mutation content: `updateMemory` assigns `content = newContent` in place on the same instance (`MemoryRepository.kt:2383`), so `isNovel(memoryToUpdate.content, update.newContent)` was always new-vs-new and `reinforceMemory` never fired on that path. Fixed by snapshotting `previousContent` before the `updateMemory` call (`9480b14b`), matching the already-correct main-problem path.
+- **F2 (MEDIUM, doc correction).** D04(b) is not schema-blocked. `QueryBuilder.link()` exists in ObjectBox 5.3.0 and supports stand-alone `ToMany` relations without a target FK, so the earlier "impossible without a schema change" claim has been corrected above. Batching is NOT implemented in this job; D04 stays unchecked.
+- **F3 (LOW, diagnostic retained).** `edgesTraversed` increments for zero-weight edges. Diagnostic only — it feeds `MemorySearchDebugInfo.graphEdgesTraversed`; no scoring or ranking impact.
+- **F4 (no issue).** Case-insensitive normalization is justified: memory content is compared case-insensitively throughout retrieval (`MemoryRepository.kt:772` `ignoreCase`, `:762` `IGNORE_CASE`, `:795` `CASE_INSENSITIVE`), and paths/identifiers live in dedicated fields (`documentPath`, `chunkIndexFilePath`, `folderPath`), not in `content`.
+
+#### Argon F3 follow-up — 2026-10-23
+
+Unlike the diagnostic-only observation above, unconditional zero-score map insertion can admit neighbours at relevance threshold 0. Both link directions now use `MemoryPropagationScoring.addContribution`; it mutates candidates and score parts only for positive contributions. Existing retrieval scores and `edgesTraversed` are preserved. Four new JVM regressions cover the shared production mutation seam; ObjectBox link traversal is not exercised by those tests. See [the current task record](../d04-zero-score-candidates-20261023/index.md) for validation status. D04 remains partial.
+
 ### R11 — Architect rules are global and prompt-only (confirmed)
 
 Evidence: `core/chat/hooks/ArchitectRulesHook.kt:17-26` (English) and 28-37 (Chinese) inject HandleIT-specific rules — canonical repository, Actions-only builds, invariants, completion gate — into the system prompt. The hook is registered unconditionally at startup: `plugins/PluginRegistry.kt:29-41` calls `ArchitectRulesHookRegistrar.register()` from `initializeBuiltins()`, which `core/application/OperitApplication.kt:203` invokes. `isDevelopmentTask` (lines 47-50) requires a non-blank `workspacePath`, which excludes casual chat but not other projects. A search of `core/tools/` for any build guard (`gradlew`, `assembleDebug`) returns nothing, so the build restriction is text in a prompt with no dispatch-level enforcement.

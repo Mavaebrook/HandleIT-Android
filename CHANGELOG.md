@@ -2,6 +2,10 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-24 — Reviewed memory integration
+
+PR #4 merged at 5526acd0. PR #5 is reconciled with the new main, retaining restoration integrity, normalized reinforcement and positive graph contributions. Shared documentation preserves both change histories. Combined hosted validation is pending; see [the integration record](docs/TODO/memory-integration-20261024/index.md). D02/D04 remain partial.
+
 ## 2026-10-23 — D02 restoration eligibility and persistence tests
 
 Ordinary status writes now atomically invalidate restoration eligibility, including INACTIVE -> INACTIVE. Missing-status initialization checks and writes within one transaction. Restore validates all required audit fields and retains historical audit while consuming the marker.
@@ -9,6 +13,12 @@ Ordinary status writes now atomically invalidate restoration eligibility, includ
 MemoryRepository delegates metadata persistence to MemoryMetadataStore. Ten native ObjectBox JVM regressions cover reopen, same-status deactivation, successful/repeated/refused restoration, invalid audit and rollback. Hosted validation is pending at publication. No schema, dependency or automatic-retirement change. F4 documentation now distinguishes persisted PendingDecision from logged LeaveActive outcomes, callInTx from runInTx, and retained audit history.
 
 See [the repair record](docs/TODO/d02-restore-eligibility-20261023/index.md). D02 remains partial, with no production restoration caller and no historical-device/full-retrieval acceptance.
+
+## 2026-10-23 — D04 graph candidate admission
+
+Both graph link directions now share a positive-contribution mutation gate. Zero/negative contributions create neither retrieval candidates nor score-part entries, including at relevance threshold 0. Scores from other retrieval signals and inspected-edge counts are preserved. Four JVM regressions cover candidate admission, existing candidates and positive accumulation at the production mutation seam; hosted validation is pending. D04b batching remains unimplemented, not established as schema-blocked.
+
+See the [follow-up record](docs/TODO/d04-zero-score-candidates-20261023/index.md). PR #5 remains open for review.
 
 ## 2026-10-22 — MCP argument preservation
 
@@ -49,6 +59,26 @@ D02 is delivered as a conservative prevention gate plus an additive, reversible 
 ### Tests
 - Five new pure JVM tests for `evaluateRestore` (NOT_RETIRED, NOT_INACTIVE, MISSING_PROVENANCE, restore to ACTIVE, restore to a non-ACTIVE prior status). These are pure decision tests, not persistence evidence.
 
+## 2026-10-21 — Learning pipeline hardening: memory reinforcement, propagation floor (D04 / R10)
+
+Bounded repair of three memory-salience defects from the learning-pipeline hardening findings (R10). Two items are implemented; salience N+1 batching is not yet implemented or measured (see the TODO findings note). No ObjectBox schema change: `app/objectbox-models/default.json` is byte-for-byte unchanged. No new model calls. Documentation and source changes only; no build or test was run on the VPS or any local machine. Nothing here is device-verified.
+
+### Fixed
+- `MemoryLibrary` (D04a): reinforcement now fires only on normalized content novelty via the pure `MemoryContentNovelty.isNovel` (trim, collapse whitespace runs, normalize line breaks, case-insensitive), instead of raw string inequality. Cosmetic edits — trailing/leading whitespace, re-wrapped lines, case-only changes — no longer inflate occurrence counts. No embeddings or model calls.
+- `MemoryRepository` (D04c): removed the unconditional `basePropagationScore = 0.03 * effectiveEdgeWeight` that was added to every traversed graph edge regardless of relevance. Propagation now uses the pure `MemoryPropagationScoring.propagatedScore`, where edge weight alone determines the score and a zero/negative-weight link contributes nothing. This is a behavior change: semantically meaningless neighbours are no longer boosted into results. No other constants retuned.
+- `MemoryLibrary` (D04a, review fix): the `updatedEntities` reinforcement guard compared `memoryToUpdate.content` against `update.newContent` *after* `updateMemory` had already assigned `content = newContent` in place on the same instance (`MemoryRepository.kt:2383`), so the comparison was always new-vs-new and `isNovel` was always false — `reinforceMemory` was dead code on that path. `previousContent` is now captured before the call, matching the already-correct main-problem path. Found by independent review of D04.
+
+### Not changed
+- Salience N+1 (D04b): `loadMemorySalienceMetadata` still issues one property query per memory. Batching is **not yet implemented** in this job. The earlier claim that batching is impossible without a schema change is an overstatement: the "no scalar `memoryId`" fact is correct, but ObjectBox 5.3.0 `QueryBuilder.link(RelationInfo)` supports stand-alone `ToMany` relations and does not require a target FK, so a viable API exists. The limitation is recorded as "not yet implemented, viable API exists" rather than "blocked by schema". The code is intentionally left unchanged rather than partially patched.
+- `edgesTraversed` still counts zero-weight edges (incremented for every traversed link regardless of weight). Diagnostic only — it feeds `MemorySearchDebugInfo.graphEdgesTraversed` and has no scoring or ranking impact.
+
+### Tests
+- Added `MemoryContentNoveltyTest` (JVM) — whitespace-only, re-wrapped, collapsed-run and case-only edits are not novel; genuine content changes are.
+- Added `MemoryPropagationScoringTest` (JVM) — a zero-weight link contributes no score; edge weight is the determinant.
+
+### CI
+- Historical head `7a329587`: Android Build 39581380138 and Android Tests 39581383370 succeeded. Follow-up changes require fresh hosted validation; these runs do not validate the new head.
+
 ## 2026-10-20 — Learning pipeline hardening: D06 safe memory rendering and G02 execution-route audit
 
 D06 is implemented: retrieved episode text is now rendered inside a fixed, sanitized, provenance-labelled fence instead of being interpolated verbatim into the SYSTEM prompt. G02 is audit-only: the execution-route audit is complete and recorded, but no enforcement is implemented. A01 device evidence is recorded as PARTIAL, based on user-reported device observation rather than CI verification. Documentation and source changes only; no build or test was run on the VPS or any local machine.
@@ -82,7 +112,7 @@ All runs are GitHub-hosted Actions, all triggered by `workflow_dispatch` (neithe
 - `edbe22a8`: Android Build run [39531073371](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39531073371) FAILURE; Android Tests run [39531075607](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39531075607) FAILURE (Kotlin compile: `Cannot access 'constructor(nativePattern: Pattern): Regex': it is internal in 'kotlin.text.Regex'`).
 - `49ad9977` (current final code SHA): Android Tests run [39534111508](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534111508) **SUCCESS** (job "Android JVM tests" success, step 15 "Run JVM unit tests" success; ~9 min); Android Build run [39534113610](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39534113610) **SUCCESS** (job "Build Android artifacts" success, steps 20 "Configure APK signing keystore", 21 "Run Gradle build" and 23 "Upload successful Android outputs" success; ~15.5 min). No failed steps in either run.
 
-Both workflows are green on `49ad9977` (Android Tests run 39534111508 and Android Build run 39534113610, both SUCCESS). CI verifies compilation and the JVM unit tests only; it does NOT verify device behavior, does NOT verify A01 historical entity preservation, and does NOT change D06's PARTIAL status. PR [#3](https://github.com/Mavaebrook/HandleIT-Android/pull/3) is open and unmerged by design.
+Both workflows are green on `49ad9977` (Android Tests run 39534111508 and Android Build run 39534113610, both SUCCESS). CI verifies compilation and the JVM unit tests only; it does NOT verify device behavior, does NOT verify A01 historical entity preservation, and does NOT change D06's PARTIAL status. PR [#3](https://github.com/Mavaebrook/HandleIT-Android/pull/3) was merged on 2026-10-21 at `5b3277cf`.
 
 ### Notes
 - Honest limitation: fencing and escaping reduce but do not eliminate prompt injection. The block still rides in the SYSTEM message, and a true lower-trust message boundary would need provider-level plumbing that does not exist.
