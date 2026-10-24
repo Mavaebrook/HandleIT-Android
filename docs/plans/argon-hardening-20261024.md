@@ -17,6 +17,11 @@
 
 Neither changes established behavior; the governance path already blocks the already-inactive case before `retire` is called.
 
+## Tests (native ObjectBox)
+
+- `retire_alreadyInactiveWithoutMarker_doesNotRecordInactivePriorStatus` — `markInactive` then direct `retire`; asserts the snapshot is unchanged, `retired_prev_status` stays null, and `restore` returns false.
+- `blankStatusInitialization_overwritesBlankWithActiveAndInvalidatesStaleMarker` — retire, rewrite the status row to blank while keeping `retired_prev_status`, then `initializeStatusIfAbsent`; asserts status becomes `ACTIVE`, `retired_prev_status` is cleared, and `restore` returns false.
+
 ## Evidence
 
 - Accepted CI on `f5ddc3fb75`: Android Build #81 run `40065402652`, Android Tests #82 run `40065402642` (both SUCCESS).
@@ -31,5 +36,5 @@ Neither changes established behavior; the governance path already blocks the alr
 
 ## Verification
 
-- Diff shows exactly 2 changed code lines plus the plan and CHANGELOG entry.
+- Diff shows exactly 2 changed code lines plus the plan, 2 native ObjectBox tests, and the CHANGELOG entry.
 - No local build or APK produced; APK builds remain GitHub-Actions-only.
