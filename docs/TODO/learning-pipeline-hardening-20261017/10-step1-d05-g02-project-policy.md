@@ -102,10 +102,10 @@ These are recorded as UNGUARDED, not "accepted" on the user's behalf. G02 stays 
 ## Checkpoint
 
 Owner: VPS orchestrator via the bridge, at Teddy's explicit request.
-State: D05 IMPLEMENTED (code + tests, not yet CI-verified). G02 BLOCKED at design checkpoint (see below).
-Exact commit: `2f30c4284b59080a45a3386a5a000c97d70440be` (D05 implementation; branch point `5b3277cf844c0c198307c60ac0e9c8f79f1b88bf`).
-Next: run hosted Android Build + Android Tests on the D05 head; then record CI evidence. G02 requires a trusted invocation-context carrier that does not exist (see G02 section).
-Blockers: (1) No production caller supplies a `ProjectIdentity`, so HandleIT rules are inert at runtime until a trusted identity source is wired — this is the unconnected production prerequisite, reported honestly, not a silent regression. (2) G02 cannot be made non-bypassable from existing dispatch/context APIs (see G02 section).
+State: D05 + F1 IMPLEMENTED (code + tests; CI running, not yet green). G02 BLOCKED at design checkpoint (see below).
+Exact commit: `217fcff58a5941bcf3b11efa877293410f87c8f9` (F1 identity-from-git-config, parent `d680292fb8cb0f429ce232635a8f73aadffe7ae7`).
+Next: verify the hosted PR Check is green on `217fcff5`; record CI evidence; post the evidence comment; await Argon sign-off before merge. G02 requires a trusted invocation-context carrier that does not exist (see G02 section).
+Blockers: (1) RESOLVED — the unconnected production prerequisite is now wired: `ConversationService` populates `ProjectIdentity.METADATA_KEY` from `ProjectIdentity.resolveFromWorkspace(workspacePath)` in both the summary and system-prompt hook metadata, so the HandleIT identity is established from the workspace git remote rather than any prompt claim. (2) G02 cannot be made non-bypassable from existing dispatch/context APIs (see G02 section).
 
 ## G02 — first slice: BLOCKED at design checkpoint
 
@@ -134,8 +134,8 @@ A bounded, non-bypassable carrier would require either extending `AIToolHook` wi
 
 All runs are GitHub-hosted Actions. No build or test was run on the VPS or any local machine.
 
-| Item | Commit | Android Build | Android Tests |
+| Item | Commit | PR Check (`pr-check.yml`) |
 | --- | --- | --- | --- |
-| D05 project-scoped architect rules | `87fcfedab2f74e5431c1779a08e5b272426385b9` | pending — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39583110293 | pending — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39583113800 |
+| D05 project-scoped architect rules (F1 identity-from-git-config) | `217fcff58a5941bcf3b11efa877293410f87c8f9` | running — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40089287238 |
 
-Both workflows are `push`-to-`main` + `workflow_dispatch` only (no `pull_request` trigger), so they were dispatched manually on the branch head. The run links above are PENDING at the time of this checkpoint; they are not yet green. CI verifies compilation and the JVM unit tests only, not device behavior. D05 remains unchecked until these runs are green.
+The `pr-check.yml` workflow fires on `pull_request` (opened/synchronize/reopened/edited/ready_for_review) and runs the fast checks, then `android_build` and `android_tests` as reusable `workflow_call` jobs, finishing with the aggregate "Candidate checks" job. It was triggered automatically by the push to the PR head; the run above is RUNNING at the time of this checkpoint and is not yet green. CI verifies compilation and the JVM unit tests only, not device behavior. D05/F1 remains unchecked until this run is green.

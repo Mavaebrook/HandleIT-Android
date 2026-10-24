@@ -2,6 +2,12 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-24 — D05 project identity from workspace git config (F1)
+
+PR #6 F1 blocker resolved: the HandleIT architect rules are now established from the workspace's git remote rather than left inert. `ProjectIdentity.resolveFromGitConfig` / `resolveFromWorkspace` map the canonical `github.com/Mavaebrook/HandleIT-Android` remote (HTTPS or SSH) to `HANDLEIT`, any other parseable remote to `OTHER`, and absent/unparseable config to `UNKNOWN`; matching is exact host-and-path, never substring, and the directory basename is never consulted. `ArchitectRulesProvider.resolveScope` prefers an explicit typed metadata identity and falls back to `resolveFromWorkspace`; `ConversationService` populates `ProjectIdentity.METADATA_KEY` in both the summary and system-prompt hook metadata. Six new JVM regressions cover git-config resolution, workspace switch, spoofed metadata, and prompt/summary agreement.
+
+No local build or test run; APK builds remain GitHub-Actions-only. Hosted PR Check is running at commit `217fcff58a5941bcf3b11efa877293410f87c8f9`; no merge until Argon signs off. See [the plan](docs/TODO/learning-pipeline-hardening-20261017/10-step1-d05-g02-project-policy.md).
+
 ## 2026-10-24 — Argon review hardening (non-blocking notes 1 & 2)
 
 Applied Argon's two non-blocking hardening notes from `Argon-Review-f5ddc3fb75-2026-10-24.txt` (verdict APPROVE-WITH-NOTES, zero blockers). Both are one-line, behavior-preserving polish in `MemoryMetadataStore.kt`, not defect remediation:
