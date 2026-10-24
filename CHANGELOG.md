@@ -11,6 +11,10 @@ Applied Argon's two non-blocking hardening notes from `Argon-Review-f5ddc3fb75-2
 
 No schema, dependency, or model-call change. Two native ObjectBox regressions in `MemoryMetadataStoreTest` cover the new guards (`retire_alreadyInactiveWithoutMarker_doesNotRecordInactivePriorStatus`, `blankStatusInitialization_overwritesBlankWithActiveAndInvalidatesStaleMarker`). No local build or test run; APK builds remain GitHub-Actions-only and are validated by hosted CI. See [the plan](docs/plans/argon-hardening-20261024.md).
 
+## 2026-10-24 — Main branch protection configured
+
+`main` now requires the aggregate `Candidate checks` status check (strict: branches must be up to date), with administrator enforcement enabled and force-push/deletion disabled. This closes the "pending administrator configuration" item from the 2026-10-22 Main PR validation work. Repository-settings change only; no file, build, or test change.
+
 ## 2026-10-24 — Reviewed memory integration
 
 PR #4 merged at 5526acd0. PR #5 is reconciled with the new main, retaining restoration integrity, normalized reinforcement and positive graph contributions. Shared documentation preserves both change histories. Combined hosted validation is pending; see [the integration record](docs/TODO/memory-integration-20261024/index.md). D02/D04 remain partial.
@@ -45,7 +49,7 @@ PR Check now targets `main` and calls the existing Android Build and Android Tes
 workflows for selected lanes. Both operate on the merge candidate. PR calls receive
 no signing secrets and do not upload APK/AAB outputs; signed push and manual builds
 retain their existing behavior. The aggregate Candidate checks gate remains in place.
-Repository branch-protection enforcement is still pending administrator configuration.
+Repository branch-protection enforcement was configured on 2026-10-24 (`Candidate checks` required, strict, include administrators).
 
 Implementation is ready for hosted validation; no local Gradle build or test was run.
 See the [active follow-up](docs/TODO/main-pr-runtime-fixes-20261022/index.md).

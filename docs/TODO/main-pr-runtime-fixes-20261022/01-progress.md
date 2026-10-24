@@ -6,7 +6,7 @@ Updated 2026-10-22. Base main: `5b3277cf`.
 
 Implemented: main target filter, reusable named Android workflows, preserved merge-candidate checkout and aggregate gate, instrumentation source compilation input, PR signing/upload guards. Main push and manual signing behavior is unchanged.
 
-Validation: independent source review found no blockers. PR #8 hosted run 39707804541 rejected a trailing blank line in the new task index; corrected for the next run. Android lanes were correctly skipped after fast-check failure. Hosted Android validation is still pending. No local build or test ran. Required-check enforcement is not configured by these files; an administrator must require `Candidate checks` and up-to-date branches on main after validation.
+Validation: independent source review found no blockers. PR #8 hosted run 39707804541 rejected a trailing blank line in the new task index; corrected for the next run. Android lanes were correctly skipped after fast-check failure. Hosted Android validation is still pending. No local build or test ran. Required-check enforcement is now configured (2026-10-24): `main` requires `Candidate checks`, strict up-to-date branches, and includes administrators. This was set via the repository settings API by the administrator, not by these workflow files.
 
 ## Runtime work
 
