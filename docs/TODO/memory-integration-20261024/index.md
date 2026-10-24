@@ -15,8 +15,12 @@ The MemoryLibrary and MemoryRepository source merges are clean. Novelty checking
 
 Documentation conflicts are confined to CHANGELOG.md, docs/TODO/README.md and the learning-pipeline index. Both D02/D04 sections and task links are retained; equivalent PR #3 merged-status wording uses the dated form. No schema/ID, signing, package, dependency or workflow change is introduced.
 
-Combined validation is pending at publication. Old per-PR green results are not substituted for combined validation. Source hunks merging cleanly do not establish end-to-end retrieval or historical phone-data preservation. D02/D04 remain partial; batching is unimplemented, D05 remains blocked and G02 unenforced.
+Combined validation succeeded (PR Check 40064775483 passed; merged application Android Build 40065402652 and Android Tests 40065402642 both SUCCESS on `f5ddc3fb`). Old per-PR green results are not substituted for combined validation. Source hunks merging cleanly do not establish end-to-end retrieval or historical phone-data preservation. D02/D04 remain partial; batching is unimplemented, D05 remains blocked and G02 unenforced.
 
 The final evidence will be recorded in the repository handoff when PR #7 is reconciled. Do not repeatedly poll CI or redo the independent reviews without a new defect or source change.
 
 Initial combined run 40064542434 on 23a797a2 failed repository hygiene because merge preparation added blank lines at EOF. Android lanes were skipped. The follow-up removes those blank lines without changing behavior and requires fresh hosted validation.
+
+## Integration result
+
+PR #5 merged as f5ddc3fb75e5eab59f785f5bc72f34f479007b5f after successful combined PR Check 40064775483. Merged application Android Build 40065402652 and Android Tests 40065402642 both SUCCESS. PR #7 delivers the consolidated [handoff evidence](../repository-handoff-20261021/10-memory-integration-20261024.md). Earlier pending statements above are publication history; remaining D02/D04/device/security limits still apply.

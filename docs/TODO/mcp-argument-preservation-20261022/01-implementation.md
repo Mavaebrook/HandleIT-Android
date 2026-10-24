@@ -27,8 +27,9 @@ and null positions. Serialization behavior itself is unchanged.
 
 ## Validation status and limits
 
-Source inspection is complete. No build or test has run locally. Hosted Android Build and Android
-Tests remain pending; add their run URLs and exact tested SHA before marking validation complete.
+Source inspection is complete. [PR Check 39708024114](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39708024114) ran the full Android build and JVM tests successfully at `ae43e582`. PR #9 merged at `0b00ed20`. No build or test ran locally.
+
+Final main `f12cfe00`: [Android Tests 39809127516](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39809127516) succeeded; [Android Build 39809127467](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39809127467) succeeded; completed 2026-10-22 16:16:59 UTC, confirmed 2026-10-23. See the [integration record](../repository-handoff-20261021/07-integration-20261022.md) for current provenance.
 
 This change does not implement full JSON Schema validation, resolve schema references/unions,
 or replace the platform JSON parser. Servers that relied on guessing types without a schema

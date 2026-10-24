@@ -4,8 +4,8 @@ repository: https://github.com/Mavaebrook/HandleIT-Android
 
 # MCP argument preservation
 
-The executor currently guesses types even for declared strings, reparses nested JSON strings,
-and removes null array entries. This can change remote write arguments before dispatch.
+Before this fix, the executor guessed types even for declared strings, reparsed nested JSON strings,
+and removed null array entries. This could change remote write arguments before dispatch.
 
 ## Plan
 
@@ -23,9 +23,11 @@ and removes null array entries. This can change remote write arguments before di
 - Conversion emits no argument contents to logs.
 - Existing transport interfaces and persisted data remain unchanged.
 
-Implementation and regression tests are written; hosted validation is pending. See
+Implementation and regression tests passed PR Check 39708024114 at `ae43e582`; PR #9 merged at `0b00ed20`. See
 [behavior and validation](01-implementation.md).
 
-## CI prerequisite
+## Integration and validation
 
-This PR includes the CI commit from [PR #8](https://github.com/Mavaebrook/HandleIT-Android/pull/8) so its main-targeted merge candidate receives hosted validation. Review this feature commit separately; merge #8 first. The CI prerequisite will disappear from this PR's diff once it reaches main. No Claude bridge job is required.
+PR #8's CI prerequisite merged first, followed by #9. No additional prerequisite merge is pending.
+
+Final main `f12cfe00`: [Android Tests 39809127516](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39809127516) succeeded; [Android Build 39809127467](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39809127467) succeeded; completed 2026-10-22 16:16:59 UTC, confirmed 2026-10-23. See the [integration record](../repository-handoff-20261021/07-integration-20261022.md) for current provenance.
