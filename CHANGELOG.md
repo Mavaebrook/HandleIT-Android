@@ -9,7 +9,7 @@ Applied Argon's two non-blocking hardening notes from `Argon-Review-f5ddc3fb75-2
 - `retire` now returns early when `priorStatus` is `STATUS_INACTIVE`, so a future caller that bypasses `MemoryRetirementGovernance.decide` on a memory deactivated through `markInactive` cannot record a misleading `priorStatus = "INACTIVE"` audit value.
 - `initializeStatusIfAbsent` now treats a blank status as absent (`.isNullOrBlank()`), aligning it with `retire`'s existing blank handling.
 
-No schema, dependency, or model-call change. No local build or test run; APK builds remain GitHub-Actions-only. See [the plan](docs/plans/argon-hardening-20261024.md).
+No schema, dependency, or model-call change. Two native ObjectBox regressions in `MemoryMetadataStoreTest` cover the new guards (`retire_alreadyInactiveWithoutMarker_doesNotRecordInactivePriorStatus`, `blankStatusInitialization_overwritesBlankWithActiveAndInvalidatesStaleMarker`). No local build or test run; APK builds remain GitHub-Actions-only and are validated by hosted CI. See [the plan](docs/plans/argon-hardening-20261024.md).
 
 ## 2026-10-24 — Reviewed memory integration
 
