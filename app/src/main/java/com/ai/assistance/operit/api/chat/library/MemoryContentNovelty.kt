@@ -34,3 +34,4 @@ object MemoryContentNovelty {
     fun isNovel(previousContent: String, newContent: String): Boolean =
         normalize(previousContent) != normalize(newContent)
 }
+

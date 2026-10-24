@@ -90,3 +90,4 @@ class MemoryContentNoveltyTest {
         assertEquals("a b c", MemoryContentNovelty.normalize("  A\r\n\tB   C  "))
     }
 }
+

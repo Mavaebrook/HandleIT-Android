@@ -27,7 +27,7 @@ Read this file on task start, resume, and after context compaction. Keep a curre
 - [ ] C06 Add the plan-time gap check: retrieve 3-5 episodes, test conditions, emit at most 3 cautions, record accept/dismiss, retire repeatedly dismissed lessons. (N01)
 - [ ] G01 Log which episodes and skills were injected for a task, then update helpful and harmful counters from the deterministic outcome (not model self-judgement); counters inform promotion and retirement but are one input, not the whole decision. (G01) — placed after Stage C and before Stage F, because F depends on it.
 - [ ] D01 Wire `ReflectorCurator.curate`, `SkillRevisionLifecycle` and `SkillRevisionRepository` into production, or record them as library-only. (R07)
-- [ ] D02 Add a governance gate before retiring a `CORRECTS`/`SUPERSEDES` target: verify direction and recency, check active user constraints, make retirement reversible. (R08)
+- [ ] D02 Add a governance gate before retiring a `CORRECTS`/`SUPERSEDES` target: verify direction and recency, check active user constraints, make retirement reversible. (R08) — PARTIAL. Implemented on branch `fix/memory-retirement-governance` (base `838deba5`); see [06-step1-d02-memory-retirement-governance-plan.md](06-step1-d02-memory-retirement-governance-plan.md). Delivered: a pure `MemoryRetirementGovernance` policy, an atomic audited reversible retirement path and explicit `restoreMemory` in `MemoryRepository` (existing `MemoryProperty` storage, no schema change), and a governance gate wired into `MemoryLibrary`. The overall item stays unchecked because production `correctionApplicable` is hardcoded `false` (no corroborating evidence source exists), active-user-constraint provenance is absent (no constraint model on `Memory`), restoration has no production UI/caller, and full retrieval/device acceptance remains incomplete. Native persistence tests are added in [the October 23 repair](../d02-restore-eligibility-20261023/index.md), with hosted execution tracked separately. A model link type or timestamp alone can never authorize retirement.
 - [ ] D03 Raise `MIN_INDEPENDENT_EVIDENCE`, require helpful outcomes, collapse paraphrased evidence, and check candidate steps rather than self-reported constraints. (R09)
 - [ ] D04 Fix memory reinforcement on raw text inequality, the per-memory salience N+1 query, and the unconditional `basePropagationScore`. (R10) — PARTIAL: (a) DONE 3c66a114, (c) DONE 1474e674, (b) NOT IMPLEMENTED / UNMEASURED (see 01-findings.md R10 status note). Argon F3 candidate-admission follow-up is implemented with validation tracked in [the task record](../d04-zero-score-candidates-20261023/index.md).
 - [ ] D05 Scope `ArchitectRulesHook` per project, or document the prompt-only enforcement gap explicitly. (R11)
@@ -203,3 +203,25 @@ Plan and acceptance:
 - [x] Review the final diff and satisfy the authorized merge gate: both hosted workflows succeeded on the cleanup code commit. The PR records the subsequent merge event.
 
 CI for cleanup code commit `1794c64fab569fc913c691bae5ad1c81cd7ad72d` succeeded: [Android Build 39517747866](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39517747866) and [Android Tests 39517750560](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39517750560). This checkpoint is documentation-only on top of that code; no source or workflow changes followed the successful runs. Merge is authorized; see [PR #2](https://github.com/Mavaebrook/HandleIT-Android/pull/2) for its merge state. A01 remains PARTIAL; merge does not establish device acceptance. No schema, package, signing, retrieval-ranking, or resolution-policy change.
+
+
+## D02 memory-retirement governance (2026-10-21)
+
+Branch `fix/memory-retirement-governance`, base `838deba5c3f7ea86c71265046a09a039e86a0d94`. Current main `5b3277cf` (PR #3 merged) was merged into the branch at `0b997e66` without rewriting history; the only conflict was in this index file and was resolved by keeping main's newer A01 `PARTIAL` wording plus the D02 section.
+
+Scope delivered: a pure `MemoryRetirementGovernance` policy object, an atomic audited reversible retirement path in `MemoryRepository` using existing `MemoryProperty` key-value storage, an explicit `restoreMemory` operation, and a governance gate wired into `MemoryLibrary` that replaces the direct `markMemoryInactive` calls.
+
+Integrity repair (commit `5a3832ba`): Retirement uses store.runInTx; restoration uses value-returning store.callInTx, so a partial failure cannot leave audit rows without `status=INACTIVE` (or vice versa). Re-retirement is guarded so it cannot overwrite the recorded prior status. A new pure `MemoryRetirementGovernance.evaluateRestore` refuses to restore unless the memory is still `INACTIVE` with a complete retirement audit, so a memory deliberately changed by another operation is never silently reactivated. Restore retains the retirement provenance (`retired_at`, `retired_reason`, `retired_by_link_type`, `retired_source_id`), stamps `restored_at`, and clears only the consumed restorable marker and the pending reason.
+
+No ObjectBox schema change. `default.json` unchanged (byte-identical to main). No `entity12`/`MemoryLedger` change. No D05/G02, D06, MCP, ReflectorCurator, H01, promotion, graph, vector caching, UI, signing or orchestrator changes.
+
+Known limitation: production never auto-retires today, because the data model has no corroborating evidence that a correction genuinely applies. Only PendingDecision outcomes persist a marker; LeaveActive outcomes only log. Caller-excluded self-links never reach the policy. Restoration has no production UI or caller. See the plan document's incomplete-criteria section.
+
+Status: PARTIAL. The overall D02 item stays unchecked until production `correctionApplicable` evidence, active-user-constraint provenance, a restoration caller, and persistence/retrieval acceptance exist.
+
+CI (historical): both hosted workflows succeeded on code commit `44a3361681252c464a84f46acc8e5d9725bb65f7` — [Android Build 39542091105](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39542091105) and [Android Tests 39542094153](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39542094153). CI on the post-merge, post-integrity-fix head is recorded in the plan document and PR [#4](https://github.com/Mavaebrook/HandleIT-Android/pull/4). PR #4 is left unmerged for independent review.
+
+### D02 F2/F4 follow-up — 2026-10-23
+
+Main f12cfe00 is reconciled into PR #4. Ordinary status writes now invalidate prior restoration eligibility atomically; complete structural audit checks and ten real ObjectBox regressions are added. See [the repair record](../d02-restore-eligibility-20261023/index.md) for validation. Hosted execution and independent review are pending at publication. PR #5 remains separate and unmerged; D02 remains partial.
+

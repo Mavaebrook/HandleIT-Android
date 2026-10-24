@@ -43,3 +43,4 @@ object MemoryPropagationScoring {
         return sourceScore * edgeWeight * graphPropagationWeight
     }
 }
+

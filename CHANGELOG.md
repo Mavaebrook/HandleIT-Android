@@ -2,6 +2,18 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-24 — Reviewed memory integration
+
+PR #4 merged at 5526acd0. PR #5 is reconciled with the new main, retaining restoration integrity, normalized reinforcement and positive graph contributions. Shared documentation preserves both change histories. Combined hosted validation is pending; see [the integration record](docs/TODO/memory-integration-20261024/index.md). D02/D04 remain partial.
+
+## 2026-10-23 — D02 restoration eligibility and persistence tests
+
+Ordinary status writes now atomically invalidate restoration eligibility, including INACTIVE -> INACTIVE. Missing-status initialization checks and writes within one transaction. Restore validates all required audit fields and retains historical audit while consuming the marker.
+
+MemoryRepository delegates metadata persistence to MemoryMetadataStore. Ten native ObjectBox JVM regressions cover reopen, same-status deactivation, successful/repeated/refused restoration, invalid audit and rollback. Hosted validation is pending at publication. No schema, dependency or automatic-retirement change. F4 documentation now distinguishes persisted PendingDecision from logged LeaveActive outcomes, callInTx from runInTx, and retained audit history.
+
+See [the repair record](docs/TODO/d02-restore-eligibility-20261023/index.md). D02 remains partial, with no production restoration caller and no historical-device/full-retrieval acceptance.
+
 ## 2026-10-23 — D04 graph candidate admission
 
 Both graph link directions now share a positive-contribution mutation gate. Zero/negative contributions create neither retrieval candidates nor score-part entries, including at relevance threshold 0. Scores from other retrieval signals and inspected-edge counts are preserved. Four JVM regressions cover candidate admission, existing candidates and positive accumulation at the production mutation seam; hosted validation is pending. D04b batching remains unimplemented, not established as schema-blocked.
@@ -28,6 +40,24 @@ Repository branch-protection enforcement is still pending administrator configur
 
 Implementation is ready for hosted validation; no local Gradle build or test was run.
 See the [active follow-up](docs/TODO/main-pr-runtime-fixes-20261022/index.md).
+
+## 2026-10-21 — Learning pipeline hardening: D02 memory-retirement governance (PARTIAL)
+
+D02 is delivered as a conservative prevention gate plus an additive, reversible restore API. Production never auto-retires a memory: a model-asserted `CORRECTS`/`SUPERSEDES` link type or a timestamp alone can never authorize retirement, so no such link auto-retires a fact. Only PendingDecision persists a marker; LeaveActive only logs. The overall D02 item remains PARTIAL and unchecked because production `correctionApplicable` is hardcoded `false` (no corroborating evidence source), active-user-constraint provenance is absent, restoration has no production UI/caller, and full retrieval/device acceptance remains incomplete. The October 23 follow-up adds native metadata persistence tests. Documentation and source changes only; no build or test was run on the VPS or any local machine.
+
+### Added
+- Pure `MemoryRetirementGovernance` policy object with a `decide` gate (self-link, already-inactive, ambiguity, user-constraint, direction/recency, link-type, evidence) and a `reasonCode` mapping.
+- Pure `MemoryRetirementGovernance.evaluateRestore` decision that refuses restoration unless the memory is still `INACTIVE` with a complete retirement audit.
+- Atomic audited retirement (`retireMemoryWithAudit`) and explicit `restoreMemory` in `MemoryRepository`, using existing `MemoryProperty` key-value storage (no schema change).
+
+### Fixed
+- Retirement uses store.runInTx; restoration uses value-returning store.callInTx, so a partial failure cannot leave audit rows without `status=INACTIVE` (or vice versa).
+- Re-retirement is guarded so it cannot overwrite the recorded prior status and corrupt the audit chain.
+- Changes away from INACTIVE are refused. The October 23 follow-up additionally invalidates the marker for same-status writes.
+- Restoration retains the retirement provenance and stamps `restored_at` instead of erasing the audit trail; the pending reason is cleared on resolution.
+
+### Tests
+- Five new pure JVM tests for `evaluateRestore` (NOT_RETIRED, NOT_INACTIVE, MISSING_PROVENANCE, restore to ACTIVE, restore to a non-ACTIVE prior status). These are pure decision tests, not persistence evidence.
 
 ## 2026-10-21 — Learning pipeline hardening: memory reinforcement, propagation floor (D04 / R10)
 
@@ -358,3 +388,4 @@ Implemented the bounded specification in `docs/TODO/reliable-learning-architect-
 ### Notes
 - Full GEPA prompt search, automatic executable-skill synthesis, wholesale memory-backend replacement, new model subscriptions, credential rotation, history rewriting, and signing-key replacement remain deferred.
 - Known unresolved security item: earlier signing-document redaction does not erase exposed passwords from git history. No rotation or history rewrite is performed under this task.
+
