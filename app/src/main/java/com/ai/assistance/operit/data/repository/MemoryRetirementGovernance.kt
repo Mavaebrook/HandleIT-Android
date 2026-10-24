@@ -4,9 +4,8 @@ package com.ai.assistance.operit.data.repository
  * Pure, Android-free governance policy for retiring (deactivating) a memory.
  *
  * This object exists so the retirement decision can be unit-tested on the JVM: the repositories
- * need a real ObjectBox store and cannot be instantiated in `app/src/test` (there is no
- * Robolectric in this project). The production call site delegates its retirement decision to
- * this object, so the tested logic is the logic that actually runs.
+ * depend on Android services. Production delegates its decision here; MemoryMetadataStore
+ * separately exercises persistence against a real ObjectBox store.
  *
  * Core invariant: model output cannot grant permission. This policy only ever REDUCES the set of
  * retirements — it never expands it. Every branch either leaves the memory active or defers the
@@ -53,7 +52,7 @@ object MemoryRetirementGovernance {
     enum class RestoreRefusalReason {
         NOT_RETIRED,          // no recorded prior status: nothing to restore
         NOT_INACTIVE,         // current status is not INACTIVE: another operation changed it
-        MISSING_PROVENANCE    // retired_prev_status present but retired_at absent: incomplete audit
+        MISSING_PROVENANCE    // required audit fields are missing or structurally invalid
     }
 
     /**
@@ -158,20 +157,34 @@ object MemoryRetirementGovernance {
      *
      * Core invariant: restoration must never silently reactivate a memory that another operation
      * has since deliberately changed. Restoration is only permitted when the memory is still in the
-     * exact state the retirement left it: status INACTIVE and a complete retirement audit present.
+     * eligible retirement state: INACTIVE with an unconsumed marker and structurally valid audit.
+     * MemoryMetadataStore invalidates the marker on ordinary status writes, including same-status
+     * writes. Field validation does not establish semantic correction evidence.
      *
      * @param currentStatus the memory's current salience status.
      * @param recordedPrevStatus the value stored under retired_prev_status, or null.
-     * @param recordedRetiredAt the value stored under retired_at, or null.
+     * @param recordedRetiredAt positive epoch milliseconds recorded under retired_at.
+     * @param recordedReason must be ACCEPTED.
+     * @param recordedLinkType must be CORRECTS or SUPERSEDES.
+     * @param recordedSourceId must be a positive ID; source existence is not inferred.
      */
     fun evaluateRestore(
-        currentStatus: String,
+        currentStatus: String?,
         recordedPrevStatus: String?,
-        recordedRetiredAt: String?
+        recordedRetiredAt: String?,
+        recordedReason: String?,
+        recordedLinkType: String?,
+        recordedSourceId: String?
     ): RestoreDecision {
         if (recordedPrevStatus.isNullOrBlank()) return RestoreDecision.Refuse(RestoreRefusalReason.NOT_RETIRED)
         if (currentStatus != "INACTIVE") return RestoreDecision.Refuse(RestoreRefusalReason.NOT_INACTIVE)
-        if (recordedRetiredAt.isNullOrBlank()) return RestoreDecision.Refuse(RestoreRefusalReason.MISSING_PROVENANCE)
+        if (recordedRetiredAt?.toLongOrNull()?.let { it > 0L } != true ||
+            recordedReason != RetirementReason.ACCEPTED.name ||
+            recordedLinkType !in SUPPORTED_LINK_TYPES ||
+            recordedSourceId?.toLongOrNull()?.let { it > 0L } != true
+        ) {
+            return RestoreDecision.Refuse(RestoreRefusalReason.MISSING_PROVENANCE)
+        }
         return RestoreDecision.Restore(recordedPrevStatus)
     }
 }

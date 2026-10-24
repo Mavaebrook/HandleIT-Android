@@ -67,7 +67,7 @@ Explicitly out of scope for this job:
 
 Add a new pure, Context-free policy object `MemoryRetirementGovernance` in package `com.ai.assistance.operit.data.repository`, the same package as `MemoryGraphScopeFilter` and `PendingReviewBatchPolicy`.
 
-It follows that exact pattern: a Kotlin `object`, no Android imports, no ObjectBox imports, no coroutines, and a KDoc block that explains why it exists. The reason is the same as for `PendingReviewBatchPolicy`: the repositories need a real ObjectBox store and cannot be instantiated in `app/src/test`, because this project has no Robolectric. A pure object is the only way the decision logic can be unit-tested on the JVM, and the production call site must delegate to it so the tested logic is the logic that actually runs.
+It follows that exact pattern: a Kotlin `object`, no Android imports, no ObjectBox imports, no coroutines, and a KDoc block that explains why it exists. The reason is the same as for `PendingReviewBatchPolicy`: the repositories need a real ObjectBox store and cannot be instantiated in `app/src/test`, because this project has no Robolectric. Production delegates to the pure policy. The October 23 repair adds native ObjectBox JVM persistence tests through MemoryMetadataStore without Android service initialization.
 
 The object takes plain data inputs and returns a sealed decision. It never reads storage and never writes storage.
 
@@ -98,7 +98,7 @@ The reasons are an enum, so they are stable, testable and storable as a property
 
 `ACCEPTED` is the only reason that pairs with `Retire`. Every other reason maps to `LeaveActive` or `PendingDecision`, and the mapping is fixed in the object so a caller cannot reinterpret it.
 
-In the implemented wiring, `correctionApplicable` is set to `false` unconditionally. The data model contains no corroborating evidence that a correction genuinely applies: the link type is model-asserted, a timestamp only orders writes, and the link description is guaranteed non-blank by the parser so it cannot serve as evidence. Production therefore never auto-retires. Every `CORRECTS`/`SUPERSEDES` link resolves to `PendingDecision(INSUFFICIENT_EVIDENCE)` and records a pending decision, leaving the fact active. The policy's `Retire` path is exercised by unit tests and activates only once a real evidence source exists.
+In the implemented wiring, `correctionApplicable` is set to `false` unconditionally. The data model contains no corroborating evidence that a correction genuinely applies: the link type is model-asserted, a timestamp only orders writes, and the link description is guaranteed non-blank by the parser so it cannot serve as evidence. Production therefore never auto-retires. Only PendingDecision outcomes (AMBIGUOUS_TARGET or INSUFFICIENT_EVIDENCE) persist a pending marker. Earlier LeaveActive outcomes only log; caller-excluded self-links never reach the policy. The policy's `Retire` path is exercised by unit tests and activates only once a real evidence source exists.
 
 ### Reversible retirement
 
@@ -112,11 +112,11 @@ New property keys, all additive:
 - `retired_by_link_type` — the link type that triggered it
 - `retired_source_id` — the id of the source memory
 
-The audited retirement method reads the current status first, writes it to `retired_prev_status`, writes the remaining audit keys, and only then writes `status=INACTIVE`. The existing `markMemoryInactive` stays as it is for any other caller; the governance path uses the new audited method instead.
+The audited retirement method reads the current status first, writes it to `retired_prev_status`, writes the remaining audit keys, and only then writes `status=INACTIVE`. Ordinary status writes, including same-status markMemoryInactive calls, atomically invalidate retired_prev_status while retaining audit history. Retirement and restore manage their own marker lifecycle.
 
-Add an explicit `restoreMemory(memory)` operation. It reads `retired_prev_status`, writes that value back to `status`, and clears the retirement audit keys. If `retired_prev_status` is absent the operation does nothing and reports that there is nothing to restore, rather than guessing a status.
+Add an explicit `restoreMemory(memory)` operation. It validates the marker, INACTIVE status and all required audit fields, restores the recorded status, and clears only the marker and pending decision. Audit history is retained and restored_at is stamped. If `retired_prev_status` is absent the operation does nothing and reports that there is nothing to restore, rather than guessing a status.
 
-There is no automatic restoration anywhere. `restoreMemory` has no caller in this job other than its tests. Nothing in the retrieval path, the review path or the scheduler calls it.
+There is no automatic restoration anywhere. MemoryRepository.restoreMemory has no production caller. Native tests invoke its delegated MemoryMetadataStore.restore path; pure tests invoke evaluateRestore. Nothing in the retrieval path, the review path or the scheduler calls it.
 
 ### Wiring the gate into the call site
 
@@ -129,7 +129,7 @@ The sequence before any retirement:
 3. Check whether the target is protected by an active explicit user constraint.
 4. Call `MemoryRetirementGovernance` with the collected inputs.
 
-Only a `Retire` decision calls the new audited retirement method. `LeaveActive` and `PendingDecision` must not deactivate anything, and must record a pending-decision marker as a `MemoryProperty` row on the target, for example `pending_retirement_reason`, so the decision is surfaced and recorded rather than silently dropped.
+Only a `Retire` decision calls the new audited retirement method. Neither LeaveActive nor PendingDecision deactivates a fact. Only PendingDecision persists pending_retirement_reason; LeaveActive logs without writing the marker. There is no UI for pending decisions.
 
 Three invariants are stated explicitly and must hold in the implementation:
 
@@ -139,15 +139,15 @@ Three invariants are stated explicitly and must hold in the implementation:
 
 ## Acceptance checklist
 
-Policy-level items are covered by pure JVM tests in `MemoryRetirementGovernanceTest.kt` (no ObjectBox store). Persistence and retrieval items are NOT exercised by any test and stay unchecked.
+Policy-level items are covered by pure JVM tests in `MemoryRetirementGovernanceTest.kt` (no ObjectBox store). The October 23 follow-up adds ten native ObjectBox tests in MemoryMetadataStoreTest. Hosted execution is tracked in [the repair record](../d02-restore-eligibility-20261023/index.md); full retrieval and historical-device preservation remain untested.
 
 - [x] A reversed link does not retire its target (pure test `reversedLink_doesNotRetire`)
 - [x] A same-title ambiguity does not retire any candidate (pure test `ambiguousTarget_doesNotRetire`)
 - [x] A protected user constraint or user correction is preserved (pure test `protectedUserConstraint_doesNotRetire`; note: production supplies `targetProtectedByActiveUserConstraint = false` because no constraint model exists)
-- [x] Missing evidence leaves the memory active and records a pending decision (pure test `missingEvidence_returnsPendingDecision`)
+- [x] Missing evidence returns PendingDecision (pure test missingEvidence_returnsPendingDecision). MemoryLibrary persists that outcome; the pure test is not itself persistence evidence.
 - [x] An accepted, justified retirement still works at the policy level (pure test `justifiedCorrection_retires`; not reachable end-to-end in production, see incomplete criteria)
-- [ ] The previous status is auditable after a retirement — the code writes `retired_prev_status`/`retired_at`/`retired_reason`/`retired_by_link_type`/`retired_source_id` inside one transaction, but no test exercises real ObjectBox persistence; compile-verified only.
-- [ ] Explicit restoration returns the memory to its prior status — the pure `evaluateRestore` decision is tested, but the transactional write-back is not exercised against a real store; compile-verified only.
+- [ ] The previous status is auditable after a retirement — the code writes `retired_prev_status`/`retired_at`/`retired_reason`/`retired_by_link_type`/`retired_source_id` inside one transaction, native persistence tests are now added, with hosted execution tracked in the current repair record.
+- [ ] Explicit restoration returns the memory to its prior status — pure policy and native persistence tests are now added, with hosted execution tracked in the current repair record.
 - [ ] Retrieval after restoration returns the fact again — not tested; no retrieval test exists.
 - [x] Production wiring is inspected, not only the pure policy tests (gate wiring in `MemoryLibrary` reviewed; `correctionApplicable` and `targetProtectedByActiveUserConstraint` are hardcoded `false` by design)
 - [x] No ObjectBox schema change and `default.json` is byte-identical (verified against main `5b3277cf`)
@@ -181,7 +181,7 @@ The design therefore treats a timestamp alone as insufficient. `TARGET_NEWER_THA
 
 ### Production retirement is currently always deferred
 
-Because `correctionApplicable` is `false` in production, no `CORRECTS`/`SUPERSEDES` link retires a memory today. Every such link records a pending decision and leaves the fact active.
+Because `correctionApplicable` is `false` in production, no `CORRECTS`/`SUPERSEDES` link retires a memory today. Only PendingDecision outcomes persist a marker; LeaveActive outcomes log without writing one.
 
 This is the strongest bounded safe change available. The alternative — treating a model-asserted link type or a timestamp as sufficient evidence — would fabricate authority the data model does not contain, which the authorized scope forbids. The acceptance criterion "an accepted, justified retirement still works" is therefore satisfied at the policy level and by unit tests, but not reachable end-to-end in production until a genuine evidence source is added.
 
@@ -206,7 +206,7 @@ Test cases, matching the acceptance checklist:
 - `onlyAcceptedReason_retires` — every other reason maps to a non-retire decision
 - `policyNeverExpandsRetirementSet` — no input combination produces `Retire` without `ACCEPTED`
 
-Repository-level behaviour, audited retirement and explicit restoration, is verified by inspection of the production wiring plus the CI build, because the repository needs a real ObjectBox store and cannot be instantiated in `app/src/test`. The acceptance checklist item "production wiring is inspected, not only the pure policy tests" exists precisely because the pure tests cannot cover that path.
+Native tests now use the same MemoryMetadataStore as the repository, with a generated MyObjectBox store in a temporary directory. They exercise status/audit persistence, reopen and rollback. Android service initialization and full retrieval remain outside this seam.
 
 ## Rollback and reversibility
 
@@ -216,7 +216,7 @@ Reverting the commit restores the prior behaviour exactly: the call site returns
 
 There is no data migration. The new property keys are written only by the new audited retirement method, so a revert leaves any already-written audit rows in place as inert key-value data. They are not read by any code path after a revert, and they do not affect retrieval, because `searchMemories` at `MemoryRepository.kt` line 1420 filters only on `status`.
 
-No schema change means no `default.json` regeneration and no upgrade risk. A01 device verification remains PENDING and is unaffected by this job.
+No schema change means no default.json regeneration; it does not prove absence of upgrade risk. A01 device verification remains PENDING and is unaffected by this job.
 
 ## Implementation record
 
@@ -250,11 +250,15 @@ Current main `5b3277cf` (PR #3 merged) was merged into the branch at `0b997e66` 
 
 Commit `5a3832ba` repairs concrete data-integrity defects in the retirement/restore path:
 
-- `retireMemoryWithAudit` and `restoreMemory` now run inside a single `store.runInTx`, so a partial failure cannot leave audit rows without `status=INACTIVE` (or vice versa).
+- Retirement uses store.runInTx; restoration uses value-returning store.callInTx, so a partial failure cannot leave audit rows without `status=INACTIVE` (or vice versa).
 - Re-retirement is guarded: if `retired_prev_status` is already set, the method returns without overwriting the audit chain.
 - New pure `MemoryRetirementGovernance.evaluateRestore` refuses restoration unless the memory is still `INACTIVE` with a complete retirement audit (`NOT_RETIRED`, `NOT_INACTIVE`, `MISSING_PROVENANCE`). This prevents silently reactivating a memory that another operation deliberately changed.
 - Restore retains the retirement provenance (`retired_at`, `retired_reason`, `retired_by_link_type`, `retired_source_id`), stamps `restored_at`, and clears only the consumed restorable marker and the pending reason.
 
-Regression coverage: five new pure JVM tests for `evaluateRestore` in `MemoryRetirementGovernanceTest.kt`. These are pure decision tests, not persistence evidence — `MemoryRepository` needs a real ObjectBox store and cannot be instantiated in `app/src/test` (no Robolectric). The transactional wiring is compile-verified only.
+Regression coverage: five new pure JVM tests for `evaluateRestore` in `MemoryRetirementGovernanceTest.kt`. Those historical tests were pure decision tests; the October 23 follow-up adds native persistence coverage at the delegated metadata store.
 
 CI on the final head is recorded in PR #4. This is not device acceptance and not a complete security gate.
+
+## October 23 F2/F4 follow-up
+
+Ordinary status writes now invalidate restoration eligibility atomically, including INACTIVE -> INACTIVE. Initialization checks status inside a transaction. Restore requires a positive timestamp/source ID, ACCEPTED reason and supported link type, retaining historical audit. These checks are structural, not semantic correction evidence. Ten real ObjectBox tests exercise the production metadata store; hosted validation and independent review are pending at publication. See [the current repair record](../d02-restore-eligibility-20261023/index.md).

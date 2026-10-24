@@ -20,8 +20,8 @@ workspace = candidate
 本地检查需要显式指定比较边界。在干净的功能分支上运行：
 
 ```bash
-git fetch upstream dev
-BASE_SHA="$(git merge-base upstream/dev HEAD)"
+git fetch origin main
+BASE_SHA="$(git merge-base origin/main HEAD)"
 CANDIDATE_SHA="HEAD"
 
 python3 -B -m unittest discover -s ci/test -p 'test_*.py'
@@ -30,7 +30,7 @@ python3 -B ci/script/check_markdown_links.py --base "$BASE_SHA" --candidate "$CA
 python3 -B ci/script/check_localizations.py --base "$BASE_SHA" --candidate "$CANDIDATE_SHA"
 ```
 
-本地分支不是 GitHub merge candidate，因此本地结果用于提交前检查；PR 页面上的 `Candidate checks` 才验证与当前 `dev` 合并后的实际树。
+本地分支不是 GitHub merge candidate，因此本地结果用于提交前检查；PR 页面上的 `Candidate checks` 才验证与当前 `main` 合并后的实际树。
 
 ## PR check lanes
 
@@ -49,8 +49,21 @@ python3 -B ci/script/check_localizations.py --base "$BASE_SHA" --candidate "$CAN
 
 根项目、`web-chat` 和独立的 `examples/toolpkg_wasm_demo` 分别提交 `package-lock.json`，CI 使用 `npm ci` 安装确定的依赖树。
 
-PR workflow 只有 `contents: read` 权限，不读取仓库 secret，也不上传 APK/AAB。`Android Build`
-是只负责编译和打包的可信 main/手工构建 workflow，`Android Tests` 单独负责可信 main/手工 JVM 单测。
+PRs targeting `main` run `PR Check`. Its selected Android jobs call the reusable
+[Android Build](../.github/workflows/android-build.yml) and
+[Android Tests](../.github/workflows/android-tests.yml) workflows from the same merge-candidate commit.
+Calls pass no secrets and retain `contents: read`. PR builds use the existing temporary
+debug signing configuration and do not upload APK/AAB files. These artifacts are validation
+only and must not replace installed HandleIT builds. Push/manual builds keep their existing
+signing configuration and artifact uploads. Instrumentation changes compile the Android test
+sources; they do not run device tests.
+
+After the checks have run successfully, a repository administrator should require
+`Candidate checks` on `main` and require branches to be up to date before merging.
+The gate fails when fast checks fail or a selected Android workflow fails, is cancelled,
+or is unexpectedly skipped. Unselected Android lanes may be skipped.
+Workflow configuration alone does not enable branch protection. Administrative enforcement
+is still pending; verify it in repository settings before treating this as a merge gate.
 
 ## Diagnostics
 
@@ -60,6 +73,6 @@ PR workflow 只有 `contents: read` 权限，不读取仓库 secret，也不上�
 
 MNN 使用官方 `3.6.1` 发布提交 `d407447ed56c4121a11ccbd266dc184ca1ead0c2`，不跟随 `master`；其余原生源码依赖仍由各模块通过 `cmake/operit_git_source.cmake` 下载固定 GitHub archive。
 
-JVM lane 只下载 `libs.zip`，完整 Android lane 下载 `libs.zip`、`subpack.zip` 和 `jniLibs.zip` 三个固定归档。`download_android_dependencies.sh` 使用固定 Google Drive file ID；`prepare_android_dependencies.py` 限制成员数量、解压大小、压缩比和文件类型，重建固定输出根目录，只验证本次实际解出的文件，并拒绝越界路径、重复成员及符号链接。DragonBones 等原生源码依赖由各模块通过 `cmake/operit_git_source.cmake` 下载固定 GitHub archive。`arsc.jar` 已无消费者，`smart-exception` 改由 Maven Central 提供，`android-gif-drawable` 的重复 native 库也不会从归档写入构建目录。应用打包前，Gradle 会检查外部构建的 `liboperit_ripgrep.so`，以及本地 FFmpegKit AAR 中 10 个 arm64 native 库；缺失或零长度文件会使打包失败。默认本地 STT 模型不再来自 Drive 归档，由 Gradle 按 `app/config/stt-model-assets.properties` 获取到生成 assets 目录并校验 SHA-256。
+Both reusable Android lanes download `libs.zip`、`subpack.zip` 和 `jniLibs.zip` 三个固定归档。`download_android_dependencies.sh` 使用固定 Google Drive file ID；`prepare_android_dependencies.py` 限制成员数量、解压大小、压缩比和文件类型，重建固定输出根目录，只验证本次实际解出的文件，并拒绝越界路径、重复成员及符号链接。DragonBones 等原生源码依赖由各模块通过 `cmake/operit_git_source.cmake` 下载固定 GitHub archive。`arsc.jar` 已无消费者，`smart-exception` 改由 Maven Central 提供，`android-gif-drawable` 的重复 native 库也不会从归档写入构建目录。应用打包前，Gradle 会检查外部构建的 `liboperit_ripgrep.so`，以及本地 FFmpegKit AAR 中 10 个 arm64 native 库；缺失或零长度文件会使打包失败。默认本地 STT 模型不再来自 Drive 归档，由 Gradle 按 `app/config/stt-model-assets.properties` 获取到生成 assets 目录并校验 SHA-256。
 
 这些 Drive 归档目前还没有内容 hash。归档内容寻址与许可证清单继续由[外部制品清单计划](../docs/TODO/refactor_building_sys/3_ExternalArtifactManifest.md)跟踪，在取得并审计真实归档前不记录推测值。STT 模型资产已有逐文件来源和 hash，但 Sherpa NCNN 模型上游元数据尚未声明许可证，发布前仍需完成许可证审计。

@@ -118,6 +118,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
     private val linkBox = store.boxFor<MemoryLink>()
     private val chunkBox = store.boxFor<DocumentChunk>()
     private val propertyBox = store.boxFor<MemoryProperty>()
+    private val metadataStore = MemoryMetadataStore(store)
 
     private val searchSettingsPreferences = MemorySearchSettingsPreferences(context, profileId)
     private val cloudEmbeddingService = CloudEmbeddingService(context)
@@ -291,36 +292,11 @@ class MemoryRepository(private val context: Context, profileId: String) {
         val status: String
     )
 
-    private fun readProperty(memory: Memory, key: String): String? {
-        if (memory.id <= 0L) return null
-        memory.properties.reset()
-        return memory.properties.firstOrNull { it.key == key }?.value
-    }
+    private fun readProperty(memory: Memory, key: String): String? =
+        metadataStore.readProperty(memory, key)
 
-    private fun writeProperty(memory: Memory, key: String, value: String) {
-        if (memory.id <= 0L) return
-        memory.properties.reset()
-        val existing = memory.properties.firstOrNull { it.key == key }
-        if (existing != null) {
-            existing.value = value
-            propertyBox.put(existing)
-        } else {
-            val property = MemoryProperty(key = key, value = value)
-            propertyBox.put(property)
-            memory.properties.add(property)
-        }
-        memoryBox.put(memory)
-    }
-
-    private fun clearProperty(memory: Memory, key: String) {
-        if (memory.id <= 0L) return
-        memory.properties.reset()
-        val toRemove = memory.properties.filter { it.key == key }
-        if (toRemove.isNotEmpty()) {
-            propertyBox.removeByIds(toRemove.map { it.id })
-            memory.properties.reset()
-        }
-    }
+    private fun writeProperty(memory: Memory, key: String, value: String) =
+        metadataStore.writeProperty(memory, key, value)
 
     private fun loadMemorySalienceMetadata(memory: Memory): MemorySalienceMetadata {
         if (memory.id <= 0L) {
@@ -353,16 +329,14 @@ class MemoryRepository(private val context: Context, profileId: String) {
             val nowMs = System.currentTimeMillis()
             writeProperty(memory, PROP_OCCURRENCES, (metadata.occurrences + 1).toString())
             writeProperty(memory, PROP_LAST_SEEN, nowMs.toString())
-            if (readProperty(memory, PROP_STATUS) == null) {
-                writeProperty(memory, PROP_STATUS, STATUS_ACTIVE)
-            }
+            metadataStore.initializeStatusIfAbsent(memory)
         }
     }
 
     suspend fun markMemoryInactive(memory: Memory) {
         withContext(Dispatchers.IO) {
             if (memory.id <= 0L) return@withContext
-            writeProperty(memory, PROP_STATUS, STATUS_INACTIVE)
+            metadataStore.markInactive(memory)
         }
     }
 
@@ -396,22 +370,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         sourceMemoryId: Long
     ) {
         withContext(Dispatchers.IO) {
-            if (memory.id <= 0L) return@withContext
-            store.runInTx {
-                // Already retired: keep the existing audit chain intact.
-                if (!readProperty(memory, PROP_RETIRED_PREV_STATUS).isNullOrBlank()) {
-                    return@runInTx
-                }
-                val priorStatus = loadMemorySalienceMetadata(memory).status
-                writeProperty(memory, PROP_RETIRED_PREV_STATUS, priorStatus)
-                writeProperty(memory, PROP_RETIRED_AT, System.currentTimeMillis().toString())
-                writeProperty(memory, PROP_RETIRED_REASON, reasonCode)
-                writeProperty(memory, PROP_RETIRED_BY_LINK_TYPE, linkType)
-                writeProperty(memory, PROP_RETIRED_SOURCE_ID, sourceMemoryId.toString())
-                writeProperty(memory, PROP_STATUS, STATUS_INACTIVE)
-                // The retirement decision is now resolved, so it is no longer pending.
-                clearProperty(memory, PROP_PENDING_RETIREMENT_REASON)
-            }
+            metadataStore.retire(memory, reasonCode, linkType, sourceMemoryId)
         }
     }
 
@@ -428,38 +387,16 @@ class MemoryRepository(private val context: Context, profileId: String) {
      *
      * Refuses to reactivate a memory whose status was changed by another operation: eligibility is
      * decided by [MemoryRetirementGovernance.evaluateRestore], which requires the memory to still
-     * be INACTIVE with a complete retirement audit. On refusal nothing is written and false is
+     * be INACTIVE with an unconsumed marker and a structurally valid retirement audit.
+     * Deliberate status writes invalidate the marker atomically, including INACTIVE -> INACTIVE.
+     * On refusal nothing is written and false is
      * returned. The method never guesses a status and never invents a default. There is no
      * automatic restoration anywhere; this is only ever called explicitly.
      *
      * @return true when the recorded prior status was restored, false otherwise.
      */
     suspend fun restoreMemory(memory: Memory): Boolean = withContext(Dispatchers.IO) {
-        if (memory.id <= 0L) return@withContext false
-        store.callInTx {
-            val currentStatus = loadMemorySalienceMetadata(memory).status
-            val recordedPrevStatus = readProperty(memory, PROP_RETIRED_PREV_STATUS)
-            val recordedRetiredAt = readProperty(memory, PROP_RETIRED_AT)
-            when (
-                val decision =
-                    MemoryRetirementGovernance.evaluateRestore(
-                        currentStatus = currentStatus,
-                        recordedPrevStatus = recordedPrevStatus,
-                        recordedRetiredAt = recordedRetiredAt
-                    )
-            ) {
-                is MemoryRetirementGovernance.RestoreDecision.Refuse -> false
-                is MemoryRetirementGovernance.RestoreDecision.Restore -> {
-                    writeProperty(memory, PROP_STATUS, decision.priorStatus)
-                    // Consumed restorable marker: this retirement can no longer be replayed.
-                    clearProperty(memory, PROP_RETIRED_PREV_STATUS)
-                    clearProperty(memory, PROP_PENDING_RETIREMENT_REASON)
-                    // Retirement provenance is retained as history.
-                    writeProperty(memory, PROP_RESTORED_AT, System.currentTimeMillis().toString())
-                    true
-                }
-            }
-        }
+        metadataStore.restore(memory)
     }
 
     /**

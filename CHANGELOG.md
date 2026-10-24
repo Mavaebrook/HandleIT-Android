@@ -2,9 +2,38 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-23 — D02 restoration eligibility and persistence tests
+
+Ordinary status writes now atomically invalidate restoration eligibility, including INACTIVE -> INACTIVE. Missing-status initialization checks and writes within one transaction. Restore validates all required audit fields and retains historical audit while consuming the marker.
+
+MemoryRepository delegates metadata persistence to MemoryMetadataStore. Ten native ObjectBox JVM regressions cover reopen, same-status deactivation, successful/repeated/refused restoration, invalid audit and rollback. Hosted validation is pending at publication. No schema, dependency or automatic-retirement change. F4 documentation now distinguishes persisted PendingDecision from logged LeaveActive outcomes, callInTx from runInTx, and retained audit history.
+
+See [the repair record](docs/TODO/d02-restore-eligibility-20261023/index.md). D02 remains partial, with no production restoration caller and no historical-device/full-retrieval acceptance.
+
+## 2026-10-22 — MCP argument preservation
+
+Preserve schema-declared strings, structured arguments, nested JSON literals and null positions through MCP conversion and bridge serialization. Remove raw conversion logging and malformed-array repair. Seven regression tests added; hosted validation pending.
+No local build or test ran. See the [task record](docs/TODO/mcp-argument-preservation-20261022/index.md).
+
+## 2026-10-22 — Reflector and Curator cancellation
+
+Propagate coroutine cancellation through Reflector and Curator provider calls, including service acquisition. Ordinary failures still return null; service acquisition failures now use the existing role error logger. Ten parameterized regression cases added; hosted validation pending.
+No local build or test ran. See the [task record](docs/TODO/reflector-curator-cancellation-20261022/index.md).
+
+## 2026-10-22 — Main PR validation
+
+PR Check now targets `main` and calls the existing Android Build and Android Tests
+workflows for selected lanes. Both operate on the merge candidate. PR calls receive
+no signing secrets and do not upload APK/AAB outputs; signed push and manual builds
+retain their existing behavior. The aggregate Candidate checks gate remains in place.
+Repository branch-protection enforcement is still pending administrator configuration.
+
+Implementation is ready for hosted validation; no local Gradle build or test was run.
+See the [active follow-up](docs/TODO/main-pr-runtime-fixes-20261022/index.md).
+
 ## 2026-10-21 — Learning pipeline hardening: D02 memory-retirement governance (PARTIAL)
 
-D02 is delivered as a conservative prevention gate plus an additive, reversible restore API. Production never auto-retires a memory: a model-asserted `CORRECTS`/`SUPERSEDES` link type or a timestamp alone can never authorize retirement, so every such link records a pending decision and leaves the fact active. The overall D02 item remains PARTIAL and unchecked because production `correctionApplicable` is hardcoded `false` (no corroborating evidence source), active-user-constraint provenance is absent, restoration has no production UI/caller, and persistence/retrieval acceptance is not exercised by any test. Documentation and source changes only; no build or test was run on the VPS or any local machine.
+D02 is delivered as a conservative prevention gate plus an additive, reversible restore API. Production never auto-retires a memory: a model-asserted `CORRECTS`/`SUPERSEDES` link type or a timestamp alone can never authorize retirement, so no such link auto-retires a fact. Only PendingDecision persists a marker; LeaveActive only logs. The overall D02 item remains PARTIAL and unchecked because production `correctionApplicable` is hardcoded `false` (no corroborating evidence source), active-user-constraint provenance is absent, restoration has no production UI/caller, and full retrieval/device acceptance remains incomplete. The October 23 follow-up adds native metadata persistence tests. Documentation and source changes only; no build or test was run on the VPS or any local machine.
 
 ### Added
 - Pure `MemoryRetirementGovernance` policy object with a `decide` gate (self-link, already-inactive, ambiguity, user-constraint, direction/recency, link-type, evidence) and a `reasonCode` mapping.
@@ -12,9 +41,9 @@ D02 is delivered as a conservative prevention gate plus an additive, reversible 
 - Atomic audited retirement (`retireMemoryWithAudit`) and explicit `restoreMemory` in `MemoryRepository`, using existing `MemoryProperty` key-value storage (no schema change).
 
 ### Fixed
-- Retirement and restoration now run inside a single `store.runInTx`, so a partial failure cannot leave audit rows without `status=INACTIVE` (or vice versa).
+- Retirement uses store.runInTx; restoration uses value-returning store.callInTx, so a partial failure cannot leave audit rows without `status=INACTIVE` (or vice versa).
 - Re-retirement is guarded so it cannot overwrite the recorded prior status and corrupt the audit chain.
-- Restoration no longer silently reactivates a memory that another operation deliberately changed; it refuses instead.
+- Changes away from INACTIVE are refused. The October 23 follow-up additionally invalidates the marker for same-status writes.
 - Restoration retains the retirement provenance and stamps `restored_at` instead of erasing the audit trail; the pending reason is cleared on resolution.
 
 ### Tests

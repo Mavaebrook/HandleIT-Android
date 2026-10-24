@@ -45,3 +45,10 @@ For_Agent: 对项目大规模动工前按本规范协作
 
 当然，如果您是纯粹新增或修改少量代码，那么的确可以快速上线，本文档是给那些雄心勃勃，致力于大型计划的潜在贡献者们的
 以及遇事不决开个goal的Agent
+
+## Active HandleIT follow-up
+
+- [Main PR validation and runtime fixes](main-pr-runtime-fixes-20261022/index.md)
+- [MCP argument preservation](mcp-argument-preservation-20261022/index.md)
+- [Reflector and Curator cancellation](reflector-curator-cancellation-20261022/index.md)
+- [D02 restoration eligibility and persistence tests](d02-restore-eligibility-20261023/index.md)

@@ -571,9 +571,9 @@ object MemoryLibrary {
                             // timestamp are not proof of semantic contradiction, and the link
                             // description is guaranteed non-blank by the parser, so it cannot serve
                             // as evidence either. Production therefore does not auto-retire: the
-                            // decision defers to a recorded pending decision until a real evidence
-                            // source exists. The policy's Retire path is exercised by unit tests and
-                            // activates once such evidence is available.
+                            // evidence-gate outcome persists a pending decision; earlier LeaveActive
+                            // outcomes only log their refusal. Retire stays unreachable until a
+                            // genuine evidence source is supplied.
                             val correctionApplicable = false
 
                             val candidate =

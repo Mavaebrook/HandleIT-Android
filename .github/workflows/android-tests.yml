@@ -1,6 +1,13 @@
 name: Android Tests
 
 on:
+  workflow_call:
+    inputs:
+      compile_instrumentation:
+        description: Compile instrumentation sources without running device tests
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
   push:
     branches: [main]
@@ -159,7 +166,17 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Run JVM unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon
+        env:
+          INSTRUMENTATION_REQUIRED: ${{ inputs.compile_instrumentation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          tasks=(":app:testDebugUnitTest")
+          if [[ "$INSTRUMENTATION_REQUIRED" == "true" ]]; then
+            tasks+=(":app:compileDebugAndroidTestKotlin" ":app:compileDebugAndroidTestJavaWithJavac")
+          fi
+          ./gradlew "${tasks[@]}" --stacktrace --no-daemon
 
       - name: Upload Android test reports
         if: always()

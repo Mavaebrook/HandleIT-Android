@@ -236,11 +236,8 @@ class MemoryRetirementGovernanceTest {
     // ---------------------------------------------------------------------------------------
     // Restore eligibility (evaluateRestore)
     //
-    // IMPORTANT: these are PURE decision tests, NOT persistence evidence. No ObjectBox store is
-    // exercised here — MemoryRepository cannot be instantiated in app/src/test (no Robolectric).
-    // They prove only that the restore policy refuses to reactivate a memory whose status was
-    // changed by another operation and never invents a status. The persistence wiring in
-    // MemoryRepository.restoreMemory is only compile-verified by CI.
+    // Pure decision coverage. MemoryMetadataStoreTest separately covers native ObjectBox
+    // persistence, same-status invalidation and transaction rollback.
     // ---------------------------------------------------------------------------------------
 
     // Covers: nothing was ever retired, so there is nothing to restore.
@@ -251,7 +248,10 @@ class MemoryRetirementGovernanceTest {
             MemoryRetirementGovernance.evaluateRestore(
                 currentStatus = "INACTIVE",
                 recordedPrevStatus = null,
-                recordedRetiredAt = "1000"
+                recordedRetiredAt = "1000",
+                recordedReason = "ACCEPTED",
+                recordedLinkType = "CORRECTS",
+                recordedSourceId = "1"
             )
         )
         assertEquals(
@@ -259,7 +259,10 @@ class MemoryRetirementGovernanceTest {
             MemoryRetirementGovernance.evaluateRestore(
                 currentStatus = "INACTIVE",
                 recordedPrevStatus = "   ",
-                recordedRetiredAt = "1000"
+                recordedRetiredAt = "1000",
+                recordedReason = "ACCEPTED",
+                recordedLinkType = "CORRECTS",
+                recordedSourceId = "1"
             )
         )
     }
@@ -273,7 +276,10 @@ class MemoryRetirementGovernanceTest {
             MemoryRetirementGovernance.evaluateRestore(
                 currentStatus = "ACTIVE",
                 recordedPrevStatus = "ACTIVE",
-                recordedRetiredAt = "1000"
+                recordedRetiredAt = "1000",
+                recordedReason = "ACCEPTED",
+                recordedLinkType = "CORRECTS",
+                recordedSourceId = "1"
             )
         )
     }
@@ -287,7 +293,10 @@ class MemoryRetirementGovernanceTest {
             MemoryRetirementGovernance.evaluateRestore(
                 currentStatus = "INACTIVE",
                 recordedPrevStatus = "ACTIVE",
-                recordedRetiredAt = null
+                recordedRetiredAt = null,
+                recordedReason = "ACCEPTED",
+                recordedLinkType = "CORRECTS",
+                recordedSourceId = "1"
             )
         )
         assertEquals(
@@ -295,7 +304,10 @@ class MemoryRetirementGovernanceTest {
             MemoryRetirementGovernance.evaluateRestore(
                 currentStatus = "INACTIVE",
                 recordedPrevStatus = "ACTIVE",
-                recordedRetiredAt = "  "
+                recordedRetiredAt = "  ",
+                recordedReason = "ACCEPTED",
+                recordedLinkType = "CORRECTS",
+                recordedSourceId = "1"
             )
         )
     }
@@ -308,7 +320,10 @@ class MemoryRetirementGovernanceTest {
             MemoryRetirementGovernance.evaluateRestore(
                 currentStatus = "INACTIVE",
                 recordedPrevStatus = "ACTIVE",
-                recordedRetiredAt = "1000"
+                recordedRetiredAt = "1000",
+                recordedReason = "ACCEPTED",
+                recordedLinkType = "CORRECTS",
+                recordedSourceId = "1"
             )
         )
     }
@@ -321,7 +336,10 @@ class MemoryRetirementGovernanceTest {
             MemoryRetirementGovernance.evaluateRestore(
                 currentStatus = "INACTIVE",
                 recordedPrevStatus = "INACTIVE",
-                recordedRetiredAt = "1000"
+                recordedRetiredAt = "1000",
+                recordedReason = "ACCEPTED",
+                recordedLinkType = "CORRECTS",
+                recordedSourceId = "1"
             )
         )
     }

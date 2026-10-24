@@ -5,7 +5,9 @@ status: partial
 branch: fix/memory-retirement-governance
 ---
 
-# D02 memory-retirement governance — checkpoint (2026-10-21)
+# D02 memory-retirement governance — historical checkpoint (2026-10-21)
+
+Superseded by [the October 23 repair record](../d02-restore-eligibility-20261023/index.md). Earlier failures and repairs below are retained as history.
 
 ## Job
 
@@ -55,7 +57,7 @@ Fix: `restoreMemory` now uses `store.callInTx(Callable<R>)`, the supported value
 - Android Build run `39580341182` — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39580341182 — **FAILED** at `:app:compileDebugKotlin` with `MemoryRepository.kt:439:9 Return type mismatch: expected 'Boolean', actual 'Unit'`.
 - Android Tests run `39580344481` — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39580344481 — **FAILED** with the same compile error.
 
-Hosted CI has **not** been re-run on the new head `8235b709`. Its status is **PENDING / not-yet-run** at this checkpoint; no green result is claimed.
+Superseding evidence: head 1323cb2ecd130e99c10ef3254a5a5eb4dc345837 later passed Android Build [39593653711](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39593653711) and Android Tests [39593659455](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/39593659455). These runs do not validate the October 23 follow-up.
 
 Historical (pre-merge) green CI on `44a33616`: Build `39542091105`, Tests `39542094153`.
 
@@ -65,12 +67,12 @@ Historical (pre-merge) green CI on `44a33616`: Build `39542091105`, Tests `39542
 - No active-user-constraint provenance (`Memory` has no constraint model).
 - Restoration has no production UI/caller.
 - Persistence/retrieval acceptance (checklist items 6, 7, 8) is incomplete and unchecked.
-- Existing tests are pure-Boolean policy tests over `MemoryRetirementGovernance`; they do **not** prove ObjectBox transaction or persistence behavior. The transactional wiring is compile-verified only.
+- Existing tests are pure-Boolean policy tests over `MemoryRetirementGovernance`; they do **not** prove ObjectBox transaction or persistence behavior. At this historical checkpoint the transactional wiring was compile-verified only. Native persistence tests are added in the October 23 follow-up.
 - Checking `INACTIVE` plus an audit record is a local precondition, not proof about what other operations may have done; broader authority/provenance semantics are left to independent review.
 - Green CI would not be device acceptance and not a complete security gate.
 
 ## Next action
 
-1. Re-run hosted Android Build + Android Tests on the new head `8235b709`; record the run IDs and results here.
+1. Resume from the October 23 repair record; do not repeat the completed compiler repair.
 2. Independent review is a separate gate (this job does not self-certify merge readiness).
 3. Do not merge without explicit authorization.
