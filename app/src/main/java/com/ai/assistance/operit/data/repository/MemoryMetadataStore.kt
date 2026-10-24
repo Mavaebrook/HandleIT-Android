@@ -75,7 +75,7 @@ internal class MemoryMetadataStore(
         if (memory.id <= 0L) return
         store.runInTx {
             // A stale reinforcement read must not overwrite a concurrent retirement.
-            if (readProperty(memory, PROP_STATUS) == null) {
+            if (readProperty(memory, PROP_STATUS).isNullOrBlank()) {
                 writeProperty(memory, PROP_STATUS, STATUS_ACTIVE)
             }
         }
@@ -90,6 +90,7 @@ internal class MemoryMetadataStore(
         store.runInTx {
             if (!readProperty(memory, PROP_RETIRED_PREV_STATUS).isNullOrBlank()) return@runInTx
             val priorStatus = readProperty(memory, PROP_STATUS)?.takeIf { it.isNotBlank() } ?: STATUS_ACTIVE
+            if (priorStatus == STATUS_INACTIVE) return@runInTx
             writeRawProperty(memory, PROP_RETIRED_PREV_STATUS, priorStatus)
             writeRawProperty(memory, PROP_RETIRED_AT, nowMs().toString())
             writeRawProperty(memory, PROP_RETIRED_REASON, reasonCode)
