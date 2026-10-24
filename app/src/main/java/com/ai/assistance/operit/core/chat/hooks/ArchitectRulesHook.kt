@@ -45,13 +45,16 @@ object ArchitectRulesProvider {
     /**
      * Resolve the project policy scope for this hook invocation (D05).
      *
-     * The identity is read from trusted metadata only (see [ProjectIdentity.fromMetadata]); a
-     * workspace path is required for any development scope. Both the system-prompt hook and the
-     * summary hook call this so they always agree.
+     * The identity prefers an explicit typed [ProjectIdentity] carried in trusted metadata (see
+     * [ProjectIdentity.fromMetadata]) and falls back to [ProjectIdentity.resolveFromWorkspace] when
+     * none is present. A workspace path is required for any development scope. Both the
+     * system-prompt hook and the summary hook call this so they always agree.
      */
     fun resolveScope(workspacePath: String?, metadata: Map<String, Any?>): ProjectPolicyScope {
         val resolvedWorkspace = workspacePath ?: metadata["workspacePath"] as? String
-        val identity = ProjectIdentity.fromMetadata(metadata)
+        val identity =
+            metadata[ProjectIdentity.METADATA_KEY] as? ProjectIdentity
+                ?: ProjectIdentity.resolveFromWorkspace(resolvedWorkspace)
         return ProjectPolicyScope.resolve(identity, resolvedWorkspace)
     }
 }

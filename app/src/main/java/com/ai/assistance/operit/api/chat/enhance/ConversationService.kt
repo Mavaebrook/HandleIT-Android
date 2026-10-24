@@ -2,6 +2,7 @@ package com.ai.assistance.operit.api.chat.enhance
 
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.core.chat.hooks.ProjectIdentity
 import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
 import com.ai.assistance.operit.core.chat.hooks.PromptHookRegistry
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
@@ -166,7 +167,8 @@ class ConversationService(
                 mapOf(
                     "providerModel" to summaryService.providerModel,
                     "sourceMessageCount" to summaryHistory.size,
-                    "workspacePath" to workspacePath
+                    "workspacePath" to workspacePath,
+                    ProjectIdentity.METADATA_KEY to ProjectIdentity.resolveFromWorkspace(workspacePath)
                 ) + activePromptMetadata
 
             val beforePrepareContext =
@@ -633,7 +635,9 @@ class ConversationService(
                         TaskPreflightProvider.PreflightContext(textBlock = "", snapshot = null)
                     }
                 val architectPreflightBlock = preflightContext.textBlock
-                var systemPromptHookMetadata = activePromptMetadata
+                var systemPromptHookMetadata =
+                    activePromptMetadata +
+                        (ProjectIdentity.METADATA_KEY to ProjectIdentity.resolveFromWorkspace(workspacePath))
                 if (architectPreflightBlock.isNotBlank()) {
                     systemPromptHookMetadata =
                         systemPromptHookMetadata + ("architectPreflightBlock" to architectPreflightBlock)
