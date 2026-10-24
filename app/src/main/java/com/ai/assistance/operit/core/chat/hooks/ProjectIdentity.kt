@@ -99,7 +99,11 @@ data class ProjectIdentity(val kind: Kind) {
                                 .firstOrNull { it.trim().startsWith("gitdir:") }
                                 ?.substringAfter(':')
                                 ?.trim()
-                        gitDir?.let { File(it, "config") }
+                        gitDir?.let {
+                            val dirFile = File(it)
+                            val resolvedDir = if (dirFile.isAbsolute) dirFile else File(workspacePath, it)
+                            File(resolvedDir, "config")
+                        }
                     } else {
                         File(gitPath, "config")
                     }

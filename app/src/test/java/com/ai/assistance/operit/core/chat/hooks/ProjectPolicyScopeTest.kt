@@ -250,6 +250,31 @@ class ProjectPolicyScopeTest {
         }
     }
 
+    @Test
+    fun resolveFromWorkspace_relativeWorktreeGitdir_isResolvedAgainstWorkspace() {
+        val folder = TemporaryFolder()
+        folder.create()
+        try {
+            val worktreeRoot = folder.newFolder("worktree")
+            // Worktree ".git" is a FILE (not a directory) pointing at a relative gitdir.
+            File(worktreeRoot, ".git").writeText("gitdir: .git/worktrees/x\n")
+            val gitDir = File(worktreeRoot, ".git/worktrees/x")
+            assertTrue(gitDir.mkdirs() || gitDir.isDirectory)
+            File(gitDir, "config").writeText(
+                """
+                [remote "origin"]
+                url = https://github.com/Mavaebrook/HandleIT-Android.git
+                """.trimIndent()
+            )
+            assertEquals(
+                ProjectIdentity.HANDLEIT,
+                ProjectIdentity.resolveFromWorkspace(worktreeRoot.absolutePath)
+            )
+        } finally {
+            folder.delete()
+        }
+    }
+
     // --- F1 spoofed metadata cannot grant authority --------------------------
 
     @Test
