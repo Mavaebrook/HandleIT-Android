@@ -83,6 +83,18 @@ class MemoryMetadataStoreTest {
         }
     }
 
+    // Directly rewrite the persisted status value (bypassing MemoryMetadataStore.writeProperty
+    // so the retirement marker is not cleared), modelling a blank status row.
+    private fun writeBlankStatus(memory: Memory) {
+        store.runInTx {
+            val m = reload(memory.id)
+            m.properties.reset()
+            val row = m.properties.first { it.key == PROP_STATUS }
+            row.value = "   "
+            store.boxFor<MemoryProperty>().put(row)
+        }
+    }
+
     @Test
     fun retirementAndRestore_surviveReopenAndRetainAudit() {
         val memory = newMemory()
@@ -222,6 +234,33 @@ class MemoryMetadataStoreTest {
         val memory = newMemory()
         retire(memory)
         removeProperty(memory, PROP_STATUS)
+        metadata.initializeStatusIfAbsent(reload(memory.id))
+        reopen()
+        assertEquals(STATUS_ACTIVE, snapshot(memory.id)[PROP_STATUS])
+        assertNull(snapshot(memory.id)[PROP_RETIRED_PREV_STATUS])
+        assertFalse(metadata.restore(reload(memory.id)))
+    }
+
+    @Test
+    fun retire_alreadyInactiveWithoutMarker_doesNotRecordInactivePriorStatus() {
+        val memory = newMemory()
+        metadata.markInactive(memory)
+        val before = snapshot(memory.id)
+        assertEquals(STATUS_INACTIVE, before[PROP_STATUS])
+        assertNull(before[PROP_RETIRED_PREV_STATUS])
+        retire(memory)
+        assertEquals(before, snapshot(memory.id))
+        assertNull(snapshot(memory.id)[PROP_RETIRED_PREV_STATUS])
+        assertFalse(metadata.restore(reload(memory.id)))
+    }
+
+    @Test
+    fun blankStatusInitialization_overwritesBlankWithActiveAndInvalidatesStaleMarker() {
+        val memory = newMemory()
+        retire(memory)
+        writeBlankStatus(memory)
+        assertEquals("   ", snapshot(memory.id)[PROP_STATUS])
+        assertEquals(STATUS_ACTIVE, snapshot(memory.id)[PROP_RETIRED_PREV_STATUS])
         metadata.initializeStatusIfAbsent(reload(memory.id))
         reopen()
         assertEquals(STATUS_ACTIVE, snapshot(memory.id)[PROP_STATUS])
