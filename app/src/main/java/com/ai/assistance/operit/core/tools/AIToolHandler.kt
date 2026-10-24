@@ -36,7 +36,10 @@ class AIToolHandler private constructor(private val context: Context) {
         fun getInstance(context: Context): AIToolHandler {
             return INSTANCE
                     ?: synchronized(this) {
-                        INSTANCE ?: AIToolHandler(context.applicationContext).also { INSTANCE = it }
+                        INSTANCE ?: AIToolHandler(context.applicationContext).also {
+                            INSTANCE = it
+                            it.addToolHook(ProjectConstraintHook())
+                        }
                     }
         }
     }
@@ -98,10 +101,15 @@ class AIToolHandler private constructor(private val context: Context) {
 
     /** Ask hooks whether the tool call should continue. */
     fun checkToolInterception(tool: AITool): AIToolHookDecision {
+        return checkToolInterception(tool, null)
+    }
+
+    /** Ask hooks whether the tool call should continue, with per-invocation context. */
+    fun checkToolInterception(tool: AITool, context: ToolInvocationContext?): AIToolHookDecision {
         toolHooks.forEach { hook ->
             val decision =
                     try {
-                        hook.onToolCallIntercept(tool)
+                        hook.onToolCallIntercept(tool, context)
                     } catch (e: Exception) {
                         AppLogger.e(TAG, "AIToolHook interception failed at onToolCallIntercept", e)
                         return AIToolHookDecision.Block(

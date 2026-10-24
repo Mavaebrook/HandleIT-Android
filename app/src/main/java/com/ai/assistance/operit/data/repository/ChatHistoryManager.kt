@@ -116,6 +116,16 @@ class ChatHistoryManager private constructor(private val context: Context) {
     private val messageDao = database.messageDao()
     private val messageVariantDao = database.messageVariantDao()
     private val chatContentDao = database.chatContentDao()
+
+    /**
+     * Resolve the workspace path bound to a chat, if any (G02).
+     *
+     * This is the authoritative source for per-chat workspace provenance: the workspace is read
+     * from the chat's persisted workspace column, never from model text or a prompt claim.
+     */
+    suspend fun getChatWorkspace(chatId: String): String? {
+        return chatDao.getChatById(chatId)?.workspace
+    }
     private val operitArchiveJson =
         Json {
             prettyPrint = true

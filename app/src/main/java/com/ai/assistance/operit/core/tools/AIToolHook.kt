@@ -20,6 +20,10 @@ interface AIToolHook {
     /** Called before permission checks and executor activation. */
     fun onToolCallIntercept(tool: AITool): AIToolHookDecision = AIToolHookDecision.Allow
 
+    /** Called before permission checks and executor activation, with per-invocation context. */
+    fun onToolCallIntercept(tool: AITool, context: ToolInvocationContext?): AIToolHookDecision =
+        onToolCallIntercept(tool)
+
     /** Called after permission check is completed (if applicable). */
     fun onToolPermissionChecked(tool: AITool, granted: Boolean, reason: String? = null) {}
 
