@@ -256,10 +256,9 @@ class ProjectPolicyScopeTest {
         folder.create()
         try {
             val worktreeRoot = folder.newFolder("worktree")
-            // Worktree ".git" is a FILE (not a directory) pointing at a relative gitdir.
-            File(worktreeRoot, ".git").writeText("gitdir: .git/worktrees/x\n")
-            val gitDir = File(worktreeRoot, ".git/worktrees/x")
-            assertTrue(gitDir.mkdirs() || gitDir.isDirectory)
+            // Worktree ".git" is a FILE (not a directory) pointing at a RELATIVE gitdir.
+            File(worktreeRoot, ".git").writeText("gitdir: ../actual-gitdir\n")
+            val gitDir = folder.newFolder("actual-gitdir")
             File(gitDir, "config").writeText(
                 """
                 [remote "origin"]
