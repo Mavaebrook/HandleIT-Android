@@ -12,6 +12,7 @@ import com.ai.assistance.operit.data.preferences.MemorySearchSettingsPreferences
 import com.ai.assistance.operit.data.preferences.MemorySpaceProfileDocumentRepository
 import com.ai.assistance.operit.data.preferences.preferencesManager
 import com.ai.assistance.operit.data.repository.MemoryRepository
+import com.ai.assistance.operit.data.repository.MemoryRetirementGovernance
 import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.core.chat.hooks.toPromptTurns
 import com.ai.assistance.operit.core.config.FunctionalPrompts
@@ -541,22 +542,92 @@ object MemoryLibrary {
                         AppLogger.d(TAG, "   -> 正在链接: '${link.sourceTitle}' --(${link.type}, weight=${link.weight})--> '${link.targetTitle}'")
                         memoryRepository.linkMemories(source, target, link.type, weight = link.weight, description = link.description)
 
-                        // Self-learning: an explicit contradiction retires the old memory and
-                        // records a normalized SUPERSEDES audit link for future distillation.
-                        if (source.id != target.id) {
-                            when (link.type) {
-                                "CORRECTS" -> {
-                                    memoryRepository.markMemoryInactive(target)
-                                    memoryRepository.linkMemories(
-                                        source,
+                        // D02: a model-emitted CORRECTS/SUPERSEDES link may only retire the
+                        // target after a governance decision. Model output cannot grant
+                        // permission; the gate can only reduce retirements, never expand them.
+                        if (source.id != target.id &&
+                            MemoryRetirementGovernance.SUPPORTED_LINK_TYPES.contains(link.type)
+                        ) {
+                            // Resolve the target identity unambiguously. A target that was just
+                            // created in this run is a single known object; a target resolved from
+                            // the DB must match exactly one stored memory by title.
+                            // Count every memory that shares the target title, including a
+                            // freshly-created one that is not yet persisted. A title present in
+                            // both createdMemories and the DB is a genuine ambiguity, not a match.
+                            val dbTitleMatches =
+                                memoryRepository.findMemoriesByTitle(link.targetTitle)
+                            val targetTitleMatchCount =
+                                dbTitleMatches.size +
+                                    if (createdMemories.containsKey(link.targetTitle) &&
+                                        dbTitleMatches.none { it.id == target.id }
+                                    ) {
+                                        1
+                                    } else {
+                                        0
+                                    }
+
+                            // D02: the current data model contains no corroborating evidence that a
+                            // correction genuinely applies. A model-asserted link type and a
+                            // timestamp are not proof of semantic contradiction, and the link
+                            // description is guaranteed non-blank by the parser, so it cannot serve
+                            // as evidence either. Production therefore does not auto-retire: the
+                            // evidence-gate outcome persists a pending decision; earlier LeaveActive
+                            // outcomes only log their refusal. Retire stays unreachable until a
+                            // genuine evidence source is supplied.
+                            val correctionApplicable = false
+
+                            val candidate =
+                                MemoryRetirementGovernance.RetirementCandidate(
+                                    sourceId = source.id,
+                                    sourceTitle = source.title,
+                                    sourceCreatedAtMs = source.createdAt.time,
+                                    targetId = target.id,
+                                    targetTitle = target.title,
+                                    targetCreatedAtMs = target.createdAt.time,
+                                    targetStatus = memoryRepository.readMemoryStatus(target),
+                                    linkType = link.type,
+                                    targetTitleMatchCount = targetTitleMatchCount,
+                                    // No explicit user-constraint model exists on memory facts yet;
+                                    // this is a documented gap (see D02 plan, incomplete criteria).
+                                    targetProtectedByActiveUserConstraint = false,
+                                    correctionApplicable = correctionApplicable
+                                )
+
+                            when (val decision = MemoryRetirementGovernance.decide(candidate)) {
+                                is MemoryRetirementGovernance.RetirementDecision.Retire -> {
+                                    memoryRepository.retireMemoryWithAudit(
                                         target,
-                                        "SUPERSEDES",
-                                        weight = 1.0f,
-                                        description = "Superseded by corrected memory '${source.title}'"
+                                        reasonCode = MemoryRetirementGovernance.reasonCode(decision),
+                                        linkType = link.type,
+                                        sourceMemoryId = source.id
+                                    )
+                                    if (link.type == "CORRECTS") {
+                                        memoryRepository.linkMemories(
+                                            source,
+                                            target,
+                                            "SUPERSEDES",
+                                            weight = 1.0f,
+                                            description = "Superseded by corrected memory '${source.title}'"
+                                        )
+                                    }
+                                }
+                                is MemoryRetirementGovernance.RetirementDecision.PendingDecision -> {
+                                    // Insufficient or ambiguous evidence: leave the fact active and
+                                    // record the pending decision so it is durable, not dropped.
+                                    memoryRepository.recordPendingRetirementDecision(
+                                        target,
+                                        MemoryRetirementGovernance.reasonCode(decision)
+                                    )
+                                    AppLogger.w(
+                                        TAG,
+                                        "   -> 退休决策待定 (${MemoryRetirementGovernance.reasonCode(decision)}): '${target.title}' 保持活跃"
                                     )
                                 }
-                                "SUPERSEDES" -> {
-                                    memoryRepository.markMemoryInactive(target)
+                                is MemoryRetirementGovernance.RetirementDecision.LeaveActive -> {
+                                    AppLogger.d(
+                                        TAG,
+                                        "   -> 不退休 '${target.title}' (${MemoryRetirementGovernance.reasonCode(decision)})"
+                                    )
                                 }
                             }
                         }
