@@ -2,6 +2,15 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-24 — Argon review hardening (non-blocking notes 1 & 2)
+
+Applied Argon's two non-blocking hardening notes from `Argon-Review-f5ddc3fb75-2026-10-24.txt` (verdict APPROVE-WITH-NOTES, zero blockers). Both are one-line, behavior-preserving polish in `MemoryMetadataStore.kt`, not defect remediation:
+
+- `retire` now returns early when `priorStatus` is `STATUS_INACTIVE`, so a future caller that bypasses `MemoryRetirementGovernance.decide` on a memory deactivated through `markInactive` cannot record a misleading `priorStatus = "INACTIVE"` audit value.
+- `initializeStatusIfAbsent` now treats a blank status as absent (`.isNullOrBlank()`), aligning it with `retire`'s existing blank handling.
+
+No schema, dependency, or model-call change. No local build or test run; APK builds remain GitHub-Actions-only. See [the plan](docs/plans/argon-hardening-20261024.md).
+
 ## 2026-10-24 — Reviewed memory integration
 
 PR #4 merged at 5526acd0. PR #5 is reconciled with the new main, retaining restoration integrity, normalized reinforcement and positive graph contributions. Shared documentation preserves both change histories. Combined hosted validation is pending; see [the integration record](docs/TODO/memory-integration-20261024/index.md). D02/D04 remain partial.
