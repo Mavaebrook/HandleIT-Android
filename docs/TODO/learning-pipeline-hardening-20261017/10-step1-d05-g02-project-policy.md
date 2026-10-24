@@ -102,9 +102,9 @@ These are recorded as UNGUARDED, not "accepted" on the user's behalf. G02 stays 
 ## Checkpoint
 
 Owner: VPS orchestrator via the bridge, at Teddy's explicit request.
-State: D05 + F1 IMPLEMENTED (code + tests; CI running, not yet green). G02 BLOCKED at design checkpoint (see below).
-Exact commit: `217fcff58a5941bcf3b11efa877293410f87c8f9` (F1 identity-from-git-config, parent `d680292fb8cb0f429ce232635a8f73aadffe7ae7`).
-Next: verify the hosted PR Check is green on `217fcff5`; record CI evidence; post the evidence comment; await Argon sign-off before merge. G02 requires a trusted invocation-context carrier that does not exist (see G02 section).
+State: D05 + F1 IMPLEMENTED (code + tests; CI green on head `b4a30c46`). G02 BLOCKED at design checkpoint (see below).
+Exact commit: code `217fcff58a5941bcf3b11efa877293410f87c8f9` (F1 identity-from-git-config) + docs `b4a30c4656f075d10bb07a6b58a6f3901cde30fb` (plan/CHANGELOG/index).
+Next: done — hosted PR Check is green (run `40089437774`); CI evidence recorded below; evidence comment posted (`#6383710731`); awaiting Argon sign-off before merge. G02 requires a trusted invocation-context carrier that does not exist (see G02 section).
 Blockers: (1) RESOLVED — the unconnected production prerequisite is now wired: `ConversationService` populates `ProjectIdentity.METADATA_KEY` from `ProjectIdentity.resolveFromWorkspace(workspacePath)` in both the summary and system-prompt hook metadata, so the HandleIT identity is established from the workspace git remote rather than any prompt claim. (2) G02 cannot be made non-bypassable from existing dispatch/context APIs (see G02 section).
 
 ## G02 — first slice: BLOCKED at design checkpoint
@@ -136,6 +136,6 @@ All runs are GitHub-hosted Actions. No build or test was run on the VPS or any l
 
 | Item | Commit | PR Check (`pr-check.yml`) |
 | --- | --- | --- | --- |
-| D05 project-scoped architect rules (F1 identity-from-git-config) | `217fcff58a5941bcf3b11efa877293410f87c8f9` | running — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40089287238 |
+| D05 project-scoped architect rules (F1 identity-from-git-config) | `b4a30c4656f075d10bb07a6b58a6f3901cde30fb` (head; code `217fcff5`) | green — https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40089437774 |
 
-The `pr-check.yml` workflow fires on `pull_request` (opened/synchronize/reopened/edited/ready_for_review) and runs the fast checks, then `android_build` and `android_tests` as reusable `workflow_call` jobs, finishing with the aggregate "Candidate checks" job. It was triggered automatically by the push to the PR head; the run above is RUNNING at the time of this checkpoint and is not yet green. CI verifies compilation and the JVM unit tests only, not device behavior. D05/F1 remains unchecked until this run is green.
+The `pr-check.yml` workflow fires on `pull_request` (opened/synchronize/reopened/edited/ready_for_review) and runs the fast checks, then `android_build` and `android_tests` as reusable `workflow_call` jobs, finishing with the aggregate "Candidate checks" job. The run above is GREEN on head `b4a30c46` (the earlier run `40089287238` on `217fcff5` was superseded by the docs push and auto-cancelled by the PR concurrency group). In the green run: Fast checks passed; Android JVM tests passed (24 tests, 0 failures — including the six new git-config resolution, workspace-switch, spoofed-metadata, and prompt/summary-agreement tests); Android build was skipped by `pr_check.py` plan scoping because no build-config/native/gradle file changed (`android_full=false`). CI verifies compilation and the JVM unit tests only, not device behavior. Evidence comment posted (`#6383710731`); no merge until Argon signs off.
