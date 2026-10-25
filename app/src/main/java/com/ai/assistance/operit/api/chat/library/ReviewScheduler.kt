@@ -70,6 +70,18 @@ class ReviewScheduler(
             profileIds.filter { it.isNotBlank() }.distinct()
 
         /**
+         * Canonical DEBUG terminal event emitted for EVERY pass outcome (completed, partial,
+         * failed, error, cancelled). Always starts with the same "复习调度器 pass完成:" prefix so
+         * the documented tag-anchored extraction keeps terminal events for all outcomes alike,
+         * and always carries the failed-profile count so a failed/partial pass can never be
+         * mistaken for an empty completed one. Pure: directly unit-testable.
+         */
+        internal fun passCompletionMessage(audit: ReviewPassAudit): String =
+            "复习调度器 pass完成: outcome=${audit.lastPassOutcome}, pending=${audit.lastPassPendingFound}, " +
+                "succeeded=${audit.lastPassSucceeded}, failedMarked=${audit.lastPassFailedMarked}, " +
+                "failedProfiles=${audit.lastPassFailedProfiles}"
+
+        /**
          * Save [episode] and then add it to the episode vector index.
          *
          * EMBEDDING-FAILURE RULE: indexing is secondary to saving the episode. The episode is saved
@@ -131,7 +143,10 @@ class ReviewScheduler(
      *
      * Every pass — including a pass over an empty queue — records a start and a completion with
      * an outcome into [passAudit], so pass execution is observable even when nothing was pending.
-     * DEBUG builds additionally log one line per pass start and one per pass completion under TAG.
+     * The outcome distinguishes complete observations from partial ones (some profiles failed)
+     * and failed ones (every profile failed). DEBUG builds log one line per pass start and one
+     * canonical terminal line per outcome under TAG — including error and cancellation outcomes,
+     * so every terminal event survives the documented extraction filter.
      */
     suspend fun runOnce() {
         if (!isRunning.compareAndSet(false, true)) return
@@ -143,28 +158,37 @@ class ReviewScheduler(
         try {
             val stats = drainPendingReviews()
             passAudit.recordPassCompleted(
-                outcome = ReviewPassAuditRecorder.OUTCOME_COMPLETED,
+                outcome = ReviewPassAuditRecorder.completionOutcome(
+                    failedProfiles = stats.failedProfiles,
+                    profilesAttempted = stats.profilesAttempted
+                ),
                 pendingFound = stats.pendingFound,
                 succeeded = stats.succeeded,
-                failedMarked = stats.failedMarked
+                failedMarked = stats.failedMarked,
+                failedProfiles = stats.failedProfiles
             )
-            if (BuildConfig.DEBUG) {
-                val audit = passAudit.snapshot()
-                AppLogger.d(
-                    TAG,
-                    "复习调度器 pass完成: outcome=${audit.lastPassOutcome}, pending=${audit.lastPassPendingFound}, " +
-                        "succeeded=${audit.lastPassSucceeded}, failedMarked=${audit.lastPassFailedMarked}"
-                )
-            }
+            logPassCompletion()
         } catch (cancellation: CancellationException) {
-            passAudit.recordPassCompleted(ReviewPassAuditRecorder.OUTCOME_CANCELLED, null, null, null)
+            passAudit.recordPassCompleted(ReviewPassAuditRecorder.OUTCOME_CANCELLED, null, null, null, null)
+            logPassCompletion()
             throw cancellation
         } catch (error: Exception) {
-            passAudit.recordPassCompleted(ReviewPassAuditRecorder.OUTCOME_ERROR, null, null, null)
+            passAudit.recordPassCompleted(ReviewPassAuditRecorder.OUTCOME_ERROR, null, null, null, null)
+            logPassCompletion()
             AppLogger.e(TAG, "Review scheduler run failed", error)
         } finally {
             isRunning.set(false)
         }
+    }
+
+    /**
+     * Emits the single canonical terminal DEBUG line for the just-recorded pass outcome, so
+     * completed, partial, failed, error and cancellation evidence all survive the documented
+     * tag-anchored extraction filter. Cancellation propagation is unaffected: this only logs.
+     */
+    private fun logPassCompletion() {
+        if (!BuildConfig.DEBUG) return
+        AppLogger.d(TAG, passCompletionMessage(passAudit.snapshot()))
     }
 
     /**
@@ -175,6 +199,7 @@ class ReviewScheduler(
     suspend fun recoverStaleProcessing() {
         val profileIds = memorySpacesToDrain(preferencesManager.memorySpaceListFlow.first())
         var totalRecovered = 0
+        var failedProfiles = 0
         for (profileId in profileIds) {
             try {
                 val recovered = PendingReviewRepository(context, profileId).recoverStaleProcessing()
@@ -185,20 +210,28 @@ class ReviewScheduler(
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
+                failedProfiles++
                 AppLogger.e(TAG, "滞留复盘恢复失败: profileId=$profileId", error)
             }
         }
-        passAudit.recordStartupRecovery(totalRecovered)
+        passAudit.recordStartupRecovery(recovered = totalRecovered, failedProfiles = failedProfiles)
         if (BuildConfig.DEBUG) {
-            AppLogger.d(TAG, "复习调度器启动恢复完成: recovered=$totalRecovered")
+            AppLogger.d(TAG, "复习调度器启动恢复完成: recovered=$totalRecovered, failedProfiles=$failedProfiles")
         }
     }
 
-    /** Per-pass drain statistics, aggregated across memory spaces for [runOnce]'s audit record. */
+    /**
+     * Per-pass drain statistics, aggregated across memory spaces for [runOnce]'s audit record.
+     * [failedProfiles] must be recorded so an all-failed pass is never reported as an empty
+     * completed one: [ReviewPassAuditRecorder.completionOutcome] maps it to a partial/failed
+     * outcome.
+     */
     private data class PassStats(
         val pendingFound: Int = 0,
         val succeeded: Int = 0,
-        val failedMarked: Int = 0
+        val failedMarked: Int = 0,
+        val profilesAttempted: Int = 0,
+        val failedProfiles: Int = 0
     )
 
     private suspend fun drainPendingReviews(): PassStats {
@@ -213,12 +246,17 @@ class ReviewScheduler(
                 total = total.copy(
                     pendingFound = total.pendingFound + spaceStats.pendingFound,
                     succeeded = total.succeeded + spaceStats.succeeded,
-                    failedMarked = total.failedMarked + spaceStats.failedMarked
+                    failedMarked = total.failedMarked + spaceStats.failedMarked,
+                    profilesAttempted = total.profilesAttempted + 1
                 )
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
                 AppLogger.e(TAG, "待复盘队列处理失败: profileId=$profileId", error)
+                total = total.copy(
+                    profilesAttempted = total.profilesAttempted + 1,
+                    failedProfiles = total.failedProfiles + 1
+                )
             }
         }
         return total

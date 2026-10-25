@@ -6,6 +6,7 @@ import com.ai.assistance.operit.data.model.PendingReviewEntity
 import com.ai.assistance.operit.data.model.PendingReviewEntity_
 import com.ai.assistance.operit.util.AppLogger
 import io.objectbox.Box
+import io.objectbox.BoxStore
 import io.objectbox.kotlin.boxFor
 import java.util.Date
 
@@ -28,6 +29,18 @@ class PendingReviewRepository(
 
         /** A PROCESSING row older than this is considered abandoned by a crashed run. */
         const val PROCESSING_STALE_AFTER_MS = PendingReviewBatchPolicy.PROCESSING_STALE_AFTER_MS
+
+        /**
+         * Audit-only read against an already-open store. Never creates or opens a store, so it
+         * can be used by diagnostics even while another thread may close/delete the profile: the
+         * caller obtains the store via ObjectBoxManager.getExisting, which never builds one.
+         * This is the existing-store-only access path; the instance method [getAll] delegates here
+         * so there is one implementation.
+         */
+        fun getAllFrom(store: BoxStore): List<PendingReviewEntity> {
+            val box: Box<PendingReviewEntity> = store.boxFor()
+            return box.all.sortedBy { it.createdAt.time }
+        }
     }
 
     private val store = ObjectBoxManager.get(context, profileId)
@@ -91,9 +104,7 @@ class PendingReviewRepository(
      * [getDeadLettered]: those two separate queries can disagree when a row changes status
      * between them, and they omit PROCESSING rows entirely.
      */
-    fun getAll(): List<PendingReviewEntity> {
-        return reviewBox.all.sortedBy { it.createdAt.time }
-    }
+    fun getAll(): List<PendingReviewEntity> = getAllFrom(store)
 
     fun markProcessing(ids: List<Long>) {
         if (ids.isEmpty()) return

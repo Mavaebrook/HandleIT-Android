@@ -28,7 +28,9 @@ class ReviewPipelineAuditReporterTest {
         started: Long = 0L,
         completed: Long = 0L,
         outcome: String? = null,
-        recovered: Int? = null
+        recovered: Int? = null,
+        failedProfiles: Int? = null,
+        recoveryFailedProfiles: Int? = null
     ): ReviewPassAudit =
         ReviewPassAudit(
             passesStarted = started,
@@ -39,12 +41,15 @@ class ReviewPipelineAuditReporterTest {
             lastPassPendingFound = null,
             lastPassSucceeded = null,
             lastPassFailedMarked = null,
+            lastPassFailedProfiles = failedProfiles,
             startupRecoveryCompletedAtEpochMillis = null,
-            startupRecoveryRecovered = recovered
+            startupRecoveryRecovered = recovered,
+            startupRecoveryFailedProfiles = recoveryFailedProfiles
         )
 
     private fun snapshot(
         storePresent: Boolean = true,
+        storeOpenExisting: Boolean = true,
         schedulerConstructed: Boolean? = true,
         schedulerAudit: ReviewPassAudit? = null,
         pendingByStatus: Map<String, Int>? = emptyMap(),
@@ -58,6 +63,7 @@ class ReviewPipelineAuditReporterTest {
             activeProfileId = "default",
             expectedStoreDir = "/data/user/0/com.ai.assistance.operit.debug/files/objectbox",
             storePresent = storePresent,
+            storeOpenExisting = storeOpenExisting,
             schedulerConstructed = schedulerConstructed,
             schedulerAudit = schedulerAudit,
             pendingByStatus = pendingByStatus,
@@ -69,6 +75,7 @@ class ReviewPipelineAuditReporterTest {
     /** Test harness around [ReviewPipelineAuditReporter.Collector] with call tracking. */
     private class CollectorProbe(
         val storePresent: Boolean = true,
+        val storeOpenExisting: Boolean = true,
         val audit: ReviewPassAudit? = null,
         val reviews: () -> List<PendingReviewEntity> = { emptyList() },
         val episodeCount: () -> Long = { 0L },
@@ -76,10 +83,15 @@ class ReviewPipelineAuditReporterTest {
     ) {
         var reviewsCalled = false
         var episodesCalled = false
+        var storeOpenExistingCalled = false
         val collector = ReviewPipelineAuditReporter.Collector(
             activeProfileId = { profileId },
             storeDirFor = { id -> File("/tmp/$id") },
             storeDataFilePresent = { storePresent },
+            storeOpenExisting = {
+                storeOpenExistingCalled = true
+                storeOpenExisting
+            },
             schedulerAudit = { audit },
             readReviews = {
                 reviewsCalled = true
@@ -224,6 +236,7 @@ class ReviewPipelineAuditReporterTest {
         val probe = CollectorProbe(storePresent = false)
         val snap = runBlocking { probe.collector.collect() }
         assertFalse(snap.storePresent)
+        assertFalse(probe.storeOpenExistingCalled)
         assertFalse(probe.reviewsCalled)
         assertFalse(probe.episodesCalled)
         assertTrue(snap.readErrors.isEmpty())
@@ -286,6 +299,69 @@ class ReviewPipelineAuditReporterTest {
         } catch (expected: CancellationException) {
             assertEquals("stop", expected.message)
         }
+    }
+
+    @Test
+    fun collector_dataFilePresentButStoreClosed_rendersUnavailableWithoutStoreReads() {
+        // Models the delete-between-check-and-open window: the LMDB data file was present when
+        // checked, but the existing-store acquisition finds no open store (concurrent
+        // close/delete). The collector must render unavailable and must NOT fall back to any
+        // store-creating path — here proven by the readers never being invoked.
+        val probe = CollectorProbe(storeOpenExisting = false)
+        val snap = runBlocking { probe.collector.collect() }
+        assertTrue(snap.storePresent)
+        assertFalse(snap.storeOpenExisting)
+        assertTrue(probe.storeOpenExistingCalled)
+        assertFalse(probe.reviewsCalled)
+        assertFalse(probe.episodesCalled)
+        val text = snap.toReportText()
+        assertTrue(text.contains("storeOpenExisting=false"))
+        assertTrue(text.contains("pendingByStatus=UNAVAILABLE (store not open)"))
+        assertTrue(text.contains("maxAttemptCountObserved=UNAVAILABLE (store not open)"))
+        assertTrue(text.contains("taskEpisodeCount=UNAVAILABLE (store not open)"))
+    }
+
+    @Test
+    fun collector_storeClosedBetweenCheckAndRead_recordsErrorWithoutStoreCreation() {
+        // Models the narrower race: the gate saw an open store, but the store was closed/deleted
+        // before the read. The read path only ever uses the existing-store accessor, so the
+        // failure surfaces as a recorded read error — it never recreates the store.
+        val probe = CollectorProbe(
+            reviews = { throw IllegalStateException("store closed during audit: profileId=default") }
+        )
+        val snap = runBlocking { probe.collector.collect() }
+        assertNull(snap.pendingByStatus)
+        assertNull(snap.taskEpisodeCount)
+        assertFalse(probe.episodesCalled)
+        assertEquals(
+            listOf(
+                "reviewRead: store closed during audit: profileId=default",
+                "episodeCount: skipped: review read failed"
+            ),
+            snap.readErrors
+        )
+        val text = snap.toReportText()
+        assertTrue(text.contains("pendingByStatus=not observed"))
+        assertTrue(text.contains("taskEpisodeCount=not observed"))
+    }
+
+    @Test
+    fun toReportText_failedProfileFields_renderedFromAudit() {
+        val text = snapshot(
+            schedulerConstructed = true,
+            schedulerAudit = audit(
+                started = 1,
+                completed = 1,
+                outcome = ReviewPassAuditRecorder.OUTCOME_PARTIAL,
+                recovered = 3,
+                failedProfiles = 1,
+                recoveryFailedProfiles = 2
+            )
+        ).toReportText()
+        assertTrue(text.contains("schedulerLastPassOutcome=partial"))
+        assertTrue(text.contains("schedulerLastPassFailedProfiles=1"))
+        assertTrue(text.contains("schedulerStartupRecoveryRecovered=3"))
+        assertTrue(text.contains("schedulerStartupRecoveryFailedProfiles=2"))
     }
 
     @Test

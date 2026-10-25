@@ -2,6 +2,7 @@ package com.ai.assistance.operit.api.chat.library
 
 import android.content.Context
 import android.os.Process
+import com.ai.assistance.operit.data.db.ObjectBoxManager
 import com.ai.assistance.operit.data.model.PendingReviewEntity
 import com.ai.assistance.operit.data.model.TaskEpisodeEntity
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -29,18 +30,25 @@ import kotlinx.coroutines.flow.first
  *   [TaskEpisodeRepository.count]. Never recoverStaleProcessing / markProcessing / markFailed /
  *   markFailedSingle / delete / migrateListFieldsToVersioned / ReviewScheduler.runOnce, and
  *   never ObjectBoxManager.delete() / closeAll().
- * - Never creates a store. A store is only touched when its LMDB data file ([DATA_FILE_NAME])
- *   already exists. ObjectBox's builder creates a database when opening a directory without one,
- *   and PendingReviewRepository opens the store in its field initializer — so an absent data
- *   file short-circuits every count to "UNAVAILABLE (store absent)" before either repository is
- *   constructed.
+ * - Never creates a store. Two gates protect this: the LMDB data file ([DATA_FILE_NAME]) must
+ *   exist, and [ObjectBoxManager.getExisting] must return an already-open store. Every read goes
+ *   through the existing-store-only accessors ([PendingReviewRepository.getAllFrom],
+ *   [TaskEpisodeRepository.countFrom]); the create-capable ObjectBoxManager.get / repository
+ *   constructors are never called on this path. A concurrent close/delete therefore cannot make
+ *   diagnostics recreate a store: acquisition is coordinated with close/delete under
+ *   ObjectBoxManager's lock, and if the store vanishes between the gate and the read the failure
+ *   lands in [ReviewAuditSnapshot.readErrors] — this path never falls back to creating anything.
  * - Read failures are recorded, not swallowed: each read segment's error lands in
  *   [ReviewAuditSnapshot.readErrors] (partial results are kept), and only unexpected failures
  *   outside the read segments propagate to the caller's error logger.
  *
  * Rendered states are deliberately distinct:
  * - an observed number (0 is a real observation);
- * - "UNAVAILABLE (store absent)" — answering would require creating the store, which is forbidden;
+ * - "UNAVAILABLE (store absent)" — no LMDB data file; answering would require creating the
+ *   store, which is forbidden;
+ * - "UNAVAILABLE (store not open)" — the data file exists but no store is open for the profile
+ *   (e.g. concurrently closed or deleted); answering would require opening — and possibly
+ *   creating — the store, which is forbidden;
  * - "not observed" — the value could not be obtained at snapshot time.
  */
 object ReviewPipelineAuditReporter {
@@ -54,6 +62,7 @@ object ReviewPipelineAuditReporter {
         val activeProfileId: String,
         val expectedStoreDir: String,
         val storePresent: Boolean,
+        val storeOpenExisting: Boolean,
         val schedulerConstructed: Boolean?,
         val schedulerAudit: ReviewPassAudit?,
         val pendingByStatus: Map<String, Int>?,
@@ -74,6 +83,7 @@ object ReviewPipelineAuditReporter {
                 "activeProfileId=$activeProfileId",
                 "expectedStoreDir=$expectedStoreDir",
                 "storePresent=$storePresent",
+                "storeOpenExisting=$storeOpenExisting",
                 "schedulerConstructed=${renderSchedulerConstructed()}",
                 "schedulerPassCount=${renderAudit { it.passesStarted }}",
                 "schedulerPassesCompleted=${renderAudit { it.passesCompleted }}",
@@ -83,8 +93,10 @@ object ReviewPipelineAuditReporter {
                 "schedulerLastPassPendingFound=${renderAudit { it.lastPassPendingFound }}",
                 "schedulerLastPassSucceeded=${renderAudit { it.lastPassSucceeded }}",
                 "schedulerLastPassFailedMarked=${renderAudit { it.lastPassFailedMarked }}",
+                "schedulerLastPassFailedProfiles=${renderAudit { it.lastPassFailedProfiles }}",
                 "schedulerStartupRecoveryCompletedAtEpochMillis=${renderAudit { it.startupRecoveryCompletedAtEpochMillis }}",
                 "schedulerStartupRecoveryRecovered=${renderAudit { it.startupRecoveryRecovered }}",
+                "schedulerStartupRecoveryFailedProfiles=${renderAudit { it.startupRecoveryFailedProfiles }}",
                 "pendingByStatus=${renderCounts()}",
                 "maxAttemptCountObserved=${renderMaxAttempt()}",
                 "taskEpisodeCount=${renderEpisodes()}",
@@ -105,12 +117,14 @@ object ReviewPipelineAuditReporter {
 
         private fun renderCounts(): String = when {
             !storePresent -> "UNAVAILABLE (store absent)"
+            !storeOpenExisting -> "UNAVAILABLE (store not open)"
             pendingByStatus == null -> "not observed"
             else -> pendingByStatus.toSortedMap().toString()
         }
 
         private fun renderMaxAttempt(): String = when {
             !storePresent -> "UNAVAILABLE (store absent)"
+            !storeOpenExisting -> "UNAVAILABLE (store not open)"
             pendingByStatus == null -> "not observed"
             maxAttemptCountObserved == null -> "none (no review rows observed)"
             else -> maxAttemptCountObserved.toString()
@@ -118,6 +132,7 @@ object ReviewPipelineAuditReporter {
 
         private fun renderEpisodes(): String = when {
             !storePresent -> "UNAVAILABLE (store absent)"
+            !storeOpenExisting -> "UNAVAILABLE (store not open)"
             taskEpisodeCount == null -> "not observed"
             else -> taskEpisodeCount.toString()
         }
@@ -135,6 +150,7 @@ object ReviewPipelineAuditReporter {
         private val activeProfileId: suspend () -> String,
         private val storeDirFor: (String) -> File,
         private val storeDataFilePresent: (File) -> Boolean,
+        private val storeOpenExisting: (String) -> Boolean,
         private val schedulerAudit: () -> ReviewPassAudit?,
         private val readReviews: (String) -> List<PendingReviewEntity>,
         private val readEpisodeCount: (String) -> Long,
@@ -145,6 +161,7 @@ object ReviewPipelineAuditReporter {
             val profileId = activeProfileId()
             val storeDir = storeDirFor(profileId)
             val storePresent = storeDataFilePresent(storeDir)
+            val storeOpen = storePresent && storeOpenExisting(profileId)
             val audit = schedulerAudit()
             val base = ReviewAuditSnapshot(
                 observedAtEpochMillis = nowMillis(),
@@ -152,6 +169,7 @@ object ReviewPipelineAuditReporter {
                 activeProfileId = profileId,
                 expectedStoreDir = storeDir.absolutePath,
                 storePresent = storePresent,
+                storeOpenExisting = storeOpen,
                 schedulerConstructed = audit != null,
                 schedulerAudit = audit,
                 pendingByStatus = null,
@@ -159,7 +177,7 @@ object ReviewPipelineAuditReporter {
                 taskEpisodeCount = null,
                 readErrors = emptyList()
             )
-            if (!storePresent) return base
+            if (!storeOpen) return base
 
             var rows: List<PendingReviewEntity>? = null
             var rowsError: String? = null
@@ -210,9 +228,18 @@ object ReviewPipelineAuditReporter {
             },
             storeDirFor = { profileId -> File(appContext.filesDir, expectedStoreDirName(profileId)) },
             storeDataFilePresent = { dir -> File(dir, DATA_FILE_NAME).isFile },
+            storeOpenExisting = { profileId -> ObjectBoxManager.getExisting(profileId) != null },
             schedulerAudit = { ReviewScheduler.getInstance()?.passAudit?.snapshot() },
-            readReviews = { profileId -> PendingReviewRepository(appContext, profileId).getAll() },
-            readEpisodeCount = { profileId -> TaskEpisodeRepository(appContext, profileId).count() }
+            readReviews = { profileId ->
+                val store = ObjectBoxManager.getExisting(profileId)
+                    ?: error("store closed during audit: profileId=$profileId")
+                PendingReviewRepository.getAllFrom(store)
+            },
+            readEpisodeCount = { profileId ->
+                val store = ObjectBoxManager.getExisting(profileId)
+                    ?: error("store closed during audit: profileId=$profileId")
+                TaskEpisodeRepository.countFrom(store)
+            }
         ).collect()
     }
 

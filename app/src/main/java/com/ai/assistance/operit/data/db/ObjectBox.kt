@@ -19,6 +19,22 @@ object ObjectBoxManager {
         }
     }
 
+    /**
+     * Returns the already-open store for [profileId], or null when that profile has no open store.
+     * NEVER builds or opens a store: this is the only access path diagnostics may use, because a
+     * create-capable open after a concurrent close/delete would recreate a deleted database.
+     *
+     * Coordinated with [get], [close], [delete] and [closeAll] via [storeLock], so acquisition is
+     * atomic with respect to close/delete: either the store is open (and returned) or it is not
+     * (and null is returned). A caller that then reads a store closed by a later delete observes
+     * an ObjectBox error on the already-open handle — it can never cause a store to be created.
+     */
+    fun getExisting(profileId: String): BoxStore? {
+        synchronized(storeLock) {
+            return stores[profileId]
+        }
+    }
+
     private fun buildStore(context: Context, profileId: String): BoxStore {
         // 如果profileId是"default"，我们使用旧的数据库位置以实现向后兼容
         val dbName = if (profileId == "default") "objectbox" else "objectbox_$profileId"

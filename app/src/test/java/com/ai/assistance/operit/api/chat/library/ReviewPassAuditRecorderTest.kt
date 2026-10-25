@@ -88,4 +88,58 @@ class ReviewPassAuditRecorderTest {
         assertEquals(1L, after.passesCompleted)
         assertEquals(7L, after.lastPassCompletedAtEpochMillis)
     }
+
+    @Test
+    fun completionOutcome_mapsCompletePartialAndFailed() {
+        assertEquals(
+            ReviewPassAuditRecorder.OUTCOME_COMPLETED,
+            ReviewPassAuditRecorder.completionOutcome(failedProfiles = 0, profilesAttempted = 0)
+        )
+        assertEquals(
+            ReviewPassAuditRecorder.OUTCOME_COMPLETED,
+            ReviewPassAuditRecorder.completionOutcome(failedProfiles = 0, profilesAttempted = 3)
+        )
+        assertEquals(
+            ReviewPassAuditRecorder.OUTCOME_PARTIAL,
+            ReviewPassAuditRecorder.completionOutcome(failedProfiles = 1, profilesAttempted = 3)
+        )
+        assertEquals(
+            ReviewPassAuditRecorder.OUTCOME_PARTIAL,
+            ReviewPassAuditRecorder.completionOutcome(failedProfiles = 2, profilesAttempted = 3)
+        )
+        assertEquals(
+            ReviewPassAuditRecorder.OUTCOME_FAILED,
+            ReviewPassAuditRecorder.completionOutcome(failedProfiles = 1, profilesAttempted = 1)
+        )
+        assertEquals(
+            ReviewPassAuditRecorder.OUTCOME_FAILED,
+            ReviewPassAuditRecorder.completionOutcome(failedProfiles = 3, profilesAttempted = 3)
+        )
+    }
+
+    @Test
+    fun recordPassCompleted_capturesFailedProfiles() {
+        val recorder = ReviewPassAuditRecorder()
+        recorder.recordPassStart(nowMillis = 1L)
+        recorder.recordPassCompleted(
+            outcome = ReviewPassAuditRecorder.OUTCOME_PARTIAL,
+            pendingFound = 2,
+            succeeded = 2,
+            failedMarked = 0,
+            failedProfiles = 1,
+            nowMillis = 2L
+        )
+        val snap = recorder.snapshot()
+        assertEquals(ReviewPassAuditRecorder.OUTCOME_PARTIAL, snap.lastPassOutcome)
+        assertEquals(1, snap.lastPassFailedProfiles)
+    }
+
+    @Test
+    fun recordStartupRecovery_capturesFailedProfiles() {
+        val recorder = ReviewPassAuditRecorder()
+        recorder.recordStartupRecovery(recovered = 3, failedProfiles = 2, nowMillis = 9L)
+        val snap = recorder.snapshot()
+        assertEquals(3, snap.startupRecoveryRecovered)
+        assertEquals(2, snap.startupRecoveryFailedProfiles)
+    }
 }
