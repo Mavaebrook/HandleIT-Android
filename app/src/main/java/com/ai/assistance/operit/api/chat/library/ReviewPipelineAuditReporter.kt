@@ -14,42 +14,40 @@ import kotlinx.coroutines.flow.first
 /**
  * DEBUG-only, read-only audit snapshot for the review pipeline.
  *
- * Answers, once per launch, the three runtime audit questions that currently have no
- * diagnostics surface (the UIDebugger screen exposes none of them):
+ * Answers the three runtime audit questions with one report per launch:
  *
  * 1. Was [ReviewScheduler] constructed and started? ([ReviewAuditSnapshot.schedulerConstructed])
- * 2. How many persisted pending reviews exist, grouped by status? ([ReviewAuditSnapshot.pendingByStatus])
- * 3. How many [TaskEpisodeEntity] rows exist in the active profile's store? ([ReviewAuditSnapshot.taskEpisodeCount])
+ * 2. Has it executed passes, and with what outcomes? ([ReviewAuditSnapshot.schedulerAudit] —
+ *    recorded by [ReviewPassAuditRecorder] inside ReviewScheduler for every pass, including
+ *    passes over an empty queue, plus the startup recovery sweep)
+ * 3. How many persisted reviews exist grouped by status, and how many [TaskEpisodeEntity] rows
+ *    exist in the active profile's store? ([ReviewAuditSnapshot.pendingByStatus] /
+ *    [ReviewAuditSnapshot.taskEpisodeCount], read from ONE consistent all-status query)
  *
  * Safety contract (deliberate; review before relaxing any of it):
- * - Read-only. Only non-mutating repository reads are used:
- *   [PendingReviewRepository.getPendingAndFailed], [PendingReviewRepository.getDeadLettered],
- *   [TaskEpisodeRepository.count]. Never calls recoverStaleProcessing / markProcessing /
- *   markFailed / markFailedSingle / delete / migrateListFieldsToVersioned / ReviewScheduler.runOnce,
- *   and never touches ObjectBoxManager.delete() / closeAll().
- * - Never creates a store. ObjectBoxManager.buildStore() performs no existence check and
- *   PendingReviewRepository opens the store in its field initializer, so the expected store
- *   directory is tested BEFORE either repository is constructed; an absent store short-circuits
- *   every count to "UNAVAILABLE (store absent)" instead of materializing an empty database.
- * - Non-fatal. Any read failure renders "not observed" and never propagates to the caller;
- *   the startup hook logs failures at error level so the host process is unaffected.
+ * - Read-only. Only non-mutating reads: [PendingReviewRepository.getAll],
+ *   [TaskEpisodeRepository.count]. Never recoverStaleProcessing / markProcessing / markFailed /
+ *   markFailedSingle / delete / migrateListFieldsToVersioned / ReviewScheduler.runOnce, and
+ *   never ObjectBoxManager.delete() / closeAll().
+ * - Never creates a store. A store is only touched when its LMDB data file ([DATA_FILE_NAME])
+ *   already exists. ObjectBox's builder creates a database when opening a directory without one,
+ *   and PendingReviewRepository opens the store in its field initializer — so an absent data
+ *   file short-circuits every count to "UNAVAILABLE (store absent)" before either repository is
+ *   constructed.
+ * - Read failures are recorded, not swallowed: each read segment's error lands in
+ *   [ReviewAuditSnapshot.readErrors] (partial results are kept), and only unexpected failures
+ *   outside the read segments propagate to the caller's error logger.
  *
- * The three states are rendered unambiguously and are deliberately distinct:
+ * Rendered states are deliberately distinct:
  * - an observed number (0 is a real observation);
  * - "UNAVAILABLE (store absent)" — answering would require creating the store, which is forbidden;
- * - "not observed" — the store is present but the read could not be completed.
- *
- * Note on dead letters: a review that produced an episode is deleted after processing, but a
- * dead-lettered review is never deleted, so "dead_letter" rows are permanent residual evidence
- * and always appear in the grouped counts when present.
+ * - "not observed" — the value could not be obtained at snapshot time.
  */
 object ReviewPipelineAuditReporter {
 
-    /**
-     * One point-in-time snapshot. `pendingByStatus` / `maxAttemptCountObserved` / `taskEpisodeCount`
-     * are null when the observation could not be made; [storePresent] decides whether null renders
-     * as "UNAVAILABLE (store absent)" or "not observed".
-     */
+    /** ObjectBox/LMDB database file name; its presence is the store-existence guard. */
+    const val DATA_FILE_NAME = "data.mdb"
+
     data class ReviewAuditSnapshot(
         val observedAtEpochMillis: Long,
         val processScope: Int,
@@ -57,79 +55,165 @@ object ReviewPipelineAuditReporter {
         val expectedStoreDir: String,
         val storePresent: Boolean,
         val schedulerConstructed: Boolean?,
+        val schedulerAudit: ReviewPassAudit?,
         val pendingByStatus: Map<String, Int>?,
         val maxAttemptCountObserved: Int?,
-        val taskEpisodeCount: Long?
+        val taskEpisodeCount: Long?,
+        val readErrors: List<String>
     ) {
-        fun toReportText(): String {
-            fun scheduler(): String = schedulerConstructed?.toString() ?: "not observed"
-            fun counts(): String = when {
-                !storePresent -> "UNAVAILABLE (store absent)"
-                pendingByStatus == null -> "not observed"
-                else -> pendingByStatus.toSortedMap().toString()
-            }
-            fun maxAttempt(): String = when {
-                !storePresent -> "UNAVAILABLE (store absent)"
-                pendingByStatus == null -> "not observed"
-                maxAttemptCountObserved == null -> "none (no review rows observed)"
-                else -> maxAttemptCountObserved.toString()
-            }
-            fun episodes(): String = when {
-                !storePresent -> "UNAVAILABLE (store absent)"
-                taskEpisodeCount == null -> "not observed"
-                else -> taskEpisodeCount.toString()
-            }
-            return listOf(
+        /**
+         * One report line per field, each carrying the "[ReviewPipelineAudit]" prefix. Callers
+         * MUST log each line as its own AppLogger call: AppLogger only prefixes the first line
+         * of a multiline message, and tag-anchored extraction would otherwise drop every field
+         * after the first.
+         */
+        fun toReportLines(): List<String> {
+            val lines = listOf(
                 "observedAtEpochMillis=$observedAtEpochMillis",
                 "processScope=pid=$processScope",
                 "activeProfileId=$activeProfileId",
                 "expectedStoreDir=$expectedStoreDir",
                 "storePresent=$storePresent",
-                "schedulerConstructed=${scheduler()}",
-                "pendingByStatus=${counts()}",
-                "maxAttemptCountObserved=${maxAttempt()}",
-                "taskEpisodeCount=${episodes()}"
-            ).joinToString(separator = "\n") { "[ReviewPipelineAudit] $it" }
+                "schedulerConstructed=${renderSchedulerConstructed()}",
+                "schedulerPassCount=${renderAudit { it.passesStarted }}",
+                "schedulerPassesCompleted=${renderAudit { it.passesCompleted }}",
+                "schedulerLastPassStartedAtEpochMillis=${renderAudit { it.lastPassStartedAtEpochMillis }}",
+                "schedulerLastPassCompletedAtEpochMillis=${renderAudit { it.lastPassCompletedAtEpochMillis }}",
+                "schedulerLastPassOutcome=${renderAudit { it.lastPassOutcome }}",
+                "schedulerLastPassPendingFound=${renderAudit { it.lastPassPendingFound }}",
+                "schedulerLastPassSucceeded=${renderAudit { it.lastPassSucceeded }}",
+                "schedulerLastPassFailedMarked=${renderAudit { it.lastPassFailedMarked }}",
+                "schedulerStartupRecoveryCompletedAtEpochMillis=${renderAudit { it.startupRecoveryCompletedAtEpochMillis }}",
+                "schedulerStartupRecoveryRecovered=${renderAudit { it.startupRecoveryRecovered }}",
+                "pendingByStatus=${renderCounts()}",
+                "maxAttemptCountObserved=${renderMaxAttempt()}",
+                "taskEpisodeCount=${renderEpisodes()}",
+                "readErrors=${renderErrors()}"
+            )
+            return lines.map { "[ReviewPipelineAudit] $it" }
+        }
+
+        fun toReportText(): String = toReportLines().joinToString(separator = "\n")
+
+        private fun renderSchedulerConstructed(): String =
+            schedulerConstructed?.toString() ?: "not observed"
+
+        private fun renderAudit(field: (ReviewPassAudit) -> Any?): String {
+            val audit = schedulerAudit ?: return "not observed"
+            return field(audit)?.toString() ?: "not observed"
+        }
+
+        private fun renderCounts(): String = when {
+            !storePresent -> "UNAVAILABLE (store absent)"
+            pendingByStatus == null -> "not observed"
+            else -> pendingByStatus.toSortedMap().toString()
+        }
+
+        private fun renderMaxAttempt(): String = when {
+            !storePresent -> "UNAVAILABLE (store absent)"
+            pendingByStatus == null -> "not observed"
+            maxAttemptCountObserved == null -> "none (no review rows observed)"
+            else -> maxAttemptCountObserved.toString()
+        }
+
+        private fun renderEpisodes(): String = when {
+            !storePresent -> "UNAVAILABLE (store absent)"
+            taskEpisodeCount == null -> "not observed"
+            else -> taskEpisodeCount.toString()
+        }
+
+        private fun renderErrors(): String =
+            if (readErrors.isEmpty()) "none" else readErrors.joinToString("; ")
+    }
+
+    /**
+     * JVM-testable collection pipeline. Production wiring lives in [collect]; tests construct
+     * this seam directly with lambdas so collection, short-circuit and failure paths are
+     * exercised without an Android Context or an ObjectBox store.
+     */
+    class Collector(
+        private val activeProfileId: suspend () -> String,
+        private val storeDirFor: (String) -> File,
+        private val storeDataFilePresent: (File) -> Boolean,
+        private val schedulerAudit: () -> ReviewPassAudit?,
+        private val readReviews: (String) -> List<PendingReviewEntity>,
+        private val readEpisodeCount: (String) -> Long,
+        private val nowMillis: () -> Long = System::currentTimeMillis,
+        private val currentPid: () -> Int = Process::myPid
+    ) {
+        suspend fun collect(): ReviewAuditSnapshot {
+            val profileId = activeProfileId()
+            val storeDir = storeDirFor(profileId)
+            val storePresent = storeDataFilePresent(storeDir)
+            val audit = schedulerAudit()
+            val base = ReviewAuditSnapshot(
+                observedAtEpochMillis = nowMillis(),
+                processScope = currentPid(),
+                activeProfileId = profileId,
+                expectedStoreDir = storeDir.absolutePath,
+                storePresent = storePresent,
+                schedulerConstructed = audit != null,
+                schedulerAudit = audit,
+                pendingByStatus = null,
+                maxAttemptCountObserved = null,
+                taskEpisodeCount = null,
+                readErrors = emptyList()
+            )
+            if (!storePresent) return base
+
+            var rows: List<PendingReviewEntity>? = null
+            var rowsError: String? = null
+            try {
+                rows = readReviews(profileId)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                rowsError = error.message ?: error.javaClass.simpleName
+            }
+
+            var episodeCount: Long? = null
+            var episodeError: String? = null
+            if (rowsError == null) {
+                try {
+                    episodeCount = readEpisodeCount(profileId)
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (error: Exception) {
+                    episodeError = error.message ?: error.javaClass.simpleName
+                }
+            } else {
+                episodeError = "skipped: review read failed"
+            }
+
+            return base.copy(
+                pendingByStatus = rows?.let(::groupByStatus),
+                maxAttemptCountObserved = rows?.let(::maxAttemptCount),
+                taskEpisodeCount = episodeCount,
+                readErrors = listOfNotNull(
+                    rowsError?.let { "reviewRead: $it" },
+                    episodeError?.let { "episodeCount: $it" }
+                )
+            )
         }
     }
 
     /**
-     * Collects one snapshot. Suspend because the active profile id comes from a Flow.
-     *
-     * The pure pieces ([expectedStoreDirName], [groupByStatus], [maxAttemptCount],
-     * [ReviewAuditSnapshot.toReportText]) are separate so they are JVM-testable without an
-     * Android Context or an ObjectBox store.
+     * Production wiring. Suspend because the active profile id comes from a Flow.
+     * Failures inside the read segments are recorded in the snapshot's [ReviewAuditSnapshot.readErrors];
+     * anything else (profile lookup, cancellation) propagates to the caller.
      */
     suspend fun collect(context: Context): ReviewAuditSnapshot {
         val appContext = context.applicationContext
-        val profileId = UserPreferencesManager.getInstance(appContext).activeMemorySpaceIdFlow.first()
-        val storeDir = File(appContext.filesDir, expectedStoreDirName(profileId))
-        val storePresent = storeDir.exists() && storeDir.isDirectory
-        val base = ReviewAuditSnapshot(
-            observedAtEpochMillis = System.currentTimeMillis(),
-            processScope = Process.myPid(),
-            activeProfileId = profileId,
-            expectedStoreDir = storeDir.absolutePath,
-            storePresent = storePresent,
-            schedulerConstructed = ReviewScheduler.getInstance() != null,
-            pendingByStatus = null,
-            maxAttemptCountObserved = null,
-            taskEpisodeCount = null
-        )
-        if (!storePresent) return base
-        return try {
-            val reviewRepository = PendingReviewRepository(appContext, profileId)
-            val rows = reviewRepository.getPendingAndFailed() + reviewRepository.getDeadLettered()
-            base.copy(
-                pendingByStatus = groupByStatus(rows),
-                maxAttemptCountObserved = maxAttemptCount(rows),
-                taskEpisodeCount = TaskEpisodeRepository(appContext, profileId).count()
-            )
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (error: Exception) {
-            base
-        }
+        return Collector(
+            activeProfileId = {
+                UserPreferencesManager.getInstance(appContext).activeMemorySpaceIdFlow.first()
+            },
+            storeDirFor = { profileId -> File(appContext.filesDir, expectedStoreDirName(profileId)) },
+            storeDataFilePresent = { dir -> File(dir, DATA_FILE_NAME).isFile },
+            schedulerAudit = { ReviewScheduler.getInstance()?.passAudit?.snapshot() },
+            readReviews = { profileId -> PendingReviewRepository(appContext, profileId).getAll() },
+            readEpisodeCount = { profileId -> TaskEpisodeRepository(appContext, profileId).count() }
+        ).collect()
     }
 
     /**
@@ -144,9 +228,9 @@ object ReviewPipelineAuditReporter {
 
     /**
      * Counts rows per raw status literal (see [PendingReviewEntity.STATUS_PENDING],
-     * [PendingReviewEntity.STATUS_FAILED], [PendingReviewEntity.STATUS_DEAD_LETTER]).
-     * "processing" rows are normally absent because the scheduler holds that status only for the
-     * duration of a batch and recovers abandoned ones at startup.
+     * [PendingReviewEntity.STATUS_PROCESSING], [PendingReviewEntity.STATUS_FAILED],
+     * [PendingReviewEntity.STATUS_DEAD_LETTER]). PROCESSING rows are included: the rows come from
+     * [PendingReviewRepository.getAll], the single all-status query.
      */
     fun groupByStatus(rows: List<PendingReviewEntity>): Map<String, Int> =
         rows.groupingBy { it.status }.eachCount()

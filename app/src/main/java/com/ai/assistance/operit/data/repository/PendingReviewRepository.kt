@@ -83,6 +83,18 @@ class PendingReviewRepository(
             .sortedBy { it.createdAt.time }
     }
 
+    /**
+     * Audit-only single-query read: every persisted review regardless of status, returned in one
+     * consistent snapshot. Read-only; never mutates.
+     *
+     * Used by ReviewPipelineAuditReporter instead of combining [getPendingAndFailed] and
+     * [getDeadLettered]: those two separate queries can disagree when a row changes status
+     * between them, and they omit PROCESSING rows entirely.
+     */
+    fun getAll(): List<PendingReviewEntity> {
+        return reviewBox.all.sortedBy { it.createdAt.time }
+    }
+
     fun markProcessing(ids: List<Long>) {
         if (ids.isEmpty()) return
         val now = Date()

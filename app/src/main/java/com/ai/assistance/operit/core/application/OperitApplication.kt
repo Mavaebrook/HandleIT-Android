@@ -233,7 +233,8 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         if (BuildConfig.DEBUG) {
             applicationScope.launch {
                 try {
-                    AppLogger.d(TAG, ReviewPipelineAuditReporter.collect(this@OperitApplication).toReportText())
+                    ReviewPipelineAuditReporter.collect(this@OperitApplication).toReportLines()
+                            .forEach { line -> AppLogger.d(TAG, line) }
                 } catch (cancellation: CancellationException) {
                     throw cancellation
                 } catch (error: Exception) {

@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat.library
 
 import android.content.Context
+import com.ai.assistance.operit.BuildConfig
 import com.ai.assistance.operit.data.learning.ReviewLessonLanguage
 import com.ai.assistance.operit.data.model.TaskEpisode
 import com.ai.assistance.operit.data.preferences.preferencesManager
@@ -105,6 +106,12 @@ class ReviewScheduler(
     private val isRunning = AtomicBoolean(false)
     private var loopJob: Job? = null
 
+    /**
+     * In-memory audit of pass events; read by ReviewPipelineAuditReporter. Always recorded
+     * (cheap), regardless of build type.
+     */
+    val passAudit = ReviewPassAuditRecorder()
+
     fun start() {
         instance = this
         if (loopJob?.isActive == true) return
@@ -119,13 +126,41 @@ class ReviewScheduler(
         }
     }
 
+    /**
+     * Runs one drain pass. Concurrent invocations are collapsed: only one pass runs at a time.
+     *
+     * Every pass — including a pass over an empty queue — records a start and a completion with
+     * an outcome into [passAudit], so pass execution is observable even when nothing was pending.
+     * DEBUG builds additionally log one line per pass start and one per pass completion under TAG.
+     */
     suspend fun runOnce() {
         if (!isRunning.compareAndSet(false, true)) return
+        passAudit.recordPassStart()
+        if (BuildConfig.DEBUG) {
+            val audit = passAudit.snapshot()
+            AppLogger.d(TAG, "复习调度器 pass开始: passCount=${audit.passesStarted}")
+        }
         try {
-            drainPendingReviews()
+            val stats = drainPendingReviews()
+            passAudit.recordPassCompleted(
+                outcome = ReviewPassAuditRecorder.OUTCOME_COMPLETED,
+                pendingFound = stats.pendingFound,
+                succeeded = stats.succeeded,
+                failedMarked = stats.failedMarked
+            )
+            if (BuildConfig.DEBUG) {
+                val audit = passAudit.snapshot()
+                AppLogger.d(
+                    TAG,
+                    "复习调度器 pass完成: outcome=${audit.lastPassOutcome}, pending=${audit.lastPassPendingFound}, " +
+                        "succeeded=${audit.lastPassSucceeded}, failedMarked=${audit.lastPassFailedMarked}"
+                )
+            }
         } catch (cancellation: CancellationException) {
+            passAudit.recordPassCompleted(ReviewPassAuditRecorder.OUTCOME_CANCELLED, null, null, null)
             throw cancellation
         } catch (error: Exception) {
+            passAudit.recordPassCompleted(ReviewPassAuditRecorder.OUTCOME_ERROR, null, null, null)
             AppLogger.e(TAG, "Review scheduler run failed", error)
         } finally {
             isRunning.set(false)
@@ -139,9 +174,11 @@ class ReviewScheduler(
      */
     suspend fun recoverStaleProcessing() {
         val profileIds = memorySpacesToDrain(preferencesManager.memorySpaceListFlow.first())
+        var totalRecovered = 0
         for (profileId in profileIds) {
             try {
                 val recovered = PendingReviewRepository(context, profileId).recoverStaleProcessing()
+                totalRecovered += recovered
                 if (recovered > 0) {
                     AppLogger.i(TAG, "恢复滞留复盘: profileId=$profileId, recovered=$recovered")
                 }
@@ -151,22 +188,40 @@ class ReviewScheduler(
                 AppLogger.e(TAG, "滞留复盘恢复失败: profileId=$profileId", error)
             }
         }
+        passAudit.recordStartupRecovery(totalRecovered)
+        if (BuildConfig.DEBUG) {
+            AppLogger.d(TAG, "复习调度器启动恢复完成: recovered=$totalRecovered")
+        }
     }
 
-    private suspend fun drainPendingReviews() {
+    /** Per-pass drain statistics, aggregated across memory spaces for [runOnce]'s audit record. */
+    private data class PassStats(
+        val pendingFound: Int = 0,
+        val succeeded: Int = 0,
+        val failedMarked: Int = 0
+    )
+
+    private suspend fun drainPendingReviews(): PassStats {
         val profileIds = memorySpacesToDrain(preferencesManager.memorySpaceListFlow.first())
+        var total = PassStats()
         for (profileId in profileIds) {
             // Each memory space is an independent ObjectBox store. A failure in one store must
             // not prevent the remaining spaces from being drained, so the failure is logged with
             // its space id and the loop continues. The exception is never discarded silently.
             try {
-                drainPendingReviewsForSpace(profileId)
+                val spaceStats = drainPendingReviewsForSpace(profileId)
+                total = total.copy(
+                    pendingFound = total.pendingFound + spaceStats.pendingFound,
+                    succeeded = total.succeeded + spaceStats.succeeded,
+                    failedMarked = total.failedMarked + spaceStats.failedMarked
+                )
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
                 AppLogger.e(TAG, "待复盘队列处理失败: profileId=$profileId", error)
             }
         }
+        return total
     }
 
     /**
@@ -203,14 +258,15 @@ class ReviewScheduler(
             )
         }
 
-    private suspend fun drainPendingReviewsForSpace(profileId: String) {
+    private suspend fun drainPendingReviewsForSpace(profileId: String): PassStats {
         val pendingRepository = PendingReviewRepository(context, profileId)
         val pending = pendingRepository.getPendingAndFailed().take(MAX_REVIEWS_PER_RUN)
-        if (pending.isEmpty()) return
+        if (pending.isEmpty()) return PassStats()
         AppLogger.d(TAG, "开始处理待复盘队列: profileId=$profileId, pending=${pending.size}")
         pendingRepository.markProcessing(pending.map { it.id })
         val episodeStore = episodeStoreFactory(profileId)
         val succeededIds = mutableListOf<Long>()
+        var failedMarked = 0
         // B02: the locale does not change mid-batch, so resolve it once for the whole batch.
         val useEnglish = useEnglishForLessons()
         pending.forEach { review ->
@@ -249,10 +305,16 @@ class ReviewScheduler(
                         "reflector produced no episode"
                     }
                 pendingRepository.markFailedSingle(review.id, errorMessage)
+                failedMarked++
             }
         }
         // Delete ONLY the reviews that actually produced an episode. A partial failure must not
         // discard the reviews that still need another attempt.
         pendingRepository.delete(succeededIds)
+        return PassStats(
+            pendingFound = pending.size,
+            succeeded = succeededIds.size,
+            failedMarked = failedMarked
+        )
     }
 }
