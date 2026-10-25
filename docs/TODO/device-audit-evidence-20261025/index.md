@@ -4,9 +4,40 @@
 
 Reconcile the supplied on-device audit with repository snapshot `bf0bdd0cbab840ab25d8f5e8fdeb3751b90c710b`, distinguish observations from inferences, and define the minimum follow-up. This record does not execute device commands, inspect the installed APK/database, or alter application behavior.
 
-The supplied report is the source for device observations. Raw command output, the exact command scripts and APK provenance were not supplied here, so those observations have not been independently reproduced.
+The supplied report is the source for device observations. Raw command output and exact command scripts were not supplied here, so device observations have not been independently reproduced. The subsequently supplied build identity is recorded below.
 
-## Accepted observations and limits
+## Current installed debug build — corrected identity
+
+This supersedes the October 20 build previously recalled from memory. Preserve the old identity only as history; do not use it as the current installed build.
+
+- Package: `com.ai.assistance.operit.debug`
+- Version: 1.12.2, versionCode 51
+- GitHub [Android Build run 84 / 40119139721](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40119139721): SUCCESS
+- Source commit: `28529c0baa0446f1a3a74c8da31133ec7ea4b9b6`, PR #14 G02 integration
+- Artifact: `operit-android-84`, artifact ID 12570896270
+- Build completed: 2026-10-24 18:20 UTC; GitHub run updated at 18:20:29Z
+- Installation: 2026-10-24 22:20 local via pm install -r, as reported by the device agent; timezone offset was not supplied
+- APK SHA-256: `5c65ec4a9152da84ceeb2e88ae86a390ed5dfe9f59a89df7eaf7c1392efa1737`
+- APK size: 441,519,610 bytes, as reported
+- Reported installed base.apk hash equals the local installation source APK hash
+
+GitHub run number, commit, success and artifact metadata were independently checked. Installed-file/local-file hash equality and installation details are device-agent evidence; this documentation pass did not download/hash the artifact or rerun device commands. Keep this evidence distinction without reverting to the obsolete build identity.
+
+Superseded memory: October 20 build, run 39517747866, commit prefix 1794c64fab, reported hash prefix 22eb0b. No full historical hash was supplied.
+
+This correction identifies the debug build only. Release `com.ai.assistance.operit` remains separately reported as 1.12.2 / 51; do not assign the debug APK hash or commit to release.
+
+GitHub comparison from 28529c0b to the repository snapshot bf0bdd0c changes only the learning-pipeline documentation index. The application source cited below is identical between those commits.
+
+## Updated next check
+
+The device agent now reports ReviewScheduler, PendingReviewEntity/Repository and TaskEpisodeEntity/Repository present in the debug APK, withdrawing its original feature-absent claim. The remaining questions are runtime execution, selected profile, queue/episode counts and release-code identity.
+
+Current source stores selection in Preferences DataStore named `user_preferences`, with keys `active_memory_space_id` and `memory_space_list` in UserPreferencesManager. The expected standard file is `files/datastore/user_preferences.preferences_pb`; verify the device file and decode only needed values through a supported read-only method. The `memory_space_profile_documents` shared-preferences file stores migration schema_version, not selection. No keys in shared_prefs therefore does not establish absence of selection.
+
+MyObjectBox registration can establish registered entities, not scheduler startup or execution. Do not repeatedly retry the same failing recursive decompiler search. Inspect the specific application startup call and relevant classes separately; leave runtime counts and execution NOT VERIFIED until directly observed. SQLite tools do not query ObjectBox data.
+
+## Original audit observations and limits
 
 The report says retained logs contain auto-save/search activity and embedded assistant conversation text, but no matching MemoryDecayScheduler lines. It reports release-package run-as access is unavailable. These support an observation gap for the inspected package/window and NOT VERIFIED for inaccessible release data.
 
@@ -33,9 +64,11 @@ The durable instruction to preserve entity12/MemoryLedger must not be interprete
 
 The inspected debug build's review execution, queue counts, learning-record counts and end-to-end retrieval remain NOT VERIFIED from the supplied evidence. Release-package internal state remains NOT VERIFIED through the attempted access method.
 
-Claims of no persisted review queue, exactly three materialized entities, no learning records, zero scheduler executions, and an upstream-only installed build are not established. Current repository source contradicts several of those structural claims, but does not prove that source is the installed build.
+Claims of no persisted review queue, exactly three materialized entities, no learning records, zero scheduler executions, and an upstream-only installed build are not established. Current repository source contradicts several of those structural claims. The subsequent build-identity correction and compiled-class evidence above narrow the gap; runtime execution and counts remain unverified.
 
-## Minimum follow-up for the device auditor
+## Original follow-up checklist — build identification now supplied
+
+Step 1's debug-build identity is superseded by the correction above; do not restart identification unless new evidence conflicts. Continue with profile selection and runtime diagnostics, keeping release separate.
 
 1. Identify the exact package/user, versionName/versionCode, installed APK path/hash and signing identity; tie the APK to a hosted artifact and source commit where possible. A version label alone is insufficient. Keep debug and release evidence separate.
 2. Verify the active profile from authoritative preferences/UI at the same timestamp and identify the actual BoxStore directory using that build's source. Do not infer selection from an existing user.md file.

@@ -2,6 +2,10 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-25 — Installed debug build identity corrected
+
+Record run 84 / 40119139721, commit 28529c0b and the full reported APK hash as the current debug build. The older October 20 identity is explicitly superseded. GitHub metadata is verified; device hash equality remains attributed to the device agent. Release identity, runtime execution and row counts remain separate. Add the exact DataStore profile-selection keys to [the audit follow-up](docs/TODO/device-audit-evidence-20261025/index.md).
+
 ## 2026-10-25 — Device audit evidence reconciliation
 
 Document the distinction between missing runtime evidence and unsupported structural-absence claims. Current source contains a persisted review queue, ReviewScheduler wiring and TaskEpisode persistence; installed APK identity and device counts remain unverified. Refresh the handoff's stale PR #6/#14 status. Documentation only; no schema, application or device changes. See [the audit follow-up](docs/TODO/device-audit-evidence-20261025/index.md).

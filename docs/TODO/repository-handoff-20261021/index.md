@@ -9,7 +9,7 @@ snapshot_utc: "2026-10-25"
 
 ## Current state
 
-Repository snapshot: `bf0bdd0cbab840ab25d8f5e8fdeb3751b90c710b`. PRs #4/#5/#7 are merged; later PRs #6 and #14 are also merged. The earlier f5ddc3fb application integration passed its build/tests; it is no longer the latest application commit. Read [the device-audit evidence reconciliation](../device-audit-evidence-20261025/index.md) before interpreting the new on-device report. Installed APK provenance remains unverified.
+Repository snapshot: `bf0bdd0cbab840ab25d8f5e8fdeb3751b90c710b`. PRs #4/#5/#7 are merged; later PRs #6 and #14 are also merged. The earlier f5ddc3fb application integration passed its build/tests; it is no longer the latest application commit. Read [the device-audit evidence reconciliation](../device-audit-evidence-20261025/index.md) before interpreting the new on-device report. The device agent identifies installed debug as run 84 / 40119139721, commit 28529c0b; GitHub run metadata is verified. Its full hash and the superseded October 20 identity are recorded in the audit follow-up. Release identity remains separate.
 
 Read [the current integration evidence](10-memory-integration-20261024.md) and [remaining tasks](02-dispatch-and-next-tasks.md) first. Older reports are dated snapshots; their open/unmerged statements and earlier merge-authorization limits are superseded by this checkpoint.
 
@@ -24,7 +24,7 @@ Read [the current integration evidence](10-memory-integration-20261024.md) and [
 
 The next primary model inherits these tasks; do not wait for a particular model to return.
 
-1. **Device/build identity:** establish which hosted artifact is installed before diagnosing the reported self-learning failure. PR #6 has since merged; the older F1 merge-blocked snapshot is historical. This reconciliation does not independently re-review that later implementation.
+1. **Device runtime evidence:** debug build identity is now supplied and recorded; inspect the selected memory-space DataStore keys and observe review processing/counts. Do not repeat the superseded October 20 identification. PR #6 has since merged; the older F1 merge-blocked snapshot is historical. This reconciliation does not independently re-review that later implementation.
 2. **D02 activation prerequisites:** keep correctionApplicable false until applicable correction evidence and active-user-constraint provenance exist. No production restoration caller is present. Retain the non-blocking retirement-boundary hardening note and coverage gaps in [the accepted PR #4 review](09-pr4-restoration-repair-20261024.md).
 3. **D04b:** assess and measure batching through ObjectBox relation-query APIs. A required schema change has not been established.
 4. **O1/O2:** scheduler cancellation may replay saved episodes after stale recovery; remote MCP cancellation alters connection state. See [the review acceptance](08-argon-integration-review-20261023.md). Remote serialization remains a coverage gap.
