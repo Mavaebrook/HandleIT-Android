@@ -2,14 +2,14 @@
 repository: https://github.com/Mavaebrook/HandleIT-Android
 created: 2026-10-21
 status: active-handoff
-snapshot_utc: "2026-10-24"
+snapshot_utc: "2026-10-25"
 ---
 
 # Start here: model handoff
 
 ## Current state
 
-PRs #3, #4, #5, #8, #9 and #10 are merged. The latest application integration commit is `f5ddc3fb75e5eab59f785f5bc72f34f479007b5f`; this handoff is delivered through documentation PR #7. PR #6 remains open and blocked by missing trusted production project identity.
+Repository snapshot: `bf0bdd0cbab840ab25d8f5e8fdeb3751b90c710b`. PRs #4/#5/#7 are merged; later PRs #6 and #14 are also merged. The earlier f5ddc3fb application integration passed its build/tests; it is no longer the latest application commit. Read [the device-audit evidence reconciliation](../device-audit-evidence-20261025/index.md) before interpreting the new on-device report. Installed APK provenance remains unverified.
 
 Read [the current integration evidence](10-memory-integration-20261024.md) and [remaining tasks](02-dispatch-and-next-tasks.md) first. Older reports are dated snapshots; their open/unmerged statements and earlier merge-authorization limits are superseded by this checkpoint.
 
@@ -24,16 +24,16 @@ Read [the current integration evidence](10-memory-integration-20261024.md) and [
 
 The next primary model inherits these tasks; do not wait for a particular model to return.
 
-1. **PR #6 / F1: merge blocked.** Establish trusted production project identity for both prompt and summary paths, with scoped integration coverage. Do not infer authority from model content, directory names or a process-wide default. D05 is partial; G02 enforcement is unimplemented.
+1. **Device/build identity:** establish which hosted artifact is installed before diagnosing the reported self-learning failure. PR #6 has since merged; the older F1 merge-blocked snapshot is historical. This reconciliation does not independently re-review that later implementation.
 2. **D02 activation prerequisites:** keep correctionApplicable false until applicable correction evidence and active-user-constraint provenance exist. No production restoration caller is present. Retain the non-blocking retirement-boundary hardening note and coverage gaps in [the accepted PR #4 review](09-pr4-restoration-repair-20261024.md).
 3. **D04b:** assess and measure batching through ObjectBox relation-query APIs. A required schema change has not been established.
 4. **O1/O2:** scheduler cancellation may replay saved episodes after stale recovery; remote MCP cancellation alters connection state. See [the review acceptance](08-argon-integration-review-20261023.md). Remote serialization remains a coverage gap.
 5. **Administration/device evidence:** main branch protection was configured on 2026-10-24 (`Candidate checks` required, strict, include administrators). A01 historical phone-data preservation requires a compatible populated baseline and the device operator.
-6. **D06/G02:** retrieved memory remains in SYSTEM despite fencing; G02 execution enforcement is unfinished.
+6. **D06/G02:** PR #14 has merged a model-dispatch constraint gate. Its stated direct-entry coverage gaps remain; do not call it an app-wide sandbox. D06's provider trust boundary requires separate assessment.
 
 ## Authorization and invariants
 
-The user explicitly authorized merging #4, #5 and #7 after checks pass. Earlier authorization covered #8–#10. This does not authorize merging #6 or silently enabling unfinished memory/security features.
+The user explicitly authorized merging #4, #5 and #7 after checks pass. Earlier authorization covered #8–#10. That authorization describes this thread's earlier integration; subsequent #6/#14 merges are observed repository facts. This record does not establish their authorization history or authorize silently enabling unfinished features.
 
 All Gradle builds/tests run only on GitHub-hosted Android Build and Android Tests workflows. Preserve ObjectBox schema and IDs, entity12/MemoryLedger, package/signing identity, notification behavior and user corrections. No keys/secrets rotation or history rewrite.
 
