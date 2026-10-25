@@ -23,6 +23,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.api.chat.AIForegroundService
 import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
+import com.ai.assistance.operit.api.chat.library.ReviewPipelineAuditReporter
 import com.ai.assistance.operit.api.chat.library.ReviewScheduler
 import com.ai.assistance.operit.plugins.PluginRegistry
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleEvent
@@ -64,6 +65,7 @@ import com.ai.assistance.showerclient.ShowerEnvironment
 import com.ai.assistance.showerclient.ShowerLogSink
 import java.io.File
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -228,6 +230,17 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         AppLogger.d(TAG, "【启动计时】长期记忆自动保存轮询器启动完成 - ${System.currentTimeMillis() - startTime}ms")
         reviewScheduler = ReviewScheduler(applicationContext, applicationScope).also { it.start() }
         AppLogger.d(TAG, "【启动计时】复习调度器启动完成 - ${System.currentTimeMillis() - startTime}ms")
+        if (BuildConfig.DEBUG) {
+            applicationScope.launch {
+                try {
+                    AppLogger.d(TAG, ReviewPipelineAuditReporter.collect(this@OperitApplication).toReportText())
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (error: Exception) {
+                    AppLogger.e(TAG, "ReviewPipelineAuditReporter failed", error)
+                }
+            }
+        }
 
         // 初始化当前活跃角色目标的自定义表情
         applicationScope.launch {
