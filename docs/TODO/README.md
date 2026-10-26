@@ -48,6 +48,9 @@ For_Agent: 对项目大规模动工前按本规范协作
 
 ## Active HandleIT follow-up
 
+- [Build 85 bounded device validation — next task](device-runtime-validation-20261026/index.md)
+- [Device audit evidence reconciliation](device-audit-evidence-20261025/index.md)
+
 - [Main PR validation and runtime fixes](main-pr-runtime-fixes-20261022/index.md)
 - [MCP argument preservation](mcp-argument-preservation-20261022/index.md)
 - [Reflector and Curator cancellation](reflector-curator-cancellation-20261022/index.md)
@@ -60,5 +63,3 @@ For_Agent: 对项目大规模动工前按本规范协作
 ## Active HandleIT repository handoff
 
 For a new session or a model switch, start with [the repository handoff](repository-handoff-20261021/index.md). It records the current review, bridge jobs, unfinished ownership, validation evidence and resume steps. Recheck live job and PR state before editing.
-
-- [Device audit evidence and build identity](device-audit-evidence-20261025/index.md)

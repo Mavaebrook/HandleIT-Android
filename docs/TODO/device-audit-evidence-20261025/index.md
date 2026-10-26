@@ -1,12 +1,27 @@
 # Device audit evidence reconciliation — October 25, 2026
 
-## Scope and plan
+## October 26 checkpoint — PR #17 merged; device acceptance pending
+
+Main is `17089b41b4f192968deeb0d36163333c53e222aa`. PR #17 merged on 2026-10-26 at 00:20:06 UTC from `3cff4d3039d18e5522ab82c5be8e79705c04148b`. Comparison with independently reviewed `181ad975ca7b2be01196c0db6f83166a35106e81` changes only the learning-pipeline documentation index; the reviewed application code is unchanged.
+
+Hosted evidence verified once on October 26:
+- [Final PR Check 40248115963](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40248115963): SUCCESS at final PR head
+- [Main Android Build 40248851432](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40248851432): SUCCESS at main 17089b41
+- [Main Android Tests 40248851346](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40248851346): SUCCESS at main 17089b41
+- Artifact `operit-android-85`, ID 12619119950, available and not expired at this check
+- Main branch metadata confirms protection and required `Candidate checks`; detailed protection settings were not re-queried
+
+Build 85 is available, NOT confirmed installed. Last supplied installed identity remains debug run 84 below until the device operator provides new evidence. The agent subsequently reported active profile `default` from DataStore key inspection and a genuine scheduler startup line. Pass execution and review/episode counts remain NOT VERIFIED. Raw xxd/strings inspection must not be described as a structured protobuf decode.
+
+Next task: [bounded build-85 device validation](../device-runtime-validation-20261026/index.md). Do not repeat APK decoding or broad log searches. Release remains out of scope.
+
+## Historical reconciliation scope
 
 Reconcile the supplied on-device audit with repository snapshot `bf0bdd0cbab840ab25d8f5e8fdeb3751b90c710b`, distinguish observations from inferences, and define the minimum follow-up. This record does not execute device commands, inspect the installed APK/database, or alter application behavior.
 
 The supplied report is the source for device observations. Raw command output and exact command scripts were not supplied here, so device observations have not been independently reproduced. The subsequently supplied build identity is recorded below.
 
-## Current installed debug build — corrected identity
+## Last reported installed debug build — run 84
 
 This supersedes the October 20 build previously recalled from memory. Preserve the old identity only as history; do not use it as the current installed build.
 
@@ -29,7 +44,7 @@ This correction identifies the debug build only. Release `com.ai.assistance.oper
 
 GitHub comparison from 28529c0b to the repository snapshot bf0bdd0c changes only the learning-pipeline documentation index. The application source cited below is identical between those commits.
 
-## Updated next check
+## October 25 next check — superseded by October 26 task
 
 The device agent now reports ReviewScheduler, PendingReviewEntity/Repository and TaskEpisodeEntity/Repository present in the debug APK, withdrawing its original feature-absent claim. The remaining questions are runtime execution, selected profile, queue/episode counts and release-code identity.
 

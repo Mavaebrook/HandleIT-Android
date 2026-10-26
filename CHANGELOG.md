@@ -2,6 +2,10 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-26 — Runtime audit merged and device-validation task prepared
+
+PR #17 merged at 17089b41 with distinct partial/failed pass outcomes, canonical terminal events and existing-store-only diagnostic reads. Final PR Check 40248115963 and merged-main Android Build 40248851432 / Android Tests 40248851346 passed. Artifact operit-android-85 is available; installation and device acceptance are NOT confirmed. Reconcile the handoff and prepare [bounded device validation](docs/TODO/device-runtime-validation-20261026/index.md). Documentation only in this checkpoint; no device changes or additional builds.
+
 ## 2026-10-25 — Installed debug build identity corrected
 
 Record run 84 / 40119139721, commit 28529c0b and the full reported APK hash as the current debug build. The older October 20 identity is explicitly superseded. GitHub metadata is verified; device hash equality remains attributed to the device agent. Release identity, runtime execution and row counts remain separate. Add the exact DataStore profile-selection keys to [the audit follow-up](docs/TODO/device-audit-evidence-20261025/index.md).

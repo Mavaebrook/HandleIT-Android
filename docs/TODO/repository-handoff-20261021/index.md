@@ -2,30 +2,41 @@
 repository: https://github.com/Mavaebrook/HandleIT-Android
 created: 2026-10-21
 status: active-handoff
-snapshot_utc: "2026-10-25"
+snapshot_utc: "2026-10-26"
 ---
 
 # Start here: model handoff
 
 ## Current state
 
-Repository snapshot: `bf0bdd0cbab840ab25d8f5e8fdeb3751b90c710b`. PRs #4/#5/#7 are merged; later PRs #6 and #14 are also merged. The earlier f5ddc3fb application integration passed its build/tests; it is no longer the latest application commit. Read [the device-audit evidence reconciliation](../device-audit-evidence-20261025/index.md) before interpreting the new on-device report. The device agent identifies installed debug as run 84 / 40119139721, commit 28529c0b; GitHub run metadata is verified. Its full hash and the superseded October 20 identity are recorded in the audit follow-up. Release identity remains separate.
+Main is `17089b41b4f192968deeb0d36163333c53e222aa`. PR #17 merged on 2026-10-26 at 00:20:06 UTC from `3cff4d3039d18e5522ab82c5be8e79705c04148b`. Comparison with independently reviewed `181ad975ca7b2be01196c0db6f83166a35106e81` changes only the learning-pipeline documentation index; the reviewed application code is unchanged.
 
-Read [the current integration evidence](10-memory-integration-20261024.md) and [remaining tasks](02-dispatch-and-next-tasks.md) first. Older reports are dated snapshots; their open/unmerged statements and earlier merge-authorization limits are superseded by this checkpoint.
+Hosted evidence verified once on October 26:
+- [Final PR Check 40248115963](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40248115963): SUCCESS at final PR head
+- [Main Android Build 40248851432](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40248851432): SUCCESS at main 17089b41
+- [Main Android Tests 40248851346](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40248851346): SUCCESS at main 17089b41
+- Artifact `operit-android-85`, ID 12619119950, available and not expired at this check
+- Main branch metadata confirms protection and required `Candidate checks`; detailed protection settings were not re-queried
+
+Build 85 is available, NOT confirmed installed. Last supplied installed identity remains debug run 84 below until the device operator provides new evidence. The agent subsequently reported active profile `default` from DataStore key inspection and a genuine scheduler startup line. Pass execution and review/episode counts remain NOT VERIFIED. Raw xxd/strings inspection must not be described as a structured protobuf decode.
+
+Next task: [bounded build-85 device validation](../device-runtime-validation-20261026/index.md). Do not repeat APK decoding or broad log searches. Release remains out of scope.
+
+Older reports below are historical. Start with the device-validation task above; do not redispatch completed PR work.
 
 ## Completed integration
 
 - PR #4: reviewed repair `54b3ade2`, merged as `5526acd027e4df2b7860422eb4b03310cd405805`. F2 restoration eligibility is repaired; D02 remains partial.
 - PR #5: reviewed repair `210ddf1c`, reconciled with merged #4 at `738d345f0f8e322a1de8a5d7190e3f4b524d4e2c`, then merged as `f5ddc3fb75e5eab59f785f5bc72f34f479007b5f`. D04a/D04c and F3 are repaired; D04b batching remains unimplemented/unmeasured.
 - Combined PR validation [40064775483](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40064775483) succeeded before #5 merged. Merged application Android Build [40065402652](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40065402652) and Android Tests [40065402642](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40065402642) both **SUCCESS** on `f5ddc3fb75e5eab59f785f5bc72f34f479007b5f`.
-- PR #7 changes documentation only. Its head must pass its selected PR checks before merge. The application evidence above applies to its unchanged application tree; it is not a claim that an APK lane ran for documentation-only changes.
+- PR #7 is merged. PRs #6/#14 subsequently delivered trusted workspace identity and model-dispatch policy enforcement. PR #17 is now merged with the runtime audit diagnostics; see the October 26 checkpoint above.
 
 ## Remaining ownership
 
 The next primary model inherits these tasks; do not wait for a particular model to return.
 
-1. **Device runtime evidence:** debug build identity is now supplied and recorded; inspect the selected memory-space DataStore keys and observe review processing/counts. Do not repeat the superseded October 20 identification. PR #6 has since merged; the older F1 merge-blocked snapshot is historical. This reconciliation does not independently re-review that later implementation.
-2. **D02 activation prerequisites:** keep correctionApplicable false until applicable correction evidence and active-user-constraint provenance exist. No production restoration caller is present. Retain the non-blocking retirement-boundary hardening note and coverage gaps in [the accepted PR #4 review](09-pr4-restoration-repair-20261024.md).
+1. **Device runtime evidence:** run the bounded build-85 validation task above. Active default profile and startup are reported; actual pass outcomes and row counts remain pending. The new build is not yet confirmed installed.
+2. **D02 activation prerequisites:** keep correctionApplicable false until applicable correction evidence and active-user-constraint provenance exist. No production restoration caller is present. The retirement-boundary guards have since landed on main; retain the unresolved activation and device-coverage gaps in [the accepted PR #4 review](09-pr4-restoration-repair-20261024.md).
 3. **D04b:** assess and measure batching through ObjectBox relation-query APIs. A required schema change has not been established.
 4. **O1/O2:** scheduler cancellation may replay saved episodes after stale recovery; remote MCP cancellation alters connection state. See [the review acceptance](08-argon-integration-review-20261023.md). Remote serialization remains a coverage gap.
 5. **Administration/device evidence:** main branch protection was configured on 2026-10-24 (`Candidate checks` required, strict, include administrators). A01 historical phone-data preservation requires a compatible populated baseline and the device operator.
