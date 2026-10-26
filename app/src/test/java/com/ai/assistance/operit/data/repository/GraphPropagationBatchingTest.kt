@@ -62,8 +62,8 @@ class GraphPropagationBatchingTest {
     @Test
     fun propagate_batchedRows_matchLegacyLoopExactly() {
         val seeds = listOf(1L, 2L)
-        val allowed = setOf(1L, 2L, 3L, 4L, 5L) // memory 6 is out of scope
-        val existing = setOf(1L, 2L, 3L, 4L, 5L) // link to 7 is dangling
+        val allowed = setOf(1L, 2L, 3L, 4L, 5L) // memory 6 exists but is out of scope
+        val existing = setOf(1L, 2L, 3L, 4L, 5L, 6L) // link to 7 is dangling
         val outgoing = listOf(
             GraphPropagationBatching.LinkRow(1, 1, 3, 0.5f),
             GraphPropagationBatching.LinkRow(2, 1, 4, 0.2f),
