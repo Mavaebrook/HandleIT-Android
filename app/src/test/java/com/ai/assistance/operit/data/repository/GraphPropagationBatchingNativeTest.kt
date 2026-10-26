@@ -54,11 +54,17 @@ class GraphPropagationBatchingNativeTest {
         return memory
     }
 
+    /**
+     * Insert a link the way production MemoryRepository.linkMemories does: both ToOne
+     * endpoints are set AND the link is added to the standalone Memory.links ToMany, so the
+     * legacy `sourceMemory.links` traversal and the batched sourceId query see the same rows.
+     */
     private fun link(source: Memory, target: Memory, weight: Float): MemoryLink {
         val link = MemoryLink(type = "related", weight = weight)
         link.source.target = source
         link.target.target = target
-        linkBox.put(link)
+        source.links.add(link)
+        memoryBox.put(source)
         return link
     }
 
@@ -98,7 +104,7 @@ class GraphPropagationBatchingNativeTest {
         link(m2, m5, 0.8f)
         link(m2, m6, 0.6f)
         link(m3, m1, 0.3f)
-        link(m4, m2, -0.5f)
+        link(m4, m2, 0.0f) // zero-weight edge: production-coerced data, contributes no score
 
         val allowed = setOf(m1.id, m2.id, m3.id, m4.id, m5.id)
         val seeds = listOf(m1.id, m2.id)
