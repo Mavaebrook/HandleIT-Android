@@ -94,7 +94,9 @@ class GraphPropagationBatchingTest {
         }
 
         assertEquals(legacyScores, batchedScores)
-        assertEquals(setOf(1L, 3L, 4L, 5L), scoreParts.keys)
+        // Positive contributions land on the traversed neighbours: outgoing targets 3/4/5 and
+        // the incoming link's source (memory 3), so memory 1 receives no edge score part.
+        assertEquals(setOf(3L, 4L, 5L), scoreParts.keys)
         assertEquals(2, stats.seedsProcessed)
         assertEquals(7, stats.linkRowsConsidered)
         assertEquals(5, stats.edgesTraversed)
@@ -131,7 +133,8 @@ class GraphPropagationBatchingTest {
         assertEquals(1, stats.linkRowsConsidered)
         assertEquals(1, stats.edgesTraversed)
         assertEquals(setOf(1L, 2L, 3L), scores.keys)
-        assertEquals(15.0, scores.getValue(3L), 1e-9)
+        // Seed 2 (score 10) -> memory 3 across weight 0.5 with graph weight 1.0 = contribution 5.
+        assertEquals(5.0, scores.getValue(3L), 1e-9)
     }
 
     @Test

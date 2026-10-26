@@ -47,66 +47,65 @@ class GraphPropagationBatchingNativeTest {
         if (::store.isInitialized && !store.isClosed) store.close()
     }
 
-    private fun memory(id: Long) {
-        val memory = Memory(title = "m$id", content = "c$id")
-        memory.id = id
+    /** Insert a memory; ObjectBox assigns the id (put with a preset id is rejected on new rows). */
+    private fun memory(label: String): Memory {
+        val memory = Memory(title = label, content = "content-$label")
         memoryBox.put(memory)
+        return memory
     }
 
-    private fun link(id: Long, sourceId: Long, targetId: Long, weight: Float) {
-        val source = memoryBox.get(sourceId) ?: error("source $sourceId missing")
-        val target = memoryBox.get(targetId) ?: error("target $targetId missing")
-        val link = MemoryLink(id = id, type = "related", weight = weight)
+    private fun link(source: Memory, target: Memory, weight: Float): MemoryLink {
+        val link = MemoryLink(type = "related", weight = weight)
         link.source.target = source
         link.target.target = target
         linkBox.put(link)
+        return link
     }
 
     @Test
     fun relationQueryIn_loadsAllSeedsLinksWithTwoBoxQueries() {
-        listOf(1L, 2L, 3L, 4L, 5L).forEach { memory(it) }
-        link(11, 1, 3, 0.5f)
-        link(12, 1, 4, 0.2f)
-        link(13, 2, 5, 0.8f)
-        link(14, 3, 1, 0.3f) // backlink into seed 1
+        val m1 = memory("m1")
+        val m2 = memory("m2")
+        val m3 = memory("m3")
+        val m4 = memory("m4")
+        val m5 = memory("m5")
+        link(m1, m3, 0.5f)
+        link(m1, m4, 0.2f)
+        link(m2, m5, 0.8f)
+        link(m3, m1, 0.3f) // backlink into seed 1
 
-        val seeds = longArrayOf(1L, 2L)
+        val seeds = longArrayOf(m1.id, m2.id)
         val outgoing = linkBox.query().`in`(MemoryLink_.sourceId, seeds).build().find()
         val incoming = linkBox.query().`in`(MemoryLink_.targetId, seeds).build().find()
 
-        assertEquals(setOf(11L, 12L, 13L), outgoing.map { it.id }.toSet())
-        assertEquals(setOf(14L), incoming.map { it.id }.toSet())
         // Stored endpoint ids are readable without resolving ToOne targets.
-        outgoing.forEach { row ->
-            val expected = when (row.id) {
-                11L -> 1L to 3L
-                12L -> 1L to 4L
-                else -> 2L to 5L
-            }
-            assertEquals(expected.first, row.source.targetId)
-            assertEquals(expected.second, row.target.targetId)
-        }
-        assertEquals(3L, incoming.first().source.targetId)
-        assertEquals(1L, incoming.first().target.targetId)
+        val outgoingPairs = outgoing.map { it.source.targetId to it.target.targetId }.toSet()
+        val incomingPairs = incoming.map { it.source.targetId to it.target.targetId }.toSet()
+        assertEquals(setOf(m1.id to m3.id, m1.id to m4.id, m2.id to m5.id), outgoingPairs)
+        assertEquals(setOf(m3.id to m1.id), incomingPairs)
     }
 
     @Test
     fun batchedPropagation_matchesLegacyStoreTraversalExactly() {
-        listOf(1L, 2L, 3L, 4L, 5L, 6L).forEach { memory(it) }
-        // memory 6 is out of scope for this query.
-        link(21, 1, 3, 0.5f)
-        link(22, 1, 4, 0.2f)
-        link(23, 2, 5, 0.8f)
-        link(24, 2, 6, 0.6f)
-        link(26, 3, 1, 0.3f)
-        link(27, 4, 2, -0.5f)
+        val m1 = memory("m1")
+        val m2 = memory("m2")
+        val m3 = memory("m3")
+        val m4 = memory("m4")
+        val m5 = memory("m5")
+        val m6 = memory("m6") // out of scope for this query
+        link(m1, m3, 0.5f)
+        link(m1, m4, 0.2f)
+        link(m2, m5, 0.8f)
+        link(m2, m6, 0.6f)
+        link(m3, m1, 0.3f)
+        link(m4, m2, -0.5f)
 
-        val allowed = setOf(1L, 2L, 3L, 4L, 5L)
-        val seeds = listOf(1L, 2L)
+        val allowed = setOf(m1.id, m2.id, m3.id, m4.id, m5.id)
+        val seeds = listOf(m1.id, m2.id)
         val graphWeight = 2.0
 
         // Legacy traversal: exactly the pre-batching loop.
-        val legacyScores = mutableMapOf(1L to 10.0, 2L to 20.0)
+        val legacyScores = mutableMapOf(m1.id to 10.0, m2.id to 20.0)
         seeds.forEach { seed ->
             val sourceMemory = memoryBox.get(seed) ?: return@forEach
             sourceMemory.links.reset()
@@ -129,7 +128,7 @@ class GraphPropagationBatchingNativeTest {
         }
 
         // Batched path: the production implementation.
-        val batchedScores = mutableMapOf(1L to 10.0, 2L to 20.0)
+        val batchedScores = mutableMapOf(m1.id to 10.0, m2.id to 20.0)
         val outgoingRows = linkBox.query().`in`(MemoryLink_.sourceId, seeds.toLongArray()).build().find()
             .map { GraphPropagationBatching.LinkRow(it.id, it.source.targetId, it.target.targetId, it.weight) }
         val incomingRows = linkBox.query().`in`(MemoryLink_.targetId, seeds.toLongArray()).build().find()
