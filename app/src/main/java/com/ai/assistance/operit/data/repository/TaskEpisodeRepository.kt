@@ -12,6 +12,7 @@ import com.ai.assistance.operit.data.model.TaskEpisodeEntity
 import com.ai.assistance.operit.data.model.TaskEpisodeEntity_
 import com.ai.assistance.operit.util.AppLogger
 import io.objectbox.Box
+import io.objectbox.BoxStore
 import io.objectbox.kotlin.boxFor
 import io.objectbox.kotlin.query
 import io.objectbox.query.QueryBuilder
@@ -109,7 +110,7 @@ class TaskEpisodeRepository(
         return episodeBox.query().build().find().map { it.toEpisode() }
     }
 
-    fun count(): Long = episodeBox.count()
+    fun count(): Long = countFrom(store)
 
     /**
      * Bounded similar-task retrieval: at most clampTopK(topK) episodes.
@@ -296,6 +297,17 @@ class TaskEpisodeRepository(
          * loaded or written in one transaction.
          */
         const val MIGRATION_BATCH_SIZE = 100
+
+        /**
+         * Audit-only count against an already-open store. Never creates or opens a store; the
+         * caller obtains the store via ObjectBoxManager.getExisting. This is the
+         * existing-store-only access path; the instance method [count] delegates here so there is
+         * one implementation.
+         */
+        fun countFrom(store: BoxStore): Long {
+            val box: Box<TaskEpisodeEntity> = store.boxFor()
+            return box.count()
+        }
 
         /**
          * The text that is embedded for an episode: [TaskEpisode.taskSummary],
