@@ -2,6 +2,18 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-26 — Runtime audit merged and device-validation task prepared
+
+PR #17 merged at 17089b41 with distinct partial/failed pass outcomes, canonical terminal events and existing-store-only diagnostic reads. Final PR Check 40248115963 and merged-main Android Build 40248851432 / Android Tests 40248851346 passed. Artifact operit-android-85 is available; installation and device acceptance are NOT confirmed. Reconcile the handoff and prepare [bounded device validation](docs/TODO/device-runtime-validation-20261026/index.md). Documentation only in this checkpoint; no device changes or additional builds.
+
+## 2026-10-25 — Installed debug build identity corrected
+
+Record run 84 / 40119139721, commit 28529c0b and the full reported APK hash as the current debug build. The older October 20 identity is explicitly superseded. GitHub metadata is verified; device hash equality remains attributed to the device agent. Release identity, runtime execution and row counts remain separate. Add the exact DataStore profile-selection keys to [the audit follow-up](docs/TODO/device-audit-evidence-20261025/index.md).
+
+## 2026-10-25 — Device audit evidence reconciliation
+
+Document the distinction between missing runtime evidence and unsupported structural-absence claims. Current source contains a persisted review queue, ReviewScheduler wiring and TaskEpisode persistence; installed APK identity and device counts remain unverified. Refresh the handoff's stale PR #6/#14 status. Documentation only; no schema, application or device changes. See [the audit follow-up](docs/TODO/device-audit-evidence-20261025/index.md).
+
 ## 2026-10-24 — G02 hard project constraints enforced at tool dispatch (Stage D)
 
 G02 is now a real gate on the model-dispatched tool path, closing the previously BLOCKED design checkpoint (superseded by `CORR-2026-10-24-G02-CARRIER`). A new `ToolInvocationContext` carries the trusted `ProjectIdentity` plus `chatId`/`workspacePath`; a pure `ProjectConstraintPolicy` returns structured `LOCAL_BUILD_FORBIDDEN` / `PROTECTED_PATH_MUTATION` denials; and a `ProjectConstraintHook` is registered idempotently inside `AIToolHandler.getInstance`, so the existing `checkToolInterception` hook now enforces HandleIT-scoped constraints. `ToolExecutionManager` resolves identity per tool round from the authoritative `ChatEntity.workspace` column (via `ChatHistoryManager.getChatWorkspace`), never from a basename or prompt claim, and threads it through a new context-bearing `checkToolInterception(tool, context)` overload; the original single-arg method and hook interface keep backward-compatible default bodies so `ToolPkgToolLifecycleBridge`/`WorkspaceBackupManager` and direct callers compile unchanged. Blocked: exact Gradle tokens (`./gradlew`, `gradlew`, `gradlew.bat`, `gradle`) on any of the four shell tools, and writes/moves/copies touching `.git`, `objectbox-models/default.json`, or keystore/signing files. Sixteen deterministic JVM tests cover Gradle tokens, protected paths, non-HandleIT allow, and bounded denial codes. HONEST COVERAGE: a hard gate for the primary model-dispatched path only — direct `AIToolHandler.executeTool`/`executeToolAndStream` callers (UI, MCPDeployer, file manager, `MemoryViewModel`, `UIDebuggerViewModel`) supply no chat id and resolve `UNKNOWN` → `Allow`, and those direct shell-entry points are recorded as an accepted gap, not a claimed app-wide sandbox. No local build or test run; APK builds remain GitHub-Actions-only. See [the plan](docs/TODO/learning-pipeline-hardening-20261017/11-stage-d-g02-d06-closeout-plan.md).
