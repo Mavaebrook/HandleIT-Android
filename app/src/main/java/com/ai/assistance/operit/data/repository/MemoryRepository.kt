@@ -6,6 +6,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.db.ObjectBoxManager
 import com.ai.assistance.operit.data.model.Memory
 import com.ai.assistance.operit.data.model.MemoryLink
+import com.ai.assistance.operit.data.model.MemoryLink_
 import com.ai.assistance.operit.data.model.MemoryProperty
 import com.ai.assistance.operit.data.model.MemoryTag
 import com.ai.assistance.operit.data.model.MemoryTag_
@@ -1632,48 +1633,69 @@ class MemoryRepository(private val context: Context, profileId: String) {
         } else {
             emptyList()
         }
-
         var edgesTraversed = 0
         val graphPropagationWeight = effectiveEdgeWeight
-
-        topMemoriesForExpansion.forEach { (sourceId, _) ->
-            val sourceMemory = memoriesToSearch.find { it.id == sourceId } ?: return@forEach
-            val sourceScore = scores[sourceId] ?: 0.0
-            
-            // 重置关系缓存以获取最新连接
-            sourceMemory.links.reset()
-            sourceMemory.backlinks.reset()
-            
-            // Propagate score through outgoing links
-            sourceMemory.links.forEach { link ->
-                val targetMemory = link.target.target
-                if (targetMemory != null && MemoryGraphScopeFilter.shouldPropagateTo(allowedScopedIds, targetMemory.id)) {
-                    // 边权重越高，传播的分数越多
-                    val propagatedScore = MemoryPropagationScoring.propagatedScore(sourceScore, link.weight, graphPropagationWeight)
-                    MemoryPropagationScoring.addContribution(scores, targetMemory.id, propagatedScore) { contribution ->
-                        getScoreParts(targetMemory.id).edgeScore += contribution
-                    }
-                    edgesTraversed++
+        // D04b: batch the seeds' links with relation queries instead of resolving the ToMany per
+        // seed and the ToOne endpoint per link (legacy 2*S + R round trips vs a constant 3).
+        val seedIds = topMemoriesForExpansion
+            .map { it.key }
+            .filter { it in allowedScopedIds }
+        if (seedIds.isNotEmpty()) {
+            val outgoingRows = linkBox.query()
+                .`in`(MemoryLink_.sourceId, seedIds.toLongArray())
+                .build().find()
+                .map { link ->
+                    GraphPropagationBatching.LinkRow(
+                        id = link.id,
+                        sourceId = link.source.targetId,
+                        targetId = link.target.targetId,
+                        weight = link.weight
+                    )
                 }
+            val incomingRows = linkBox.query()
+                .`in`(MemoryLink_.targetId, seedIds.toLongArray())
+                .build().find()
+                .map { link ->
+                    GraphPropagationBatching.LinkRow(
+                        id = link.id,
+                        sourceId = link.source.targetId,
+                        targetId = link.target.targetId,
+                        weight = link.weight
+                    )
+                }
+            // One batch get verifies the link endpoints; rows whose endpoint no longer exists are
+            // dangling and skipped like the legacy null-target check.
+            val endpointIds = buildSet {
+                outgoingRows.forEach { add(it.targetId) }
+                incomingRows.forEach { add(it.sourceId) }
             }
-            
-            // Propagate score through incoming links (backlinks)
-            sourceMemory.backlinks.forEach { link ->
-                val targetMemory = link.source.target
-                if (targetMemory != null && MemoryGraphScopeFilter.shouldPropagateTo(allowedScopedIds, targetMemory.id)) {
-                    // 边权重越高，传播的分数越多
-                    val propagatedScore = MemoryPropagationScoring.propagatedScore(sourceScore, link.weight, graphPropagationWeight)
-                    MemoryPropagationScoring.addContribution(scores, targetMemory.id, propagatedScore) { contribution ->
-                        getScoreParts(targetMemory.id).edgeScore += contribution
-                    }
-                    edgesTraversed++
-                }
+            val existingEndpointIds = memoryBox.get(endpointIds.toList())
+                .filterNotNull()
+                .map { it.id }
+                .toHashSet()
+            val batchingStats = GraphPropagationBatching.propagate(
+                seeds = seedIds,
+                outgoingLinks = outgoingRows,
+                incomingLinks = incomingRows,
+                scores = scores,
+                allowedScopedIds = allowedScopedIds,
+                existingEndpointIds = existingEndpointIds,
+                graphPropagationWeight = graphPropagationWeight
+            ) { targetId, contribution ->
+                getScoreParts(targetId).edgeScore += contribution
+            }
+            edgesTraversed = batchingStats.edgesTraversed
+            if (edgesTraversed > 0) {
+                com.ai.assistance.operit.util.AppLogger.d(
+                    "MemoryRepo",
+                    "Graph expansion: ${batchingStats.edgesTraversed} edges traversed " +
+                        "(seeds=${batchingStats.seedsProcessed}, rows=${batchingStats.linkRowsConsidered}, " +
+                        "queries legacy=${batchingStats.legacyQueryCount} -> batched=${batchingStats.batchedQueryCount}, " +
+                        "dangling=${batchingStats.skippedDangling}, outOfScope=${batchingStats.skippedOutOfScope}, " +
+                        "nonPositive=${batchingStats.skippedNonPositive})"
+                )
             }
         }
-        if (edgesTraversed > 0) {
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Graph expansion: ${edgesTraversed} edges traversed")
-        }
-
         // 5. Fuse results using RRF and return sorted list
         if (scores.isEmpty()) {
             return@withContext SearchComputationResult(
