@@ -34,6 +34,6 @@ Assessment notes:
 - Runtime timing on device is not measured; the round-trip arithmetic is the measured quantity. Tests run in hosted JVM CI only.
 
 ## Validation
-Branch `fix/d04b-salience-query-batching`, PR #18 against `main`. Hosted PR Check / Android Build / Android Tests results recorded after the hosted run.
+Branch `fix/d04b-salience-query-batching`, PR #18 against `main`. Hosted validation at head `455a9191` — PR Check run [40378576154](https://github.com/Mavaebrook/HandleIT-Android/actions/runs/40378576154): Fast checks SUCCESS, Android JVM tests SUCCESS (`BUILD SUCCESSFUL in 7m 3s`, all 9 new batching tests included), Android build skipped by plan scoping (no build-config/native/gradle change), aggregate `Candidate checks` SUCCESS. Earlier heads failed on test-fixture defects (manual ObjectBox ids, missing standalone `Memory.links` population, overlapping dangling/scope rows) — all fixed in this branch; production code was unchanged by those fixes. No local build or test run; APK builds remain GitHub-Actions-only.
 
 [DONE]
