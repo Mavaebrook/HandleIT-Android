@@ -48,6 +48,8 @@ For_Agent: 对项目大规模动工前按本规范协作
 
 ## Active HandleIT follow-up
 
+- [Single-owner learning and bridge modularization](modular-learning-ownership-20261027/index.md)
+
 - [Main PR validation and runtime fixes](main-pr-runtime-fixes-20261022/index.md)
 - [MCP argument preservation](mcp-argument-preservation-20261022/index.md)
 - [Reflector and Curator cancellation](reflector-curator-cancellation-20261022/index.md)
