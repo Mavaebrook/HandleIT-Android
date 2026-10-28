@@ -1,11 +1,17 @@
 ---
 repository: https://github.com/Mavaebrook/HandleIT-Android
 created: 2026-10-27
-status: design-and-cutover-plan
+status: initial-prd-draft
 source_snapshot: 17089b41b4f192968deeb0d36163333c53e222aa
 ---
 
 # One owner for learning and model context
+
+## Current requirements checkpoint — 2026-10-28
+
+Read [the initial PRD](03-initial-prd.md) first. It records the agreed knowledge domains, one policy owner, independent intake and recall acceptance, bridge portability, and later controlled A/B evaluation. Migration planning follows requirements review; the priority list and cutover document below are preliminary proposals, not authorization to execute them.
+
+[Google Docs review copy](https://docs.google.com/document/d/1IAkdBifQajMYusFOSwt8HaGkzj3DTLWAgwhLiBsNQ2Y/edit) — use the first tab, “Agreed requirements — 28 Oct.” The existing architecture notes are preserved separately. Copies do not synchronize automatically.
 
 ## User direction
 

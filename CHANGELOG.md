@@ -2,6 +2,10 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-28 — Initial modular self-learning PRD
+
+Record the agreed environment, user, project, episodic and skill domains; one learning/context owner; separate intake and recall acceptance; portable bridge interfaces; and deferred A/B evaluation. Publish the same requirements in the Google Docs review copy and distinguish them from preliminary migration proposals. Documentation only; no runtime migration or pruning. See [the PRD](docs/TODO/modular-learning-ownership-20261027/03-initial-prd.md).
+
 ## 2026-10-27 — Modular learning ownership design
 
 Document the direction to retire competing Android memory orchestration in favor of one owner for learning and model context, with separate bridge modules and replaceable UI/device/PRoot adapters. Record the observed dual enqueue path, workspace-gated episode retrieval and limited review evidence; define a staged cutover preserving data and explicit user settings. This is a design checkpoint, not implemented pruning or a deployed bridge. See [the plan](docs/TODO/modular-learning-ownership-20261027/index.md).
