@@ -30,7 +30,7 @@ For_Agent: 对项目大规模动工前按本规范协作
 - 如果你写下细化的作用域，我们就能更快跟进
 - 每一个文档分拆出一个最小可用功能单位，完成你的代码的时候在结尾加一个[DONE]，一起传上去吧
 - 别人就可以让Agent根据该文档的git历史捞出对应的differ，没有压缩的话
-- 完成最后一个更改时，你可以上传您的详细文档、实验记录、稳定API，并执行自动化i18n
+- 完成最后一个更改时，您可以上传您的详细文档、实验记录、稳定API，并执行自动化i18n
 - squansh时尽量不要把i18n和文档更改放进一个pr，这会导致git历史不那么整洁
 - 用单独的pr将您的文件夹移入[docs/.Meta/Legacy/TODO](../.Meta/Legacy/TODO)
 
@@ -53,6 +53,7 @@ For_Agent: 对项目大规模动工前按本规范协作
 - [Reflector and Curator cancellation](reflector-curator-cancellation-20261022/index.md)
 - [D02 restoration eligibility and persistence tests](d02-restore-eligibility-20261023/index.md)
 - [D04 zero-score candidate follow-up](d04-zero-score-candidates-20261023/index.md)
+- [Pre-agent preprocessing (LLM pre-step)](pre-agent-preprocessing-20261028/index.md)
 
 
 - [Reviewed memory integration](memory-integration-20261024/index.md)
