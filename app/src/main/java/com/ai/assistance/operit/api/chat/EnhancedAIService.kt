@@ -1198,6 +1198,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                     // 使用新的Stream API
                     AppLogger.d(TAG, "sendMessage请求前准备耗时: ${tAfterGetTools - startTime}ms, 流式输出: $stream")
                     val requestStartTime = messageTimingNow()
+                    if (!isExecutionContextActive(execContext)) {
+                        throw CancellationException("Conversation cancelled before execution")
+                    }
                     val responseStream =
                             serviceForFunction.sendMessage(
                                     context = this@EnhancedAIService.context,

@@ -300,7 +300,14 @@ class MultiServiceManager(private val context: Context) {
 
     /** Isolated request state with the same resolved configuration and shared rate-limit policy. */
     suspend fun createPreparationService(resolvedConfig: ModelConfigData): AIService =
-        createServiceFromConfig(resolvedConfig, 0)
+        // Capability switches differ from generation settings: preparation cannot execute tools,
+        // including provider-hosted web search that can run even with an empty local tools list.
+        createServiceFromConfig(resolvedConfig.copy(
+            enableToolCall = false,
+            enableDeepSeekWebSearch = false,
+            enableGoogleSearch = false,
+            enableCodexWebSearch = false
+        ), 0)
 
     /** 根据配置创建AIService实例 */
     private suspend fun createServiceFromConfig(config: ModelConfigData, modelIndex: Int): AIService {
