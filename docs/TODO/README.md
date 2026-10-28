@@ -4,6 +4,8 @@ For_Agent: 对项目大规模动工前按本规范协作
 
 # TODO不误砍柴功
 
+- [Surgical runtime repair — 2026-10-28](surgical-runtime-repair-20261028/README.md): remove competing automatic intake, enable ordinary-chat recall, and restore configured remote MCP visibility.
+
 ## 无组织无纪律是谓乌合
 
 如果你想做一个消费一定时间、有一定规模的改动：

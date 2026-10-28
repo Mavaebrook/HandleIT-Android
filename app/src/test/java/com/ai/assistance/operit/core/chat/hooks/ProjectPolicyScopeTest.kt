@@ -75,6 +75,36 @@ class ProjectPolicyScopeTest {
     // --- trust boundary -----------------------------------------------------
 
     @Test
+    fun noWorkspace_keepsEpisodeRecall_withoutProjectRules() {
+        val preflight = "<retrieved_memory trust=\"untrusted\">Prior episode</retrieved_memory>"
+        for (identity in listOf(ProjectIdentity.HANDLEIT, ProjectIdentity.OTHER, ProjectIdentity.UNKNOWN)) {
+            val scope = ProjectPolicyScope.resolve(identity, null)
+            assertTrue(scope.allowsGenericPreflight)
+            assertFalse(scope.appliesHandleItRules)
+            val mutation = ArchitectRulesSystemPromptHook().onEvent(
+                PromptHookContext(
+                    stage = "compose_system_prompt_sections",
+                    systemPrompt = "Base prompt",
+                    useEnglish = true,
+                    metadata = mapOf(
+                        ProjectIdentity.METADATA_KEY to identity,
+                        "architectPreflightBlock" to preflight
+                    )
+                )
+            )
+            assertEquals("Base prompt\n\n$preflight", mutation?.systemPrompt)
+        }
+    }
+
+    @Test
+    fun noWorkspace_withoutEpisodes_leavesPromptUntouched() {
+        val mutation = ArchitectRulesSystemPromptHook().onEvent(
+            PromptHookContext(stage = "compose_system_prompt_sections", systemPrompt = "Base prompt")
+        )
+        assertEquals(null, mutation)
+    }
+
+    @Test
     fun fromMetadata_missingKey_isUnknown() {
         assertEquals(ProjectIdentity.UNKNOWN, ProjectIdentity.fromMetadata(emptyMap()))
     }

@@ -1,5 +1,17 @@
 # MCP tool arguments
 
+## Remote registration
+
+Enabled remote entries in `pluginMetadata` are registered with the AI namespace when configuration
+is loaded or refreshed, independently of startup network checks and cached tool availability.
+Use the configured server ID with `use_package`; display names are not aliases. Activation still
+connects to the server and obtains its tools, so an unavailable endpoint returns a connection error.
+Registration is not proof of reachability. Disabling/removing a remote entry removes its registration;
+late discovery callbacks must respect the current enabled state. Role-card tool restrictions remain
+in force. No configuration is copied between the separate Operit and HandleIT apps.
+
+## Argument conversion
+
 `MCPToolExecutor` converts string-valued tool parameters using each property's explicit
 `inputSchema.properties` type before dispatch to `McpRuntimeSession`.
 
