@@ -2,6 +2,10 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-28 — In-app prompt preprocessing v1
+
+Top-level chat turns now prepare a bounded execution brief with an isolated instance of the current chat provider, preserving its resolved model, generation parameters and thinking setting. The original user request remains intact; the brief and source episode evidence are supplied as lower-authority context. Tool continuations, subtasks and non-chat functions do not run another preparation call. Invalid output, timeout or provider failure stops execution visibly. No schema, credential or signing change. Hosted validation and device acceptance are pending; see [plan and limits](docs/TODO/prompt-preprocessing-v1/README.md).
+
 ## 2026-10-28 — Surgical learning and MCP runtime repair
 
 Stop enqueuing and processing legacy automatic memory candidates so ReviewScheduler is the sole automatic intake owner. Keep the legacy worker only for explicitly selected user messages, without its five-candidate minimum; preserve manual operations and all stored data. Include the latest user request in review context. Allow profile-scoped episode recall without a workspace while keeping HandleIT project rules separately scoped. Register enabled configured remote MCP servers before live startup verification, so transient connection failures do not make them disappear from the AI namespace; activation still checks connectivity. See [scope and device smoke check](docs/TODO/surgical-runtime-repair-20261028/README.md). Hosted validation and an installable debug artifact are pending.
