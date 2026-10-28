@@ -119,6 +119,26 @@ class MCPRepository(private val context: Context) {
         try {
             val pluginMetadata = mcpLocalServer.getAllPluginMetadata()
 
+            // Configuration establishes the remote namespace; a successful boot handshake must
+            // not be required for use_package to find it. This step performs no network I/O.
+            // Activation still connects/lists tools and reports the real connection failure.
+            val removedRemoteIds = _mcpServers.value
+                .filter { it.type == "remote" && it.id !in pluginMetadata }
+                .map { it.id }
+            unregisterToolsForPlugins(removedRemoteIds)
+            pluginMetadata.values.filter { it.type == "remote" }.forEach { metadata ->
+                if (!mcpLocalServer.isServerEnabled(metadata.id)) {
+                    unregisterToolsForPlugins(listOf(metadata.id))
+                } else {
+                    try {
+                        registerConfiguredServer(metadata)
+                    } catch (e: Exception) {
+                        unregisterToolsForPlugins(listOf(metadata.id))
+                        AppLogger.e(TAG, "Invalid remote MCP configuration: ${metadata.id}", e)
+                    }
+                }
+            }
+
             // 构建插件列表
             val servers = mutableListOf<MCPLocalServer.PluginMetadata>()
             val installedIds = mutableSetOf<String>()
@@ -1208,19 +1228,14 @@ class MCPRepository(private val context: Context) {
                 return
             }
 
+            // Late discovery/startup callbacks must not re-expose a server the user disabled.
+            if (!mcpLocalServer.isServerEnabled(pluginId)) {
+                unregisterToolsForPlugins(listOf(pluginId))
+                return
+            }
+
             val mcpManager = MCPManager.getInstance(context)
-            val runtimeDescriptor = createRuntimeDescriptor(pluginMetadata)
-            val serverConfig = MCPServerConfig(
-                name = pluginId,
-                endpoint = when (runtimeDescriptor) {
-                    is McpRuntimeDescriptor.Local -> "mcp://plugin/${runtimeDescriptor.serviceName}"
-                    is McpRuntimeDescriptor.Remote -> runtimeDescriptor.endpoint
-                },
-                description = pluginMetadata.description,
-                capabilities = listOf("tools"),
-                extraData = emptyMap()
-            )
-            mcpManager.registerServer(pluginId, serverConfig, runtimeDescriptor)
+            registerConfiguredServer(pluginMetadata)
             AppLogger.d(TAG, "已在MCPManager中注册服务器: $pluginId (类型: ${pluginMetadata.type})")
 
             // 获取工具信息
@@ -1335,6 +1350,22 @@ class MCPRepository(private val context: Context) {
                 inputSchema = Gson().toJson(schemaParams) // 假设 MCPToolExecutor 可以处理
             )
         }
+    }
+
+    /** Register identity/configuration only. Tool discovery remains a separate live operation. */
+    private fun registerConfiguredServer(metadata: MCPLocalServer.PluginMetadata) {
+        val descriptor = createRuntimeDescriptor(metadata)
+        val config = MCPServerConfig(
+            name = metadata.id,
+            endpoint = when (descriptor) {
+                is McpRuntimeDescriptor.Local -> "mcp://plugin/${descriptor.serviceName}"
+                is McpRuntimeDescriptor.Remote -> descriptor.endpoint
+            },
+            description = metadata.description,
+            capabilities = listOf("tools"),
+            extraData = emptyMap()
+        )
+        MCPManager.getInstance(context).registerServer(metadata.id, config, descriptor)
     }
 
     private fun createRuntimeDescriptor(

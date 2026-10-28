@@ -12,16 +12,16 @@ enum class ProjectPolicyScope {
     HANDLEIT_DEVELOPMENT,
     /** A known non-HandleIT project OR an unestablished identity, with a workspace: generic preflight only, no HandleIT rules. */
     GENERIC_DEVELOPMENT,
-    /** No workspace (casual chat): no project requirements are injected. */
+    /** No workspace: no project requirements; profile-scoped episode recall still applies. */
     NONE;
 
     /** True when HandleIT-specific requirements (canonical repo, build policy, protected paths) apply. */
     val appliesHandleItRules: Boolean
         get() = this == HANDLEIT_DEVELOPMENT
 
-    /** True when the optional generic preflight/memory block may be appended. */
+    /** Episode recall is profile-scoped and does not require project authority or a workspace. */
     val allowsGenericPreflight: Boolean
-        get() = this == HANDLEIT_DEVELOPMENT || this == GENERIC_DEVELOPMENT
+        get() = true
 
     companion object {
         /**

@@ -83,7 +83,6 @@ import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.preferencesManager
-import com.ai.assistance.operit.data.repository.MemoryAutoSaveCandidateRepository
 import com.ai.assistance.operit.api.chat.library.ReviewTriggerEnqueuer
 import com.ai.assistance.operit.data.learning.ReviewSignalDeriver
 import com.ai.assistance.operit.data.learning.ObservationScope
@@ -2076,11 +2075,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                 if (currentChatId.isNullOrBlank()) {
                     AppLogger.w(TAG, "自动保存长期记忆入队跳过：chatId为空")
                 } else {
-                    MemoryAutoSaveCandidateRepository(this@EnhancedAIService.context, profileId)
-                        .enqueue(
-                            chatId = currentChatId,
-                            triggerMessageTimestamp = System.currentTimeMillis()
-                        )
+                    // ReviewScheduler owns automatic learning. Do not also enqueue the legacy
+                    // auto-save worker for the same reply; manual memory operations remain available.
                     // Bounded post-task review trigger (docs/.../01-design.md §4). Signals are
                     // derived from recorded turn events (tool results, model hops, conversation
                     // turns) by ReviewSignalDeriver; ReviewTriggerPolicy remains the single
@@ -2120,7 +2116,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                         chatId = currentChatId,
                         signals = reviewSignals,
                         taskSummary = content.take(2000),
-                        contextSummary = "",
+                        contextSummary = context.conversationHistory
+                            .lastOrNull { it.kind == PromptTurnKind.USER }
+                            ?.content.orEmpty().take(2000),
                         outcome = reviewOutcome
                     )
                 }
