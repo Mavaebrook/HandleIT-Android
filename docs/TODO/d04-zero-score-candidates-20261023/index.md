@@ -21,8 +21,7 @@ Main `f12cfe00`: Android Build [39809127467](https://github.com/Mavaebrook/Handl
 PR #5 began at `7a329587b3867b9f3528495a7c1afd74a5ede1d8`. Unconditional map writes after a zero contribution admit an otherwise absent neighbour when the caller selects threshold 0. The default positive threshold excludes that row. No device reproduction is claimed.
 
 ## Remaining work
-
-D04b salience query batching remains unimplemented and unmeasured. ObjectBox 5.3.0 supports relation queries via `QueryBuilder.link(RelationInfo)`; a schema change has not been established as necessary. A01 historical phone-data preservation, D02 restore eligibility and D05/G02 policy work remain separate tasks.
+D04b salience query batching is implemented and measured (see [the D04b step](02-d04b-query-batching-measurement.md)): all seeds' links load via two ObjectBox relation queries plus one batch endpoint get (3 round trips vs the legacy `2*S + R`), no schema change required. A01 historical phone-data preservation, D02 restore eligibility and D05/G02 policy work remain separate tasks.
 
 ## Validation
 

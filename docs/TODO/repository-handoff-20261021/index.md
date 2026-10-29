@@ -26,7 +26,7 @@ The next primary model inherits these tasks; do not wait for a particular model 
 
 1. **PR #6 / F1: merge blocked.** Establish trusted production project identity for both prompt and summary paths, with scoped integration coverage. Do not infer authority from model content, directory names or a process-wide default. D05 is partial; G02 enforcement is unimplemented.
 2. **D02 activation prerequisites:** keep correctionApplicable false until applicable correction evidence and active-user-constraint provenance exist. No production restoration caller is present. Retain the non-blocking retirement-boundary hardening note and coverage gaps in [the accepted PR #4 review](09-pr4-restoration-repair-20261024.md).
-3. **D04b:** assess and measure batching through ObjectBox relation-query APIs. A required schema change has not been established.
+3. **D04b:** implemented and measured (PR #18, branch `fix/d04b-salience-query-batching`): two relation queries plus one batch endpoint get replace the per-seed/per-link resolution (`2*S + R` -> 3 round trips). The ObjectBox relation-query assessment is documented; no schema change is required.
 4. **O1/O2:** scheduler cancellation may replay saved episodes after stale recovery; remote MCP cancellation alters connection state. See [the review acceptance](08-argon-integration-review-20261023.md). Remote serialization remains a coverage gap.
 5. **Administration/device evidence:** main branch protection was configured on 2026-10-24 (`Candidate checks` required, strict, include administrators). A01 historical phone-data preservation requires a compatible populated baseline and the device operator.
 6. **D06/G02:** retrieved memory remains in SYSTEM despite fencing; G02 execution enforcement is unfinished.

@@ -17,7 +17,7 @@ D05 remains partial and G02 dispatch enforcement is separate unfinished work. Co
 ## Remaining memory work
 
 - D02: applicable correction evidence, active-user-constraint provenance, explicit restoration integration, and full retrieval/device acceptance. Automatic retirement stays disabled. Carry forward the low-severity retirement-boundary hardening note, blank-status coverage and direct Android-wrapper coverage from [PR #4 acceptance](09-pr4-restoration-repair-20261024.md).
-- D04b: query batching is unimplemented and unmeasured. ObjectBox 5.3.0 relation-query APIs warrant assessment; do not claim a schema change is required without proof.
+- D04b: query batching implemented and measured in PR #18 (`fix/d04b-salience-query-batching`): 3 round trips vs the legacy `2*S + R`; relation-query assessment documented; no schema change required.
 - A01: historical phone-local entity preservation still needs a compatible populated baseline. Native JVM database tests do not establish upgrade preservation on a historical phone.
 
 ## Separate follow-ups
