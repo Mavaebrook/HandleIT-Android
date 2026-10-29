@@ -19,6 +19,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
 
+/** Match provider construction exactly while preserving every non-model setting. */
+internal fun resolveServiceModelConfig(config: ModelConfigData, modelIndex: Int): ModelConfigData =
+    config.copy(modelName = getModelByIndex(config.modelName, getValidModelIndex(config.modelName, modelIndex)))
+
 /** 管理多个AIService实例，根据功能类型提供不同的服务配置 */
 class MultiServiceManager(private val context: Context) {
     companion object {
@@ -136,7 +140,7 @@ class MultiServiceManager(private val context: Context) {
         val service = createServiceFromConfig(config, configMapping.modelIndex)
         val managedService = ManagedService(
             service = service,
-            modelConfig = config
+            modelConfig = resolveServiceModelConfig(config, configMapping.modelIndex)
         )
         serviceInstances[functionType] = managedService
 
@@ -157,7 +161,7 @@ class MultiServiceManager(private val context: Context) {
         val service = createServiceFromConfig(config, normalizedIndex)
         val managedService = ManagedService(
             service = service,
-            modelConfig = config
+            modelConfig = resolveServiceModelConfig(config, normalizedIndex)
         )
         customServiceInstances[cacheKey] = managedService
 
@@ -294,6 +298,17 @@ class MultiServiceManager(private val context: Context) {
         }
     }
 
+    /** Isolated request state with the same resolved configuration and shared rate-limit policy. */
+    suspend fun createPreparationService(resolvedConfig: ModelConfigData): AIService =
+        // Capability switches differ from generation settings: preparation cannot execute tools,
+        // including provider-hosted web search that can run even with an empty local tools list.
+        createServiceFromConfig(resolvedConfig.copy(
+            enableToolCall = false,
+            enableDeepSeekWebSearch = false,
+            enableGoogleSearch = false,
+            enableCodexWebSearch = false
+        ), 0)
+
     /** 根据配置创建AIService实例 */
     private suspend fun createServiceFromConfig(config: ModelConfigData, modelIndex: Int): AIService {
         // 使用公共函数计算有效索引
@@ -309,7 +324,7 @@ class MultiServiceManager(private val context: Context) {
         val selectedModelName = getModelByIndex(config.modelName, actualIndex)
         
         // 创建一个临时配置，使用选中的模型名称
-        val configWithSelectedModel = config.copy(modelName = selectedModelName)
+        val configWithSelectedModel = resolveServiceModelConfig(config, modelIndex)
         
         AppLogger.d(TAG, "创建服务: 原始模型='${config.modelName}', 选中模型='$selectedModelName' (请求索引=$modelIndex, 实际索引=$actualIndex)")
 

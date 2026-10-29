@@ -613,27 +613,24 @@ class ConversationService(
                 )
 
                 // 获取系统提示词，现在传入workspacePath和识图配置状态
-                // Bounded similar-task preflight: only for development/workspace tasks, pure
-                // retrieval (no model call), top-k clamped to 3-5. A retrieval failure is logged
+                // Bounded similar-task preflight for the selected memory profile, including
+                // ordinary chats without a workspace. Project authority is resolved separately.
+                // Retrieval is bounded to 3-5 episodes. A retrieval failure is logged
                 // by TaskPreflightProvider and yields the defined no-op (empty block).
                 // buildPreflightBlock is suspend because retrieval merges the lexical candidates
                 // with the episode vector index; this function is already suspend.
                 val preflightContext =
-                    if (!workspacePath.isNullOrBlank()) {
-                        TaskPreflightProvider.buildPreflightContext(
-                            context = context,
-                            profileId = effectiveMemorySpaceId,
-                            taskQuery = processedInput,
-                            currentTaskContext =
-                                buildPreflightTaskContext(processedInput, effectiveChatHistory),
-                            useEnglish = useEnglish,
-                            snapshotStore = observationCoordinator.store,
-                            taskScope = chatId ?: "",
-                            sessionId = observationCoordinator.currentGeneration().toString()
-                        )
-                    } else {
-                        TaskPreflightProvider.PreflightContext(textBlock = "", snapshot = null)
-                    }
+                    TaskPreflightProvider.buildPreflightContext(
+                        context = context,
+                        profileId = effectiveMemorySpaceId,
+                        taskQuery = processedInput,
+                        currentTaskContext =
+                            buildPreflightTaskContext(processedInput, effectiveChatHistory),
+                        useEnglish = useEnglish,
+                        snapshotStore = observationCoordinator.store,
+                        taskScope = chatId ?: "",
+                        sessionId = observationCoordinator.currentGeneration().toString()
+                    )
                 val architectPreflightBlock = preflightContext.textBlock
                 var systemPromptHookMetadata =
                     activePromptMetadata +

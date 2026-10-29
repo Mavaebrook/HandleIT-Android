@@ -83,7 +83,6 @@ import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.preferencesManager
-import com.ai.assistance.operit.data.repository.MemoryAutoSaveCandidateRepository
 import com.ai.assistance.operit.api.chat.library.ReviewTriggerEnqueuer
 import com.ai.assistance.operit.data.learning.ReviewSignalDeriver
 import com.ai.assistance.operit.data.learning.ObservationScope
@@ -440,6 +439,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         val conversationHistory: MutableList<PromptTurn>,
         val eventChannel: MutableSharedStream<TextStreamEvent>,
         var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
+        @Volatile var preparationService: AIService? = null,
         var turnObservations: ReviewSignalDeriver.TurnObservationAccumulator =
             ReviewSignalDeriver.TurnObservationAccumulator()
     )
@@ -457,6 +457,7 @@ class EnhancedAIService private constructor(private val context: Context) {
 
     private fun invalidateExecutionContext(context: MessageExecutionContext, reason: String) {
         if (context.isConversationActive.compareAndSet(true, false)) {
+            context.preparationService?.cancelStreaming()
             AppLogger.d(TAG, "执行上下文已失效: id=${context.executionId}, reason=$reason")
         }
     }
@@ -496,6 +497,64 @@ class EnhancedAIService private constructor(private val context: Context) {
         val snapshot = ModelExecutionSnapshot(lease)
         context.modelExecutionSnapshot = snapshot
         return snapshot
+    }
+
+    private suspend fun preprocessRequest(
+        execution: MessageExecutionContext,
+        snapshot: ModelExecutionSnapshot,
+        history: List<PromptTurn>,
+        tools: List<ToolPrompt>?,
+        enableThinking: Boolean
+    ): List<PromptTurn> {
+        val compiler = com.ai.assistance.operit.api.chat.enhance.PromptPreprocessor
+        val service = multiServiceManager.createPreparationService(snapshot.config)
+        execution.preparationService = service
+        val startedAt = messageTimingNow()
+        try {
+            if (!isExecutionContextActive(execution)) throw CancellationException("Preparation cancelled")
+            val output = StringBuilder()
+            val compiled = compiler.compile(history, tools.orEmpty().map { it.name }, checkActive = {
+                if (!isExecutionContextActive(execution)) throw CancellationException("Preparation cancelled")
+            }) { turns ->
+              kotlinx.coroutines.withTimeout(120_000L) {
+                service.sendMessage(
+                    context = context,
+                    chatHistory = turns,
+                    modelParameters = snapshot.modelParameters,
+                    enableThinking = enableThinking,
+                    stream = true,
+                    availableTools = emptyList(),
+                    enableRetry = false,
+                    onNonFatalError = { throw IllegalStateException("Prompt preprocessing provider error") }
+                ).collect { chunk ->
+                    if (!isExecutionContextActive(execution)) throw CancellationException("Preparation cancelled")
+                    require(output.length + chunk.length <= 131072) { "Prompt preprocessing response exceeds budget" }
+                    output.append(chunk)
+                }
+              }
+              ChatUtils.removeThinkingContent(output.toString())
+            }
+            if (!isExecutionContextActive(execution)) throw CancellationException("Preparation cancelled")
+            accumulatedInputTokenCount += service.inputTokenCount
+            accumulatedCachedInputTokenCount += service.cachedInputTokenCount
+            accumulatedOutputTokenCount += service.outputTokenCount
+            AppLogger.d(TAG, "PromptPreprocessor v1 execution=${execution.executionId} " +
+                "elapsedMs=${messageTimingNow() - startedAt} input=${service.inputTokenCount} " +
+                "output=${service.outputTokenCount} briefChars=${output.length}")
+            return compiled
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            throw IllegalStateException("Prompt preprocessing timed out; execution was not started")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Provider/parser exceptions can include request or response text; expose only type.
+            AppLogger.e(TAG, "PromptPreprocessor failed: ${e.javaClass.simpleName}")
+            throw IllegalStateException("Prompt preprocessing failed; execution was not started")
+        } finally {
+            execution.preparationService = null
+            service.cancelStreaming()
+            service.release()
+        }
     }
 
     private suspend fun releaseModelExecutionSnapshot(context: MessageExecutionContext) {
@@ -1110,7 +1169,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                         finalProcessedInput = ChatUtils.stripGeminiThoughtSignatureMeta(finalProcessedInput)
                         finalPreparedHistory = ChatUtils.stripGeminiThoughtSignatureMetaTurns(finalPreparedHistory)
                     }
-                    val requestHistory =
+                    var requestHistory =
                         applyFinalizedCurrentUserTurn(
                             preparedHistory = finalPreparedHistory,
                             originalCurrentMessage = message,
@@ -1120,6 +1179,13 @@ class EnhancedAIService private constructor(private val context: Context) {
                                 current.kind == PromptTurnKind.USER &&
                                 previous.toolName == current.toolName
                         }
+                    // One preparation per top-level user turn. Tool continuations enter the
+                    // separate continuation path and reuse this history without another call.
+                    if (functionType == FunctionType.CHAT && !isSubTask) {
+                        requestHistory = preprocessRequest(
+                            execContext, modelSnapshot, requestHistory, availableTools, enableThinking
+                        )
+                    }
                     execContext.conversationHistory.clear()
                     execContext.conversationHistory.addAll(requestHistory)
                     estimatePreparedRequestWindow(
@@ -1132,6 +1198,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                     // 使用新的Stream API
                     AppLogger.d(TAG, "sendMessage请求前准备耗时: ${tAfterGetTools - startTime}ms, 流式输出: $stream")
                     val requestStartTime = messageTimingNow()
+                    if (!isExecutionContextActive(execContext)) {
+                        throw CancellationException("Conversation cancelled before execution")
+                    }
                     val responseStream =
                             serviceForFunction.sendMessage(
                                     context = this@EnhancedAIService.context,
@@ -2076,11 +2145,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                 if (currentChatId.isNullOrBlank()) {
                     AppLogger.w(TAG, "自动保存长期记忆入队跳过：chatId为空")
                 } else {
-                    MemoryAutoSaveCandidateRepository(this@EnhancedAIService.context, profileId)
-                        .enqueue(
-                            chatId = currentChatId,
-                            triggerMessageTimestamp = System.currentTimeMillis()
-                        )
+                    // ReviewScheduler owns automatic learning. Do not also enqueue the legacy
+                    // auto-save worker for the same reply; manual memory operations remain available.
                     // Bounded post-task review trigger (docs/.../01-design.md §4). Signals are
                     // derived from recorded turn events (tool results, model hops, conversation
                     // turns) by ReviewSignalDeriver; ReviewTriggerPolicy remains the single
@@ -2120,7 +2186,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                         chatId = currentChatId,
                         signals = reviewSignals,
                         taskSummary = content.take(2000),
-                        contextSummary = "",
+                        contextSummary = context.conversationHistory
+                            .lastOrNull { it.kind == PromptTurnKind.USER }
+                            ?.content.orEmpty().take(2000),
                         outcome = reviewOutcome
                     )
                 }

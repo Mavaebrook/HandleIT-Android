@@ -69,7 +69,8 @@ class ArchitectRulesSystemPromptHook : SystemPromptComposeHook {
      * D05: the HandleIT rules block is gated on `scope.appliesHandleItRules`, i.e. it is appended
      * only for a trusted [ProjectIdentity.Kind.HANDLEIT] identity with a workspace. The optional
      * preflight block is gated on `scope.allowsGenericPreflight`, so a known non-HandleIT project
-     * keeps generic preflight without inheriting HandleIT restrictions. When neither applies the
+     * keeps generic preflight without inheriting HandleIT restrictions. Chats without a workspace
+     * also keep profile-scoped preflight, without gaining project authority. When neither applies the
      * hook returns null and the prompt is left untouched.
      *
      * D06: the preflight block is FENCED UNTRUSTED DATA. The block produced by
@@ -88,9 +89,6 @@ class ArchitectRulesSystemPromptHook : SystemPromptComposeHook {
         }
         val workspacePath = context.metadata["workspacePath"] as? String
         val scope = ArchitectRulesProvider.resolveScope(workspacePath, context.metadata)
-        if (scope == ProjectPolicyScope.NONE) {
-            return null
-        }
         val current = context.systemPrompt ?: return null
         val block =
             if (scope.appliesHandleItRules) {

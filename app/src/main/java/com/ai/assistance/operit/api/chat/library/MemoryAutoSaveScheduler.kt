@@ -32,7 +32,6 @@ class MemoryAutoSaveScheduler(
             MemorySearchSettingsPreferences.DEFAULT_AUTO_SAVE_INTERVAL_MINUTES * 60 * 1000L
         private const val MAX_MESSAGES_PER_BATCH = 48
         private const val MAX_CANDIDATES_PER_RUN_PER_CHAT = 20
-        private const val MIN_TOTAL_CANDIDATES_TO_EXTRACT = 5
 
         @Volatile
         private var instance: MemoryAutoSaveScheduler? = null
@@ -83,10 +82,6 @@ class MemoryAutoSaveScheduler(
         val profileIds = preferencesManager.memorySpaceListFlow.first()
         if (profileIds.isEmpty()) return
 
-        val toolHandler = AIToolHandler.getInstance(context)
-        val memoryService =
-            EnhancedAIService.getAIServiceForFunction(context, FunctionType.MEMORY)
-        val chatContentDao = AppDatabase.getDatabase(context).chatContentDao()
         val nowMs = System.currentTimeMillis()
 
         for (profileId in profileIds) {
@@ -97,12 +92,16 @@ class MemoryAutoSaveScheduler(
             }
 
             val repository = MemoryAutoSaveCandidateRepository(context, profileId)
-            val allCandidates = repository.getPendingAndFailedCandidates()
-            if (allCandidates.size < MIN_TOTAL_CANDIDATES_TO_EXTRACT) {
+            // ReviewScheduler owns automatic intake. Retain old automatic rows without draining
+            // them; this worker now serves only messages explicitly selected by the user.
+            val allCandidates = repository.getPendingAndFailedCandidates().filter {
+                MemoryAutoSaveCandidate.isSelectedUserMessageSource(it.sourceType)
+            }
+            if (allCandidates.isEmpty()) {
                 val nextRunAt = System.currentTimeMillis() + intervalMs
                 AppLogger.d(
                     TAG,
-                    "候选总条数不足，继续累计并重置下次执行时间: profileId=$profileId, totalCandidates=${allCandidates.size}, nextRunAt=$nextRunAt"
+                    "No explicitly selected memory candidates: profileId=$profileId, nextRunAt=$nextRunAt"
                 )
                 scheduleNextRun(profileId, nextRunAt)
                 continue
@@ -122,6 +121,11 @@ class MemoryAutoSaveScheduler(
                 "开始处理长期记忆候选: profileId=$profileId, chats=${groupedCandidates.size}"
             )
 
+            val toolHandler = AIToolHandler.getInstance(context)
+            val memoryService =
+                EnhancedAIService.getAIServiceForFunction(context, FunctionType.MEMORY)
+            val chatContentDao = AppDatabase.getDatabase(context).chatContentDao()
+
             for ((chatId, candidates) in groupedCandidates) {
                 val orderedCandidates =
                     candidates.sortedWith(
@@ -129,37 +133,15 @@ class MemoryAutoSaveScheduler(
                             .thenBy { it.createdAt.time }
                     )
                 val batchCandidates = orderedCandidates.take(MAX_CANDIDATES_PER_RUN_PER_CHAT)
-                val selectedUserCandidates =
-                    batchCandidates.filter {
-                        MemoryAutoSaveCandidate.isSelectedUserMessageSource(it.sourceType)
-                    }
-                val automaticCandidates =
-                    batchCandidates.filterNot {
-                        MemoryAutoSaveCandidate.isSelectedUserMessageSource(it.sourceType)
-                    }
-
-                if (selectedUserCandidates.isNotEmpty()) {
-                    processChatCandidateGroup(
-                        profileId = profileId,
-                        chatId = chatId,
-                        candidates = selectedUserCandidates,
-                        repository = repository,
-                        chatContentDao = chatContentDao,
-                        toolHandler = toolHandler,
-                        memoryService = memoryService
-                    )
-                }
-                if (automaticCandidates.isNotEmpty()) {
-                    processChatCandidateGroup(
-                        profileId = profileId,
-                        chatId = chatId,
-                        candidates = automaticCandidates,
-                        repository = repository,
-                        chatContentDao = chatContentDao,
-                        toolHandler = toolHandler,
-                        memoryService = memoryService
-                    )
-                }
+                processChatCandidateGroup(
+                    profileId = profileId,
+                    chatId = chatId,
+                    candidates = batchCandidates,
+                    repository = repository,
+                    chatContentDao = chatContentDao,
+                    toolHandler = toolHandler,
+                    memoryService = memoryService
+                )
             }
             scheduleNextRun(profileId, System.currentTimeMillis() + intervalMs)
         }

@@ -7,7 +7,7 @@ import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.CancellationException
 
 /**
- * Bounded similar-task preflight for development/workspace tasks.
+ * Bounded similar-task preflight within the selected memory profile, with or without a workspace.
  *
  * Retrieval is bounded (top-k clamped to 3-5) and makes NO model call, so it does not add an
  * unconditional per-turn LLM cost. A retrieval failure is logged and yields the defined no-op
