@@ -516,7 +516,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             val compiled = compiler.compile(history, tools.orEmpty().map { it.name }, checkActive = {
                 if (!isExecutionContextActive(execution)) throw CancellationException("Preparation cancelled")
             }) { turns ->
-              kotlinx.coroutines.withTimeout(120_000L) {
+              kotlinx.coroutines.withTimeout(15_000L) {
                 service.sendMessage(
                     context = context,
                     chatHistory = turns,
@@ -543,13 +543,16 @@ class EnhancedAIService private constructor(private val context: Context) {
                 "output=${service.outputTokenCount} briefChars=${output.length}")
             return compiled
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            throw IllegalStateException("Prompt preprocessing timed out; execution was not started")
+            AppLogger.w(TAG, "PromptPreprocessor timed out; continuing without preparation " +
+                "execution=${execution.executionId} elapsedMs=${messageTimingNow() - startedAt}")
+            return history
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // Provider/parser exceptions can include request or response text; expose only type.
-            AppLogger.e(TAG, "PromptPreprocessor failed: ${e.javaClass.simpleName}")
-            throw IllegalStateException("Prompt preprocessing failed; execution was not started")
+            AppLogger.w(TAG, "PromptPreprocessor failed; continuing without preparation " +
+                "execution=${execution.executionId}: ${e.javaClass.simpleName}")
+            return history
         } finally {
             execution.preparationService = null
             service.cancelStreaming()
