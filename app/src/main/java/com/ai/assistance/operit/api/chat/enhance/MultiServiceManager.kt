@@ -307,10 +307,10 @@ class MultiServiceManager(private val context: Context) {
             enableDeepSeekWebSearch = false,
             enableGoogleSearch = false,
             enableCodexWebSearch = false
-        ), 0)
+        ), 0, keySuffix = "-preparation")
 
     /** 根据配置创建AIService实例 */
-    private suspend fun createServiceFromConfig(config: ModelConfigData, modelIndex: Int): AIService {
+    private suspend fun createServiceFromConfig(config: ModelConfigData, modelIndex: Int, keySuffix: String = ""): AIService {
         // 使用公共函数计算有效索引
         val actualIndex = getValidModelIndex(config.modelName, modelIndex)
         
@@ -344,7 +344,7 @@ class MultiServiceManager(private val context: Context) {
         val limiter =
             if (requestLimitPerMinute > 0) {
                 RateLimiterRegistry.getOrCreate(
-                    key = config.id,
+                    key = config.id + keySuffix,
                     maxRequestsPerMinute = requestLimitPerMinute
                 )
             } else {
@@ -354,7 +354,7 @@ class MultiServiceManager(private val context: Context) {
         val concurrencySemaphore =
             if (maxConcurrentRequests > 0) {
                 RequestConcurrencyRegistry.getOrCreate(
-                    key = config.id,
+                    key = config.id + keySuffix,
                     maxConcurrentRequests = maxConcurrentRequests
                 )
             } else {
