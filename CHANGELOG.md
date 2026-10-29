@@ -4,7 +4,7 @@ All notable changes to HandleIT-Android are recorded here. Entries are grouped b
 
 ## 2026-10-28 — In-app prompt preprocessing v1
 
-Top-level chat turns now prepare a bounded execution brief with an isolated instance of the current chat provider, preserving its resolved model, generation parameters and thinking setting. The original user request remains intact; the brief and source episode evidence are supplied as lower-authority context. Tool continuations, subtasks and non-chat functions do not run another preparation call. Invalid output, timeout or provider failure stops execution visibly. No schema, credential or signing change. Hosted validation and device acceptance are pending; see [plan and limits](docs/TODO/prompt-preprocessing-v1/README.md).
+Top-level chat turns now prepare a bounded execution brief with an isolated instance of the current chat provider, preserving its resolved model, generation parameters and thinking setting. The original user request remains intact; the brief and source episode evidence are supplied as lower-authority context. Tool continuations, subtasks and non-chat functions do not run another preparation call. Invalid output, timeout or provider failure fails open: the turn continues without preparation and a warning is logged. No schema, credential or signing change. Hosted validation and device acceptance are pending; see [plan and limits](docs/TODO/prompt-preprocessing-v1/README.md).
 
 ## 2026-10-28 — Surgical learning and MCP runtime repair
 
