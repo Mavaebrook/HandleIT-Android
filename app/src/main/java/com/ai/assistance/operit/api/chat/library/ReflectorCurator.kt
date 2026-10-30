@@ -49,7 +49,8 @@ object ReflectorCurator {
         callModel: suspend (FunctionType, String) -> String,
         onFailure: (Throwable) -> Unit
     ): TaskEpisode? {
-        val prompt = FunctionalPrompts.reflectorPrompt(useEnglish) + "\n\nTask episode:\n" + taskDescription
+        // taskDescription is the labeled ReflectorInput JSON built by ReviewScheduler.
+        val prompt = FunctionalPrompts.reflectorPrompt(useEnglish) + "\n\nTurn evidence (JSON):\n" + taskDescription
         val raw = callModelOrNull(FunctionType.MEMORY, prompt, callModel, onFailure) ?: return null
         return parseEpisode(ChatUtils.removeThinkingContent(raw).trim())
     }

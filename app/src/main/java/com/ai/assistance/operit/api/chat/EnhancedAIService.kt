@@ -85,6 +85,8 @@ import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.preferencesManager
 import com.ai.assistance.operit.api.chat.library.ReviewTriggerEnqueuer
 import com.ai.assistance.operit.data.learning.ReviewSignalDeriver
+import com.ai.assistance.operit.data.learning.FailedToolRecord
+import com.ai.assistance.operit.data.learning.ReviewEvidence
 import com.ai.assistance.operit.data.learning.ObservationScope
 import com.ai.assistance.operit.data.learning.ObservationScopeResolver
 import com.ai.assistance.operit.data.learning.ToolObservationProducer
@@ -1977,6 +1979,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                     )
                     // A02: an invalidated tool round is a deterministic repair/failure event.
                     context.turnObservations.truncatedToolRecoveryCount += 1
+                    // Keep which tools were invalidated so the review can name them, not only count them.
+                    context.turnObservations.invalidatedToolNames.addAll(truncatedToolRecovery.invalidatedToolNames)
                     finalizeAssistantResponse(
                         context = context,
                         content = context.roundManager.getDisplayContent(),
@@ -2006,6 +2010,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                 )
                 // A02: an invalidated tool round is a deterministic repair/failure event.
                 context.turnObservations.truncatedToolRecoveryCount += 1
+                // Keep which tools were invalidated so the review can name them, not only count them.
+                context.turnObservations.invalidatedToolNames.addAll(truncatedToolRecovery.invalidatedToolNames)
                 handleToolInvocation(
                         toolInvocations = emptyList(),
                         context = context,
@@ -2160,22 +2166,32 @@ class EnhancedAIService private constructor(private val context: Context) {
                     // `explicitCorrectionAction` is not set by any production path yet because the
                     // app has no explicit-correction UI control; wiring one is a recorded
                     // follow-up (docs/TODO/learning-pipeline-hardening-20261017/01-findings.md R14).
-                    val reviewSignals =
-                        ReviewSignalDeriver.derive(
-                            context.turnObservations.toObservations(
-                                modelHopCount = context.roundManager.getCurrentRound(),
-                                userTurnCount =
-                                    context.conversationHistory.count {
-                                        it.kind == PromptTurnKind.USER
-                                    },
-                                lastUserTurnContent =
-                                    context.conversationHistory
-                                        .lastOrNull { it.kind == PromptTurnKind.USER }
-                                        ?.content
-                                        .orEmpty(),
-                                previousAssistantTurnContent =
-                                    previousAssistantTurnContent(context.conversationHistory)
-                            )
+                    val turnObservations =
+                        context.turnObservations.toObservations(
+                            modelHopCount = context.roundManager.getCurrentRound(),
+                            userTurnCount =
+                                context.conversationHistory.count {
+                                    it.kind == PromptTurnKind.USER
+                                },
+                            lastUserTurnContent =
+                                context.conversationHistory
+                                    .lastOrNull { it.kind == PromptTurnKind.USER }
+                                    ?.content
+                                    .orEmpty(),
+                            previousAssistantTurnContent =
+                                previousAssistantTurnContent(context.conversationHistory)
+                        )
+                    val reviewSignals = ReviewSignalDeriver.derive(turnObservations)
+                    // Capture the raw turn evidence now (the previous reply, the failed tools and
+                    // their errors): the review is drained later and cannot recover it then.
+                    // docs/TODO/review-evidence-capture-20261030/README.md
+                    val reviewEvidence =
+                        ReviewEvidence.capture(
+                            observations = turnObservations,
+                            matchedCorrectionMarker = reviewSignals.observed.matchedCorrectionMarker,
+                            finalReply = content,
+                            failedToolResults = context.turnObservations.failedToolResults.toList(),
+                            invalidatedToolNames = context.turnObservations.invalidatedToolNames.toList()
                         )
                     val reviewOutcome =
                         if (reviewSignals.taskFailed) {
@@ -2192,7 +2208,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                         contextSummary = context.conversationHistory
                             .lastOrNull { it.kind == PromptTurnKind.USER }
                             ?.content.orEmpty().take(2000),
-                        outcome = reviewOutcome
+                        outcome = reviewOutcome,
+                        evidence = reviewEvidence
                     )
                 }
             }.onFailure { e ->
@@ -2382,6 +2399,18 @@ class EnhancedAIService private constructor(private val context: Context) {
         val failedResults = results.count { !it.success }
         if (failedResults > 0) {
             context.turnObservations.failedToolResultCount += failedResults
+            // Record what failed, not only how many: the review runs later and the Reflector can
+            // only name the mistake from text captured now. error and result are kept separately
+            // because tools report the failure reason in either one.
+            results.filter { !it.success }.forEach { failed ->
+                context.turnObservations.failedToolResults.add(
+                    FailedToolRecord(
+                        toolName = failed.toolName,
+                        error = failed.error.orEmpty(),
+                        result = failed.result.toString()
+                    )
+                )
+            }
             AppLogger.d(
                 TAG,
                 "记录工具失败结果用于复盘信号: failed=$failedResults, total=${results.size}"

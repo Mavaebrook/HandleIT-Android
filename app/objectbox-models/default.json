@@ -301,7 +301,7 @@
     },
     {
       "id": "12:4325003580155501390",
-      "lastPropertyId": "11:2479376348990645399",
+      "lastPropertyId": "12:485283845355850169",
       "name": "PendingReviewEntity",
       "properties": [
         {
@@ -360,6 +360,11 @@
         {
           "id": "11:2479376348990645399",
           "name": "lastError",
+          "type": 9
+        },
+        {
+          "id": "12:485283845355850169",
+          "name": "evidenceJson",
           "type": 9
         }
       ],
@@ -453,7 +458,7 @@
     },
     {
       "id": "14:4269907125077724122",
-      "lastPropertyId": "13:22693058790726397",
+      "lastPropertyId": "14:3855121831418734580",
       "name": "TaskEpisodeEntity",
       "properties": [
         {
@@ -523,6 +528,11 @@
           "id": "13:22693058790726397",
           "name": "createdAt",
           "type": 10
+        },
+        {
+          "id": "14:3855121831418734580",
+          "name": "reflectorInputJson",
+          "type": 9
         }
       ],
       "relations": []

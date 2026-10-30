@@ -30,7 +30,16 @@ data class TaskEpisode(
     val evidenceKeys: List<String> = emptyList(),
     val relatedSkillVersion: String = "",
     val createdAtMs: Long = 0L,
-    val listIntegrity: RowListIntegrity = RowListIntegrity.HEALTHY
+    val listIntegrity: RowListIntegrity = RowListIntegrity.HEALTHY,
+    /**
+     * The exact labeled input the Reflector produced this lesson from
+     * ([com.ai.assistance.operit.data.learning.ReflectorInput] JSON). Kept so every stored lesson
+     * remains an (evidence, lesson) pair: the pending review that carried the evidence is deleted
+     * once the lesson is saved, and these pairs are the training/distillation data for a future
+     * local model. Never rendered into prompts. Blank for episodes created without a review.
+     * docs/TODO/review-evidence-capture-20261030/README.md
+     */
+    val reflectorInputJson: String = ""
 ) {
     companion object {
         const val OUTCOME_SUCCESS = "success"
