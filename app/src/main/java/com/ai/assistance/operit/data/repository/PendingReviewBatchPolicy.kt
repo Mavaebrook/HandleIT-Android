@@ -31,7 +31,8 @@ object PendingReviewBatchPolicy {
     )
 
     /**
-     * Decide the disposition of one review. A review that produced an episode is deleted.
+     * Decide the disposition of one review. A review that completed (it produced an episode, or the
+     * Reflector answered "no lesson") is deleted.
      * A review that did not is marked failed and stays retryable, until it reaches
      * [MAX_ATTEMPTS], at which point it is dead-lettered and never retried or deleted.
      */

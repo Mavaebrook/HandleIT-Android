@@ -2,6 +2,10 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-30 — Reflector can answer "no lesson"
+
+Reviews triggered by turns where nothing went wrong no longer produce lessons. The Reflector may now return `{"no_lesson": true, "reason": ...}` when the evidence shows no mistake, correction, failed tool or missing step; the review is closed without saving anything and the reason is logged. The prompts also forbid copying the user's request or one-off instructions into `applicable_constraints`, which is how a test turn had become a stored "rule". See [details](docs/TODO/reflector-no-lesson-20261030/README.md).
+
 ## 2026-10-30 — Fix empty chat replies on device (Android-unsupported regex flag)
 
 Every chat turn on device ended with an empty reply and no error. `TaskPreflightFormatter` compiled a regex with `Pattern.UNICODE_CHARACTER_CLASS`, which Android does not support; the object initializer threw `ExceptionInInitializerError`, an `Error` that bypassed the `catch (e: Exception)` handlers in preflight and `sendMessage`, so the turn ended before any provider request. The regex is now an explicit `[\s\p{Z}]+` class with the same behavior on Android and the JVM, and a JVM test keeps Android-unsupported regex flags out of main sources. See [root cause](docs/TODO/preflight-regex-android-20261030/README.md).

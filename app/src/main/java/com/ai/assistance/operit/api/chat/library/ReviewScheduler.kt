@@ -305,6 +305,8 @@ class ReviewScheduler(
         pendingRepository.markProcessing(pending.map { it.id })
         val episodeStore = episodeStoreFactory(profileId)
         val succeededIds = mutableListOf<Long>()
+        // Reviews the Reflector closed with "no lesson": processed successfully, nothing saved.
+        val noLessonIds = mutableListOf<Long>()
         var failedMarked = 0
         // B02: the locale does not change mid-batch, so resolve it once for the whole batch.
         val useEnglish = useEnglishForLessons()
@@ -314,7 +316,7 @@ class ReviewScheduler(
             // Explicit try/catch instead of runCatching: runCatching catches Throwable, which would
             // also swallow CancellationException and break structured concurrency. Cancellation is
             // rethrown; only a genuine reflector failure is recorded and logged.
-            val episode = try {
+            val reflection = try {
                 // The Reflector receives labeled turn evidence (trigger reason, outcome, the
                 // previous reply, failed tools and their errors) instead of two unlabeled texts.
                 // Built inside this try: an unreadable stored evidence value fails this review
@@ -343,14 +345,25 @@ class ReviewScheduler(
             val disposition =
                 PendingReviewBatchPolicy.dispositionFor(
                     reviewId = review.id,
-                    producedEpisode = episode != null,
+                    // A "no lesson" answer is a completed review, not a failure: the row is closed.
+                    producedEpisode = reflection != null,
                     currentAttemptCount = review.attemptCount
                 )
-            if (disposition.deleteAfterProcessing && episode != null) {
+            if (disposition.deleteAfterProcessing && reflection is ReflectorCurator.Reflection.Lesson) {
                 // Keep the exact input on the lesson: this review row (and its evidence) is deleted
                 // below, and the (evidence, lesson) pair is what a future local model trains on.
-                saveEpisodeAndIndex(episodeStore, episode.copy(reflectorInputJson = reflectorInput), review.id)
+                saveEpisodeAndIndex(
+                    episodeStore,
+                    reflection.episode.copy(reflectorInputJson = reflectorInput),
+                    review.id
+                )
                 succeededIds.add(review.id)
+            } else if (disposition.deleteAfterProcessing && reflection is ReflectorCurator.Reflection.NoLesson) {
+                AppLogger.d(
+                    TAG,
+                    "复盘无经验可学: reviewId=${review.id}, trigger=${review.triggerReason}, reason=${reflection.reason}"
+                )
+                noLessonIds.add(review.id)
             } else {
                 val thrown = failure
                 val errorMessage =
@@ -363,9 +376,12 @@ class ReviewScheduler(
                 failedMarked++
             }
         }
-        // Delete ONLY the reviews that actually produced an episode. A partial failure must not
-        // discard the reviews that still need another attempt.
-        pendingRepository.delete(succeededIds)
+        // Delete ONLY the reviews that completed (a lesson saved, or an explicit "no lesson"). A
+        // partial failure must not discard the reviews that still need another attempt.
+        pendingRepository.delete(succeededIds + noLessonIds)
+        if (noLessonIds.isNotEmpty()) {
+            AppLogger.d(TAG, "复盘完成但无经验: profileId=$profileId, count=${noLessonIds.size}")
+        }
         return PassStats(
             pendingFound = pending.size,
             succeeded = succeededIds.size,
