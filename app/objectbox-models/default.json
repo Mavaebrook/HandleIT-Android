@@ -301,7 +301,7 @@
     },
     {
       "id": "12:4325003580155501390",
-      "lastPropertyId": "11:2479376348990645399",
+      "lastPropertyId": "12:485283845355850169",
       "name": "PendingReviewEntity",
       "properties": [
         {
@@ -360,6 +360,11 @@
         {
           "id": "11:2479376348990645399",
           "name": "lastError",
+          "type": 9
+        },
+        {
+          "id": "12:485283845355850169",
+          "name": "evidenceJson",
           "type": 9
         }
       ],

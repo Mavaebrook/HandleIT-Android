@@ -91,7 +91,7 @@ class ReflectorCuratorCancellationTest(private val reflector: Boolean) {
                 calls += 1
                 if (reflector) {
                     assertEquals(FunctionType.MEMORY, type)
-                    assertTrue(prompt.endsWith("Task episode:\nepisode input"))
+                    assertTrue(prompt.endsWith("Turn evidence (JSON):\nepisode input"))
                     """<think>private reasoning</think>{"task_summary":"lesson","outcome":"success"}"""
                 } else {
                     assertEquals(FunctionType.SUMMARY, type)

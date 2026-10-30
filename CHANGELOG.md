@@ -2,6 +2,10 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-30 — Review evidence capture for the Reflector
+
+Post-task reviews now capture the raw turn evidence when the turn ends: the reply the user responded to (the mistaken reply on a correction), the user request, the final reply, the matched correction marker, each failed tool's name, error and result text, and invalidated tool names, with bounded text and an explicit list of truncated fields. The evidence is stored on the pending review in a new `PendingReviewEntity.evidenceJson` property (ObjectBox property 12; no existing ids change). The Reflector now receives a labeled JSON input with the trigger reason, outcome and evidence instead of two unlabeled texts, and its prompts ask it to name the mistake, ground the cause in evidence, and record the missing step. Rows queued before this change are labeled as such; an unreadable stored value fails the review attempt instead of being read as empty. Retrieval and preflight rendering are unchanged. Hosted validation and device acceptance are pending; see [scope](docs/TODO/review-evidence-capture-20261030/README.md).
+
 ## 2026-10-28 — In-app prompt preprocessing v1
 
 Top-level chat turns now prepare a bounded execution brief with an isolated instance of the current chat provider, preserving its resolved model, generation parameters and thinking setting. The original user request remains intact; the brief and source episode evidence are supplied as lower-authority context. Tool continuations, subtasks and non-chat functions do not run another preparation call. Invalid output, timeout or provider failure fails open: the turn continues without preparation and a warning is logged. No schema, credential or signing change. Hosted validation and device acceptance are pending; see [plan and limits](docs/TODO/prompt-preprocessing-v1/README.md).

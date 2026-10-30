@@ -51,7 +51,8 @@ class PendingReviewRepository(
         triggerReason: String,
         taskSummary: String,
         contextSummary: String,
-        outcome: String
+        outcome: String,
+        evidenceJson: String
     ): Long {
         val now = Date()
         val entity = PendingReviewEntity(
@@ -60,6 +61,7 @@ class PendingReviewRepository(
             taskSummary = taskSummary,
             contextSummary = contextSummary,
             outcome = outcome,
+            evidenceJson = evidenceJson,
             createdAt = now,
             updatedAt = now,
             status = PendingReviewEntity.STATUS_PENDING
