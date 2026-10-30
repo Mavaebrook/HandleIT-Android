@@ -40,22 +40,38 @@ class TaskEpisodeRetrievalTest {
     // --- Criterion 2: rankRelevantEpisodes filters by overlap, orders by relevance, bounded by clampTopK ---
 
     @Test
-    fun rankRelevantEpisodes_returnsOnlyOverlappingEpisodesOrderedByRelevance() {
-        // Criterion 2: only episodes with token overlap are returned, ordered by relevance.
+    fun rankRelevantEpisodes_returnsOnlyLexicalMatchesOrderedByRelevance() {
+        // Criterion 2: only lexical matches are returned, ordered by relevance.
+        // query meaningful tokens = {signing, failed, place, apk, update} (5).
         val strong = episode(id = 1L, taskSummary = "signing failed on in-place apk update")
-        val weak = episode(id = 2L, taskSummary = "signing")
+        val partial = episode(id = 4L, taskSummary = "apk update signing")
+        val singleWord = episode(id = 2L, taskSummary = "signing")
         val unrelated = episode(id = 3L, taskSummary = "unrelated database migration")
 
         val ranked = TaskEpisodeRetrieval.rankRelevantEpisodes(
             query = "signing failed in-place apk update",
-            episodes = listOf(weak, unrelated, strong),
+            episodes = listOf(singleWord, unrelated, partial, strong),
             topK = 3
         )
 
         // Unrelated episode (no overlap) is excluded.
         assertFalse(ranked.contains(unrelated))
-        // Stronger overlap ranks first.
-        assertEquals(listOf(strong, weak), ranked)
+        // One shared word ("signing", 1 of 5) is coincidence, not a match: excluded.
+        assertFalse(ranked.contains(singleWord))
+        // Stronger overlap ranks first; 3 of 5 shared tokens still qualifies.
+        assertEquals(listOf(strong, partial), ranked)
+    }
+
+    @Test
+    fun scoreEpisodes_twoGenericWordsInALongRequest_isNotAMatch() {
+        // Two shared tokens ("fix", "problem"), but only 2 of 10 meaningful request tokens
+        // (0.20 < MIN_LEXICAL_SCORE): generic words in a long request are coincidence.
+        val generic = episode(id = 1L, taskSummary = "fix the problem with the printer driver")
+        val scored = TaskEpisodeRetrieval.scoreEpisodes(
+            query = "please fix this problem where gradle cache corrupts kotlin incremental compilation builds",
+            episodes = listOf(generic)
+        )
+        assertTrue(scored.isEmpty())
     }
 
     @Test
@@ -415,8 +431,8 @@ class TaskEpisodeRetrievalTest {
     // --- C03 (b): mergeCandidates applies the vector bonus ---
 
     @Test
-    fun mergeCandidates_vectorHitReceivesBonusAndOutranksLexicalOnly() {
-        // C03 (b): two episodes with the SAME lexical score; only one is also a vector hit.
+    fun mergeCandidates_qualifyingVectorHitOutranksLexicalOnly() {
+        // Two episodes with the SAME lexical score; only one is also a qualifying vector hit.
         val lexicalOnly = episode(id = 1L, taskSummary = "signing failed", createdAtMs = 1_000L)
         val vectorHit = episode(id = 2L, taskSummary = "signing failed", createdAtMs = 1_000L)
 
@@ -431,11 +447,12 @@ class TaskEpisodeRetrievalTest {
         val merged = TaskEpisodeRetrieval.mergeCandidates(
             query = "signing failed",
             lexical = lexical,
-            vectorIds = setOf(vectorHit.id),
+            vectorSimilarities = mapOf(vectorHit.id to 0.8),
             vectorCandidates = listOf(vectorHit),
             topK = 5
         )
 
+        // Matched both ways (1.0 + 0.8) outranks matched lexically only (1.0).
         assertEquals(listOf(vectorHit, lexicalOnly), merged)
     }
 
@@ -456,7 +473,7 @@ class TaskEpisodeRetrievalTest {
         val merged = TaskEpisodeRetrieval.mergeCandidates(
             query = "signing failed",
             lexical = lexical,
-            vectorIds = emptySet(),
+            vectorSimilarities = emptyMap(),
             vectorCandidates = emptyList(),
             topK = 5
         )
@@ -468,7 +485,7 @@ class TaskEpisodeRetrievalTest {
 
     @Test
     fun mergeCandidates_emptyVectorIds_equalsLexicalRanking() {
-        // C03 (b): empty vectorIds is the DEFINED no-vector behaviour, not a separate code path.
+        // C03 (b): empty vectorSimilarities is the DEFINED no-vector behaviour, not a separate code path.
         val episodes = listOf(
             episode(id = 1L, taskSummary = "signing failed on in-place apk update", createdAtMs = 1_000L),
             episode(id = 2L, taskSummary = "signing", createdAtMs = 2_000L),
@@ -482,7 +499,7 @@ class TaskEpisodeRetrievalTest {
         val merged = TaskEpisodeRetrieval.mergeCandidates(
             query = query,
             lexical = lexical,
-            vectorIds = emptySet(),
+            vectorSimilarities = emptyMap(),
             vectorCandidates = emptyList(),
             topK = topK
         )
@@ -511,7 +528,7 @@ class TaskEpisodeRetrievalTest {
         val merged = TaskEpisodeRetrieval.mergeCandidates(
             query = "signing failed in-place apk update",
             lexical = lexical,
-            vectorIds = emptySet(),
+            vectorSimilarities = emptyMap(),
             vectorCandidates = emptyList(),
             topK = 10
         )
@@ -542,25 +559,46 @@ class TaskEpisodeRetrievalTest {
     // rule in TaskEpisodeRetrieval.mergeCandidates, which is what the vector generator feeds.
 
     @Test
-    fun mergeCandidates_vectorOnlyHitWithZeroLexicalScore_stillSurvivesViaBonus() {
-        // C03 (c): an episode found ONLY by vector search, whose text shares no meaningful token with
-        // the query, still appears in the result because of VECTOR_CANDIDATE_BONUS.
+    fun mergeCandidates_vectorOnlyHitAboveThreshold_qualifiesWithoutLexicalMatch() {
+        // A vector-only hit with no shared words qualifies on similarity alone when it reaches
+        // MIN_VECTOR_SIMILARITY: this is how different-vocabulary requests find the right episode.
+        val query = "signing failed"
+        val vectorOnly = episode(id = 7L, taskSummary = "database migration rollback", createdAtMs = 1_000L)
+
+        val lexical = TaskEpisodeRetrieval.scoreEpisodes(query, listOf(vectorOnly))
+        assertTrue(lexical.isEmpty())
+
+        val merged = TaskEpisodeRetrieval.mergeCandidates(
+            query = query,
+            lexical = lexical,
+            vectorSimilarities = mapOf(vectorOnly.id to TaskEpisodeRetrieval.MIN_VECTOR_SIMILARITY),
+            vectorCandidates = listOf(vectorOnly),
+            topK = 3
+        )
+
+        assertEquals(listOf(vectorOnly), merged)
+    }
+
+    @Test
+    fun mergeCandidates_vectorOnlyHitBelowThreshold_isExcluded() {
+        // Nearest-neighbour search always returns the nearest episodes, however unrelated. A vector
+        // hit below MIN_VECTOR_SIMILARITY with no lexical match is not evidence of similarity and is
+        // excluded (it used to survive on a fixed bonus, which filled every top-k slot).
         //
         // HAND TRACE:
         //  query = "signing failed" -> meaningfulTokens = {signing, failed} (size 2).
         //  vectorOnly = episode(id=7, taskSummary="database migration rollback", createdAtMs=1_000).
         //    meaningfulTokens(vectorOnly) = {database, migration, rollback}; overlap with the query is
-        //    0, so relevanceScore = 0 / 2 = 0.0.
+        //    0, so it is not a lexical match.
         //  lexical = scoreEpisodes(query, listOf(vectorOnly)) -> the 0.0 score is filtered out, so
         //    lexical = [] (the episode is NOT a lexical candidate at all).
-        //  vectorIds = {7}, vectorCandidates = [vectorOnly].
+        //  vectorSimilarities = {7 -> 0.30}, vectorCandidates = [vectorOnly].
         //  mergeCandidates:
         //    union by id -> {7 -> vectorOnly} (from vectorCandidates; lexical contributed nothing).
-        //    lexicalScores has no entry for 7, so lexicalScore = relevanceScore(queryTokens, vectorOnly)
-        //      = 0.0.
-        //    bonus = VECTOR_CANDIDATE_BONUS (0.5) because 7 is in vectorIds.
-        //    combined = 0.0 + 0.5 = 0.5 > 0.0, so the filter keeps it.
-        //    result = [vectorOnly].
+        //    lexical score = 0.0 (not a lexical match).
+        //    vector score = 0.0 because 0.30 < MIN_VECTOR_SIMILARITY.
+        //    combined = 0.0, so the episode is excluded.
+        //    result = [].
         val query = "signing failed"
         val vectorOnly = episode(id = 7L, taskSummary = "database migration rollback", createdAtMs = 1_000L)
 
@@ -571,13 +609,12 @@ class TaskEpisodeRetrievalTest {
         val merged = TaskEpisodeRetrieval.mergeCandidates(
             query = query,
             lexical = lexical,
-            vectorIds = setOf(vectorOnly.id),
+            vectorSimilarities = mapOf(vectorOnly.id to 0.30),
             vectorCandidates = listOf(vectorOnly),
             topK = 3
         )
 
-        // The vector-only hit survives purely on the bonus.
-        assertEquals(listOf(vectorOnly), merged)
+        assertTrue(merged.isEmpty())
     }
 
     @Test
@@ -587,12 +624,12 @@ class TaskEpisodeRetrievalTest {
         // HAND TRACE:
         //  query = "signing failed" -> meaningfulTokens = {signing, failed} (size 2).
         //  shared = episode(id=3, taskSummary="signing failed", createdAtMs=1_000).
-        //    relevanceScore = 2 / 2 = 1.0, so lexical = [(shared, 1.0)].
-        //  vectorIds = {3}, vectorCandidates = [shared] (the same stored episode).
+        //    lexical score = 2 / 2 = 1.0, so lexical = [(shared, 1.0)].
+        //  vectorSimilarities = {3 -> 0.9}, vectorCandidates = [shared] (the same stored episode).
         //  mergeCandidates:
         //    union by id -> lexical inserts 3 first; putIfAbsent for the vector entry is a no-op,
         //      so episodesById has exactly ONE entry.
-        //    lexicalScore = 1.0 (taken from lexicalScores), bonus = 0.5, combined = 1.5.
+        //    lexicalScore = 1.0 (taken from lexicalScores), vector score = 0.9, combined = 1.9.
         //    result = [shared] with size 1.
         val query = "signing failed"
         val shared = episode(id = 3L, taskSummary = "signing failed", createdAtMs = 1_000L)
@@ -603,7 +640,7 @@ class TaskEpisodeRetrievalTest {
         val merged = TaskEpisodeRetrieval.mergeCandidates(
             query = query,
             lexical = lexical,
-            vectorIds = setOf(shared.id),
+            vectorSimilarities = mapOf(shared.id to 0.9),
             vectorCandidates = listOf(shared),
             topK = 3
         )

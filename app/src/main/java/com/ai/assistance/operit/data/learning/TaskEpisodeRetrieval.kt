@@ -36,7 +36,7 @@ object TaskEpisodeRetrieval {
      * similarity. Two unrelated sentences that merely share "the app" would then look related, and
      * a conditional prerequisite would be declared applicable on the strength of one shared common
      * word. Removing these tokens before matching is what makes the applicability rule in
-     * [isPrerequisiteApplicable] and the relevance score in [relevanceScore] depend on CONTENT
+     * [isPrerequisiteApplicable] and the relevance score in [qualifiedLexicalScore] depend on CONTENT
      * words only.
      *
      * The list is a fixed, documented constant: it is not learned, not configurable at runtime and
@@ -169,8 +169,9 @@ object TaskEpisodeRetrieval {
     }
 
     /**
-     * Rank episodes by simple token-overlap relevance to the query, returning at most
-     * clampTopK(topK) episodes. Deterministic: ties broken by higher createdAtMs then id.
+     * Rank episodes by token-overlap relevance to the query, returning at most clampTopK(topK)
+     * episodes. Only lexical matches are returned (see [qualifiedLexicalScore]): sharing a single
+     * word with the request is not a match. Deterministic: ties broken by higher createdAtMs then id.
      *
      * C02: both the query and each episode are reduced to MEANINGFUL tokens (see
      * [meaningfulTokens]) before scoring, so stopwords cannot create relevance on their own.
@@ -182,7 +183,7 @@ object TaskEpisodeRetrieval {
     }
 
     /**
-     * Score [episodes] against [query] and return the positively-scored ones, sorted by descending
+     * Score [episodes] against [query] and return the lexical matches (see [qualifiedLexicalScore]), sorted by descending
      * relevance with the documented deterministic tie-break (higher createdAtMs, then higher id).
      *
      * Unlike [rankRelevantEpisodes] this does NOT apply the top-k clamp, so callers that merge several
@@ -193,8 +194,7 @@ object TaskEpisodeRetrieval {
         val queryTokens = meaningfulTokens(query)
         if (queryTokens.isEmpty()) return emptyList()
         return episodes
-            .map { episode -> episode to relevanceScore(queryTokens, episode) }
-            .filter { (_, score) -> score > 0.0 }
+            .mapNotNull { episode -> qualifiedLexicalScore(queryTokens, episode)?.let { episode to it } }
             .sortedWith(
                 compareByDescending<Pair<TaskEpisode, Double>> { it.second }
                     .thenByDescending { it.first.createdAtMs }
@@ -203,48 +203,77 @@ object TaskEpisodeRetrieval {
     }
 
     /**
-     * Bonus added to an episode's lexical score when the episode was also returned by vector search.
+     * Minimum number of DISTINCT meaningful tokens an episode must share with the query to be a
+     * lexical match.
      *
-     * Rationale: the two candidate generators answer different questions. Lexical scoring measures
-     * word overlap; vector search measures embedding similarity. An episode found by BOTH is stronger
-     * evidence than one found by either alone, so it receives a fixed additive bonus. The bonus is
-     * smaller than 1.0 so a strong lexical match still outranks a weak vector-only match.
+     * Rationale (docs/TODO/episode-retrieval-threshold-20261030/README.md): before this rule any
+     * episode sharing a single word with the request was retrieved, so the top-k slots filled with
+     * whatever happened to mention "app", "build" or "update". One shared word is coincidence; the
+     * same floor ([MIN_DISTINCT_MATCHED_TOKENS]) already applies to prerequisite applicability.
      */
-    const val VECTOR_CANDIDATE_BONUS = 0.5
+    const val MIN_LEXICAL_SHARED_TOKENS = 2
+
+    /**
+     * Minimum fraction of the query's meaningful tokens an episode must share to be a lexical match.
+     *
+     * Rationale: in a long request two shared generic words ("fix", "problem") are still
+     * coincidence. Requiring a quarter of the request's content words keeps a lexical match tied to
+     * the request as a whole. Requests that a lexical match cannot capture (different vocabulary,
+     * same task) are what the vector generator is for.
+     */
+    const val MIN_LEXICAL_SCORE = 0.25
+
+    /**
+     * Minimum cosine similarity for a vector-search candidate to qualify.
+     *
+     * Nearest-neighbour search always returns the k nearest episodes, however unrelated, so a vector
+     * hit is not evidence of similarity by itself. Before this rule every vector hit qualified via a
+     * fixed bonus and the top-k slots always filled whenever any episode existed.
+     *
+     * CALIBRATION (2026-10-30, Qwen3-Embedding-0.6B Q8_0 served by llama.cpp, last-token pooling, no
+     * query instruction): over 7 realistic requests against 6 episode index texts, the intended
+     * episode scored 0.540–0.741 (mean 0.671) and was always ranked first; every other pairing scored
+     * at most 0.485 (mean 0.313), and off-topic requests (weather, recipes, jokes) at most 0.390.
+     * 0.50 separates the two groups. Cosine scales differ between embedding models, so this value is
+     * specific to that model and must be re-calibrated if the embedding provider changes.
+     */
+    const val MIN_VECTOR_SIMILARITY = 0.50
 
     /**
      * Merge lexical and vector candidates into one ranked list.
      *
      * MERGE RULE (single explicit rule, no fallback):
-     *  1. UNION the two candidate sets by episode id. The lexical path is a DEFINED MEMBER of the
-     *     union, not a fallback: every lexical candidate is always present in the result set.
-     *  2. Each episode's combined score is its lexical score plus [VECTOR_CANDIDATE_BONUS] when its id
-     *     is in [vectorIds]. An episode found only by vector search has its lexical score computed
-     *     over its own text (which may be 0.0) plus the bonus.
-     *  3. Sort by combined score descending, then by createdAtMs descending, then by id descending.
+     *  1. A candidate QUALIFIES when it is a lexical match ([MIN_LEXICAL_SHARED_TOKENS] and
+     *     [MIN_LEXICAL_SCORE], as applied by [scoreEpisodes]) OR its vector similarity is at least
+     *     [MIN_VECTOR_SIMILARITY]. A candidate that meets neither is excluded: being among the
+     *     nearest neighbours is not, on its own, evidence of similarity.
+     *  2. UNION the qualifying candidates by episode id. The lexical path is a DEFINED MEMBER of the
+     *     union, not a fallback.
+     *  3. Each episode's combined score is its qualifying lexical score (0.0 when it is not a lexical
+     *     match) plus its qualifying vector similarity (0.0 when it does not reach the threshold),
+     *     so an episode matched both ways outranks one matched one way.
+     *  4. Sort by combined score descending, then by createdAtMs descending, then by id descending.
      *     This tie-break is deterministic and identical to [scoreEpisodes].
-     *  4. Take at most clampTopK(topK).
+     *  5. Take at most clampTopK(topK).
      *
-     * When vector search is disabled the caller passes an empty [vectorIds] set; the union then
-     * contains exactly the lexical candidates and the result equals [rankRelevantEpisodes]. That is
-     * the defined behaviour of this rule with no vector candidates, not a separate code path.
+     * When vector search is disabled the caller passes an empty [vectorSimilarities] map; the union
+     * then contains exactly the lexical candidates and the result equals [rankRelevantEpisodes]. That
+     * is the defined behaviour of this rule with no vector candidates, not a separate code path.
      *
      * DUPLICATE IDS: an id present in both [lexical] and [vectorCandidates] is stored ONCE and the
-     * lexical entry wins. This is not a preference between two different episodes: both entries
-     * describe the same stored episode, so the text used for scoring is identical either way. Keeping
-     * the lexical entry simply avoids re-deriving a score that has already been computed.
+     * lexical entry wins; both describe the same stored episode.
      *
-     * EMPTY QUERY: if [query] reduces to no meaningful tokens (see [meaningfulTokens]) there is
-     * nothing to score against, so the result is empty — the same rule [scoreEpisodes] applies.
+     * EMPTY QUERY: if [query] reduces to no meaningful tokens (see [meaningfulTokens]) the result is
+     * empty — the same rule [scoreEpisodes] applies.
      *
-     * @param lexical scored lexical candidates, normally from [scoreEpisodes].
-     * @param vectorIds ids returned by vector search.
-     * @param vectorCandidates episodes fetched for [vectorIds]; used to score vector-only hits.
+     * @param lexical scored lexical candidates from [scoreEpisodes] (already qualified).
+     * @param vectorSimilarities cosine similarity per episode id from vector search.
+     * @param vectorCandidates episodes fetched for the ids in [vectorSimilarities].
      */
     fun mergeCandidates(
         query: String,
         lexical: List<Pair<TaskEpisode, Double>>,
-        vectorIds: Set<Long>,
+        vectorSimilarities: Map<Long, Double>,
         vectorCandidates: List<TaskEpisode>,
         topK: Int = DEFAULT_TOP_K
     ): List<TaskEpisode> {
@@ -259,12 +288,14 @@ object TaskEpisodeRetrieval {
         val lexicalScores = lexical.associate { (episode, score) -> episode.id to score }
 
         return episodesById.values
-            .map { episode ->
-                val lexicalScore = lexicalScores[episode.id] ?: relevanceScore(queryTokens, episode)
-                val bonus = if (episode.id in vectorIds) VECTOR_CANDIDATE_BONUS else 0.0
-                episode to (lexicalScore + bonus)
+            .mapNotNull { episode ->
+                val lexicalScore =
+                    lexicalScores[episode.id] ?: qualifiedLexicalScore(queryTokens, episode) ?: 0.0
+                val vectorScore =
+                    vectorSimilarities[episode.id]?.takeIf { it >= MIN_VECTOR_SIMILARITY } ?: 0.0
+                val combined = lexicalScore + vectorScore
+                if (combined > 0.0) episode to combined else null
             }
-            .filter { (_, combined) -> combined > 0.0 }
             .sortedWith(
                 compareByDescending<Pair<TaskEpisode, Double>> { it.second }
                     .thenByDescending { it.first.createdAtMs }
@@ -448,12 +479,15 @@ object TaskEpisodeRetrieval {
      * Relevance of one episode to an already-tokenized query.
      *
      * C02: the episode text is reduced to MEANINGFUL tokens ([meaningfulTokens]) instead of raw
-     * tokens, so stopwords in a summary cannot inflate the score. The formula is unchanged:
+     * tokens, so stopwords in a summary cannot inflate the score. The score is
      * `overlap / queryTokens.size`, where [queryTokens] is the caller's meaningful query token set.
-     * An episode with no meaningful tokens scores 0.0 and is therefore filtered out by
-     * [rankRelevantEpisodes].
+     *
+     * Returns null when the episode is not a lexical match: it has no meaningful tokens, shares fewer
+     * than [MIN_LEXICAL_SHARED_TOKENS] distinct tokens with the query, or scores below
+     * [MIN_LEXICAL_SCORE]. Such an episode is excluded by [scoreEpisodes] and contributes no lexical
+     * score in [mergeCandidates].
      */
-    private fun relevanceScore(queryTokens: Set<String>, episode: TaskEpisode): Double {
+    private fun qualifiedLexicalScore(queryTokens: Set<String>, episode: TaskEpisode): Double? {
         val episodeTokens = meaningfulTokens(
             listOf(
                 episode.taskSummary,
@@ -465,9 +499,12 @@ object TaskEpisodeRetrieval {
                 episode.applicableConstraints.joinToString(" ")
             ).joinToString(" ")
         )
-        if (episodeTokens.isEmpty()) return 0.0
+        if (episodeTokens.isEmpty()) return null
         val overlap = queryTokens.count { it in episodeTokens }
-        return overlap.toDouble() / queryTokens.size.toDouble()
+        val score = overlap.toDouble() / queryTokens.size.toDouble()
+        // Lexical qualification: enough distinct shared content words, and enough of the request.
+        if (overlap < MIN_LEXICAL_SHARED_TOKENS || score < MIN_LEXICAL_SCORE) return null
+        return score
     }
 
     /**

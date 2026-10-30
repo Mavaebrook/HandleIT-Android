@@ -103,7 +103,9 @@ class TaskPreflightFormatterTest {
             useEnglish = true
         )
 
-        assertTrue(block.length <= 2000)
+        // MAX_BLOCK_CHARS is 3000 (raised from 2000 so the past-mistake line fits; see
+        // docs/TODO/episode-retrieval-threshold-20261030/README.md).
+        assertTrue(block.length <= 3000)
         // D06: episodes are rendered as complete <memory_episode ...> elements, not "- [" lines.
         val episodeElements = countOccurrences(block, "<memory_episode ")
         assertTrue(episodeElements <= 5)
@@ -297,7 +299,9 @@ class TaskPreflightFormatterTest {
             useEnglish = true
         )
 
-        assertTrue(block.length <= 2000)
+        // MAX_BLOCK_CHARS is 3000 (raised from 2000 so the past-mistake line fits; see
+        // docs/TODO/episode-retrieval-threshold-20261030/README.md).
+        assertTrue(block.length <= 3000)
         assertTrue(
             block.startsWith(
                 "[Prior similar-task lessons — bounded retrieval, verify applicability]"
@@ -651,6 +655,121 @@ class TaskPreflightFormatterTest {
         return count
     }
 
+    // --- Past mistake and constraints are rendered (episode-retrieval-threshold-20261030) ---
+
+    @Test
+    fun buildPreflightBlock_rendersPastMistakeBeforeCauseAndResolution() {
+        val block = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(
+                episode(
+                    id = 1L,
+                    taskSummary = "sign the release apk",
+                    failureSummary = "signed with the debug key, so the update was rejected",
+                    causeSummary = "the release keystore was not configured",
+                    resolutionSummary = "signed with the release keystore"
+                )
+            ),
+            currentTaskContext = "sign the release apk",
+            useEnglish = true
+        )
+
+        val mistake = block.indexOf("past mistake: signed with the debug key, so the update was rejected")
+        val cause = block.indexOf("cause (cause): the release keystore was not configured")
+        val resolution = block.indexOf("resolution: signed with the release keystore")
+        assertTrue("past mistake must be rendered", mistake >= 0)
+        assertTrue("past mistake comes before the cause", mistake < cause)
+        assertTrue("cause comes before the resolution", cause < resolution)
+    }
+
+    @Test
+    fun buildPreflightBlock_noFailureSummary_rendersNoMistakeLine() {
+        val block = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(episode(id = 1L, taskSummary = "list files", resolutionSummary = "listed them")),
+            currentTaskContext = "list files",
+            useEnglish = true
+        )
+        assertFalse(block.contains("past mistake:"))
+    }
+
+    @Test
+    fun buildPreflightBlock_rendersAtMostThreeSanitizedConstraints() {
+        val block = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(
+                episode(
+                    id = 1L,
+                    taskSummary = "update the app in place",
+                    applicableConstraints = listOf("keep package id", "keep <signing> key", "", "c4", "c5")
+                )
+            ),
+            currentTaskContext = "update the app in place",
+            useEnglish = true
+        )
+        assertTrue(block.contains("constraints: keep package id; keep &lt;signing&gt; key; c4"))
+        assertFalse(block.contains("c5"))
+    }
+
+    @Test
+    fun buildPreflightBlock_oversizedLesson_shedsLowPriorityLinesInsteadOfEmptyingTheBlock() {
+        // "&" is escaped to "&amp;" AFTER the 240-char field cap, so each "&"-only field renders as
+        // 1200 chars; three such constraints alone exceed the 3000-char block budget. The lesson
+        // must shed its constraints (lowest priority) and still render its task and past mistake,
+        // and a shorter lesson ranked after it must still be considered.
+        val oversized = episode(
+            id = 1L,
+            taskSummary = "first lesson",
+            failureSummary = "used the wrong key",
+            causeSummary = "&".repeat(240),
+            resolutionSummary = "re-signed",
+            applicableConstraints = List(3) { "&".repeat(240) }
+        )
+        val short = episode(id = 2L, taskSummary = "second lesson", failureSummary = "forgot the alias")
+
+        val block = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(oversized, short),
+            currentTaskContext = "sign the release apk",
+            useEnglish = true
+        )
+
+        assertTrue(block.length <= 3000)
+        assertTrue(block.contains("task: first lesson"))
+        assertTrue(block.contains("past mistake: used the wrong key"))
+        assertTrue(block.contains("resolution: re-signed"))
+        assertTrue(block.contains("cause (cause): &amp;"))
+        assertFalse(block.contains("constraints:"))
+        assertTrue(block.contains("task: second lesson"))
+        assertTrue(block.contains("past mistake: forgot the alias"))
+        assertEquals(2, countOccurrences(block, "<memory_episode "))
+        assertEquals(2, countOccurrences(block, "</memory_episode>"))
+        assertTrue(block.endsWith("</retrieved_memory>"))
+    }
+
+    @Test
+    fun buildPreflightBlock_unresolvedIntegrity_doesNotRenderMistakeOrConstraints() {
+        val episode = episode(
+            id = 1L,
+            taskSummary = "in-place apk update failed",
+            failureSummary = "debug key used",
+            applicableConstraints = listOf("keep package id"),
+            listIntegrity = RowListIntegrity(
+                mapOf(
+                    TaskEpisodeEntity.FIELD_REQUIRED_PREREQUISITES to ListFieldIntegrity(
+                        fieldName = TaskEpisodeEntity.FIELD_REQUIRED_PREREQUISITES,
+                        status = ListFieldIntegrity.Status.CORRUPT,
+                        reason = "malformed-envelope",
+                        rawStored = "{\"v\":1,\"items\":[\"a\""
+                    )
+                )
+            )
+        )
+        val block = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(episode),
+            currentTaskContext = "in-place apk update",
+            useEnglish = true
+        )
+        assertFalse(block.contains("past mistake:"))
+        assertFalse(block.contains("constraints:"))
+    }
+
     private fun episode(
         id: Long = 0L,
         taskSummary: String = "",
@@ -659,14 +778,18 @@ class TaskPreflightFormatterTest {
         requiredPrerequisites: List<String> = emptyList(),
         createdAtMs: Long = 0L,
         listIntegrity: RowListIntegrity = RowListIntegrity.HEALTHY,
-        outcome: String = TaskEpisode.OUTCOME_FAILURE
+        outcome: String = TaskEpisode.OUTCOME_FAILURE,
+        failureSummary: String = "",
+        applicableConstraints: List<String> = emptyList()
     ): TaskEpisode = TaskEpisode(
         id = id,
         taskSummary = taskSummary,
         outcome = outcome,
+        failureSummary = failureSummary,
         causeSummary = causeSummary,
         resolutionSummary = resolutionSummary,
         requiredPrerequisites = requiredPrerequisites,
+        applicableConstraints = applicableConstraints,
         createdAtMs = createdAtMs,
         listIntegrity = listIntegrity
     )

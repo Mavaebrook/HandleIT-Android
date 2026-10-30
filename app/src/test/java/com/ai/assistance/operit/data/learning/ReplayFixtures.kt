@@ -356,10 +356,11 @@ object ReplayFixtures {
      * is "package", which appears in the episode only inside the incidental phrase "package
      * installer" — it is not the object being installed.
      *
-     * Current behaviour: the episode IS retrieved, on the strength of that single incidental token
-     * (score 0.25 = 1 shared token out of 4 meaningful query tokens). Retrieval has no structural
-     * notion, so it cannot tell a real structural match from a coincidental word. KNOWN LIMITATION
-     * and the motivation for later structural matching.
+     * Behaviour since the lexical threshold (2026-10-30): the episode is NOT retrieved lexically. One
+     * incidental shared token (1 of 4 meaningful query tokens) is below MIN_LEXICAL_SHARED_TOKENS, so
+     * the coincidental match that used to retrieve it is gone. Lexical retrieval still has no
+     * structural notion, so the real structural match is not found lexically either: that is left to
+     * the vector generator. KNOWN LIMITATION (lexical side) and the motivation for structural matching.
      */
     private val analogousStructureDifferentVocabulary = ReplayFixture(
         id = "analogousStructureDifferentVocabulary",
@@ -380,10 +381,10 @@ object ReplayFixtures {
                 createdAtMs = 9_000L
             )
         ),
-        // KNOWN LIMITATION: the hit is driven by the incidental token "package" (from "package
-        // installer"), not by structural similarity. The harness asserts the current hit and the
-        // dedicated limitation test asserts the score is exactly that single-token overlap.
-        expectedTopEpisodeId = 701L
+        // The incidental single-token hit ("package" from "package installer") no longer qualifies,
+        // so lexical retrieval returns nothing for this fixture. The dedicated limitation test
+        // asserts that, and that the same episode is still retrieved when the vocabulary matches.
+        expectedTopEpisodeId = null
     )
 
     // --- Scenario 8: substring satisfaction ----------------------------------------------------
