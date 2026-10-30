@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.data.learning
 
+import com.ai.assistance.operit.data.model.TaskEpisode
+import com.ai.assistance.operit.data.model.TaskEpisodeEntity
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
@@ -162,5 +164,19 @@ class ReviewEvidenceTest {
         assertThrows(Exception::class.java) {
             ReflectorInput.build("task failure", "failure", "{broken", "f", "u")
         }
+    }
+
+    @Test
+    fun episodeEntity_roundTripsReflectorInputSoEvidenceLessonPairSurvives() {
+        val input = ReflectorInput.build("task failure", "failure", "", "final", "request")
+        val episode = TaskEpisode(
+            taskSummary = "sign release APK",
+            failureSummary = "signed with the debug key",
+            outcome = TaskEpisode.OUTCOME_FAILURE,
+            reflectorInputJson = input
+        )
+        val restored = TaskEpisodeEntity.fromEpisode(episode).toEpisode()
+        assertEquals(input, restored.reflectorInputJson)
+        assertEquals("signed with the debug key", restored.failureSummary)
     }
 }

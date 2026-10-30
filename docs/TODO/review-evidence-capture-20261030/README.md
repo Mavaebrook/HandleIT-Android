@@ -19,6 +19,7 @@ So on a correction turn the Reflector saw the correction and the already-fixed a
 - `ReflectorInput.build` gives the Reflector a labeled JSON object: `evidence_status`, `trigger_reason`, `observed_outcome`, `evidence`.
 - Rows queued by an earlier build have no `evidenceJson`. They are labeled `queued_before_evidence_capture`, with their two legacy columns reported under the names of what they held (final reply, user request). This is a description of existing data, not a substitute value.
 - A stored `evidenceJson` that cannot be decoded throws inside the review attempt, so the row follows the normal retry and dead-letter path and stays inspectable. It is never read as empty.
+- The saved lesson keeps the exact Reflector input in a new `TaskEpisodeEntity.reflectorInputJson` property (ObjectBox property id 14). The pending review, and the evidence on it, is deleted once the lesson is saved; without this the lesson would survive but not what it was learned from. Each lesson is therefore an (evidence, lesson) pair, which is the data needed to fine-tune or distill a small local model later. The value is never rendered into prompts or used for retrieval scoring.
 - The Reflector prompts (EN/CN) describe the input and ask for the mistake in `failure_summary`, a cause grounded in the evidence (hypothesis unless shown), and the missing step in `required_prerequisites`.
 
 ## Not in this change

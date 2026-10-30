@@ -458,7 +458,7 @@
     },
     {
       "id": "14:4269907125077724122",
-      "lastPropertyId": "13:22693058790726397",
+      "lastPropertyId": "14:3855121831418734580",
       "name": "TaskEpisodeEntity",
       "properties": [
         {
@@ -528,6 +528,11 @@
           "id": "13:22693058790726397",
           "name": "createdAt",
           "type": 10
+        },
+        {
+          "id": "14:3855121831418734580",
+          "name": "reflectorInputJson",
+          "type": 9
         }
       ],
       "relations": []

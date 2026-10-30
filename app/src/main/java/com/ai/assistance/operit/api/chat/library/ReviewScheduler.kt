@@ -310,6 +310,7 @@ class ReviewScheduler(
         val useEnglish = useEnglishForLessons()
         pending.forEach { review ->
             var failure: Throwable? = null
+            var reflectorInput = ""
             // Explicit try/catch instead of runCatching: runCatching catches Throwable, which would
             // also swallow CancellationException and break structured concurrency. Cancellation is
             // rethrown; only a genuine reflector failure is recorded and logged.
@@ -319,7 +320,7 @@ class ReviewScheduler(
                 // Built inside this try: an unreadable stored evidence value fails this review
                 // loudly and follows the normal retry/dead-letter path; it is never read as empty.
                 // docs/TODO/review-evidence-capture-20261030/README.md
-                val reflectorInput =
+                reflectorInput =
                     ReflectorInput.build(
                         triggerReason = review.triggerReason,
                         observedOutcome = review.outcome,
@@ -346,7 +347,9 @@ class ReviewScheduler(
                     currentAttemptCount = review.attemptCount
                 )
             if (disposition.deleteAfterProcessing && episode != null) {
-                saveEpisodeAndIndex(episodeStore, episode, review.id)
+                // Keep the exact input on the lesson: this review row (and its evidence) is deleted
+                // below, and the (evidence, lesson) pair is what a future local model trains on.
+                saveEpisodeAndIndex(episodeStore, episode.copy(reflectorInputJson = reflectorInput), review.id)
                 succeededIds.add(review.id)
             } else {
                 val thrown = failure
