@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat.library
 
 import android.content.Context
+import com.ai.assistance.operit.data.learning.ReviewEvidence
 import com.ai.assistance.operit.data.learning.ReviewTriggerPolicy
 import com.ai.assistance.operit.data.repository.PendingReviewRepository
 
@@ -17,7 +18,8 @@ object ReviewTriggerEnqueuer {
         signals: ReviewTriggerPolicy.ReviewSignals,
         taskSummary: String,
         contextSummary: String,
-        outcome: String
+        outcome: String,
+        evidence: ReviewEvidence
     ): Boolean {
         val decision = ReviewTriggerPolicy.decide(signals)
         if (!decision.shouldReview) return false
@@ -26,7 +28,8 @@ object ReviewTriggerEnqueuer {
             triggerReason = decision.reason,
             taskSummary = taskSummary,
             contextSummary = contextSummary,
-            outcome = outcome
+            outcome = outcome,
+            evidenceJson = ReviewEvidence.encode(evidence)
         )
         return true
     }

@@ -115,6 +115,17 @@ object ReviewSignalDeriver {
          */
         var explicitCorrectionAction: Boolean = false
 
+        /**
+         * Every failed tool result of the turn with its tool name, error text and result text.
+         * The counts above only say THAT tools failed; the Reflector needs WHAT failed to name the
+         * mistake, so the records are kept for [ReviewEvidence.capture]
+         * (docs/TODO/review-evidence-capture-20261030/README.md).
+         */
+        val failedToolResults: MutableList<FailedToolRecord> = mutableListOf()
+
+        /** Names of tools invalidated by truncated/unclosed tool rounds during the turn. */
+        val invalidatedToolNames: MutableList<String> = mutableListOf()
+
         fun toObservations(
             modelHopCount: Int,
             userTurnCount: Int,

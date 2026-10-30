@@ -2,6 +2,7 @@ package com.ai.assistance.operit.api.chat.library
 
 import android.content.Context
 import com.ai.assistance.operit.BuildConfig
+import com.ai.assistance.operit.data.learning.ReflectorInput
 import com.ai.assistance.operit.data.learning.ReviewLessonLanguage
 import com.ai.assistance.operit.data.model.TaskEpisode
 import com.ai.assistance.operit.data.preferences.preferencesManager
@@ -309,13 +310,27 @@ class ReviewScheduler(
         val useEnglish = useEnglishForLessons()
         pending.forEach { review ->
             var failure: Throwable? = null
+            var reflectorInput = ""
             // Explicit try/catch instead of runCatching: runCatching catches Throwable, which would
             // also swallow CancellationException and break structured concurrency. Cancellation is
             // rethrown; only a genuine reflector failure is recorded and logged.
             val episode = try {
+                // The Reflector receives labeled turn evidence (trigger reason, outcome, the
+                // previous reply, failed tools and their errors) instead of two unlabeled texts.
+                // Built inside this try: an unreadable stored evidence value fails this review
+                // loudly and follows the normal retry/dead-letter path; it is never read as empty.
+                // docs/TODO/review-evidence-capture-20261030/README.md
+                reflectorInput =
+                    ReflectorInput.build(
+                        triggerReason = review.triggerReason,
+                        observedOutcome = review.outcome,
+                        evidenceJson = review.evidenceJson,
+                        legacyFinalReply = review.taskSummary,
+                        legacyUserRequest = review.contextSummary
+                    )
                 ReflectorCurator.reflect(
                     context = context,
-                    taskDescription = review.taskSummary + "\n" + review.contextSummary,
+                    taskDescription = reflectorInput,
                     useEnglish = useEnglish
                 )
             } catch (cancellation: CancellationException) {
@@ -332,7 +347,9 @@ class ReviewScheduler(
                     currentAttemptCount = review.attemptCount
                 )
             if (disposition.deleteAfterProcessing && episode != null) {
-                saveEpisodeAndIndex(episodeStore, episode, review.id)
+                // Keep the exact input on the lesson: this review row (and its evidence) is deleted
+                // below, and the (evidence, lesson) pair is what a future local model trains on.
+                saveEpisodeAndIndex(episodeStore, episode.copy(reflectorInputJson = reflectorInput), review.id)
                 succeededIds.add(review.id)
             } else {
                 val thrown = failure
