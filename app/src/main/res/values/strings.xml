@@ -8495,4 +8495,13 @@
     <string name="codex_usage_unavailable">额度暂时不可用</string>
     <string name="codex_reset_after_days">%1$d 天后重置</string>
     <string name="codex_reset_after_clock">%1$02d:%2$02d 后重置</string>
+    <!-- Prompt preparation (PromptPreprocessor) settings -->
+    <string name="prompt_preparation_title">提示词预处理</string>
+    <string name="prompt_preparation_enable">启用提示词预处理</string>
+    <string name="prompt_preparation_enable_desc">每轮对话前，用当前聊天模型生成一份简短的执行简报</string>
+    <string name="prompt_preparation_thinking">预处理时启用思考</string>
+    <string name="prompt_preparation_thinking_desc">关闭时更快更省 Token；与聊天本身的思考设置无关</string>
+    <string name="prompt_preparation_timeout">预处理超时</string>
+    <string name="prompt_preparation_timeout_value">%1$d 秒</string>
+    <string name="prompt_preparation_timeout_desc">超时后本轮将不带简报继续发送</string>
 </resources>

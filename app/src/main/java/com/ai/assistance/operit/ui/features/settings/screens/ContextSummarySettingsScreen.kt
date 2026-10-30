@@ -294,6 +294,12 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.size(12.dp))
 
+                // Prompt preparation runs before every chat turn; global, not per model config.
+                com.ai.assistance.operit.ui.features.settings.sections.PromptPreparationSettingsSection(
+                    backgroundColor = componentBackgroundColor
+                )
+                Spacer(modifier = Modifier.size(12.dp))
+
                 SectionTitle(
                     text = stringResource(id = R.string.model_config),
                     icon = Icons.Default.Link

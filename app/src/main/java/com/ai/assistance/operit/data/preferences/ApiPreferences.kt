@@ -147,6 +147,11 @@ class ApiPreferences private constructor(private val context: Context) {
         val MAX_IMAGE_HISTORY_USER_TURNS = intPreferencesKey("max_image_history_user_turns")
         val MAX_MEDIA_HISTORY_USER_TURNS = intPreferencesKey("max_media_history_user_turns")
 
+        // Prompt preparation (PromptPreprocessor): user-adjustable, see docs/TODO/prompt-preparation-settings-20261030
+        val PROMPT_PREPARATION_ENABLED = booleanPreferencesKey("prompt_preparation_enabled")
+        val PROMPT_PREPARATION_THINKING = booleanPreferencesKey("prompt_preparation_thinking")
+        val PROMPT_PREPARATION_TIMEOUT_SECONDS = intPreferencesKey("prompt_preparation_timeout_seconds")
+
         // Default value for the global Thinking Mode toggle
         const val DEFAULT_ENABLE_THINKING_MODE = false
 
@@ -170,6 +175,17 @@ class ApiPreferences private constructor(private val context: Context) {
 
         const val DEFAULT_MAX_IMAGE_HISTORY_USER_TURNS = 2
         const val DEFAULT_MAX_MEDIA_HISTORY_USER_TURNS = 1
+
+        const val DEFAULT_PROMPT_PREPARATION_ENABLED = true
+
+        /**
+         * Off by default: the preparation call only writes a short JSON brief. With thinking on,
+         * device logs (2026-10-30) showed 7-14 s per brief, 700-1900 output tokens, and timeouts.
+         */
+        const val DEFAULT_PROMPT_PREPARATION_THINKING = false
+        const val DEFAULT_PROMPT_PREPARATION_TIMEOUT_SECONDS = 15
+        const val MIN_PROMPT_PREPARATION_TIMEOUT_SECONDS = 5
+        const val MAX_PROMPT_PREPARATION_TIMEOUT_SECONDS = 60
 
         // 自定义参数存储键
         val CUSTOM_PARAMETERS = stringPreferencesKey("custom_parameters")
@@ -333,6 +349,37 @@ class ApiPreferences private constructor(private val context: Context) {
         context.apiDataStore.data.map { preferences ->
             preferences[MAX_IMAGE_HISTORY_USER_TURNS] ?: DEFAULT_MAX_IMAGE_HISTORY_USER_TURNS
         }
+
+    val promptPreparationEnabledFlow: Flow<Boolean> =
+        context.apiDataStore.data.map { preferences ->
+            preferences[PROMPT_PREPARATION_ENABLED] ?: DEFAULT_PROMPT_PREPARATION_ENABLED
+        }
+
+    val promptPreparationThinkingFlow: Flow<Boolean> =
+        context.apiDataStore.data.map { preferences ->
+            preferences[PROMPT_PREPARATION_THINKING] ?: DEFAULT_PROMPT_PREPARATION_THINKING
+        }
+
+    val promptPreparationTimeoutSecondsFlow: Flow<Int> =
+        context.apiDataStore.data.map { preferences ->
+            (preferences[PROMPT_PREPARATION_TIMEOUT_SECONDS] ?: DEFAULT_PROMPT_PREPARATION_TIMEOUT_SECONDS)
+                .coerceIn(MIN_PROMPT_PREPARATION_TIMEOUT_SECONDS, MAX_PROMPT_PREPARATION_TIMEOUT_SECONDS)
+        }
+
+    suspend fun savePromptPreparationEnabled(enabled: Boolean) {
+        context.apiDataStore.edit { preferences -> preferences[PROMPT_PREPARATION_ENABLED] = enabled }
+    }
+
+    suspend fun savePromptPreparationThinking(enabled: Boolean) {
+        context.apiDataStore.edit { preferences -> preferences[PROMPT_PREPARATION_THINKING] = enabled }
+    }
+
+    suspend fun savePromptPreparationTimeoutSeconds(seconds: Int) {
+        context.apiDataStore.edit { preferences ->
+            preferences[PROMPT_PREPARATION_TIMEOUT_SECONDS] =
+                seconds.coerceIn(MIN_PROMPT_PREPARATION_TIMEOUT_SECONDS, MAX_PROMPT_PREPARATION_TIMEOUT_SECONDS)
+        }
+    }
 
     val maxMediaHistoryUserTurnsFlow: Flow<Int> =
         context.apiDataStore.data.map { preferences ->
