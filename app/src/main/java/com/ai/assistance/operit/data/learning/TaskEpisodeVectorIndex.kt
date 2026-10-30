@@ -50,7 +50,7 @@ class TaskEpisodeVectorIndex(
 
     /**
      * True when the user has configured a usable embedding provider. When false, vector indexing
-     * and search are DISABLED by definition: [indexEpisode] and [searchEpisodeIds] are documented
+     * and search are DISABLED by definition: [indexEpisode] and [searchEpisodeSimilarities] are documented
      * no-ops that return without doing work. This is the defined disabled state, not a fallback.
      */
     fun isEnabled(): Boolean = searchSettings.loadCloudEmbedding().isReady()
@@ -91,30 +91,44 @@ class TaskEpisodeVectorIndex(
     }
 
     /**
-     * Return up to [k] episode ids whose embeddings are nearest to [query].
+     * Return the cosine similarity of [query] to each of the (up to [k]) nearest episodes, keyed by
+     * episode id.
      *
-     * When vector search is disabled ([isEnabled] is false) this returns an empty list: that is the
+     * The similarity is returned, not just the id, because nearest-neighbour search always returns
+     * the k nearest episodes however unrelated they are. Without the score the merge could not tell a
+     * real match from the least-bad one, and every vector hit used to qualify automatically
+     * (docs/TODO/episode-retrieval-threshold-20261030/README.md). The threshold itself is applied
+     * by [TaskEpisodeRetrieval.mergeCandidates].
+     *
+     * When vector search is disabled ([isEnabled] is false) this returns an empty map: that is the
      * defined result of the disabled state, and [TaskEpisodeRetrieval.mergeCandidates] then merges
      * exactly the lexical candidates.
      */
-    suspend fun searchEpisodeIds(query: String, k: Int): List<Long> {
+    suspend fun searchEpisodeSimilarities(query: String, k: Int): Map<Long, Double> {
         val config = searchSettings.loadCloudEmbedding()
         if (!config.isReady()) {
             AppLogger.d(TAG, "Vector search disabled: no embedding provider configured")
-            return emptyList()
+            return emptyMap()
         }
-        if (query.isBlank() || k <= 0) return emptyList()
+        if (query.isBlank() || k <= 0) return emptyMap()
         val embedding: Embedding = embeddingService.generateEmbeddingOrThrow(config, query)
         val dimension = embedding.vector.size
         val file = indexFile(dimension)
-        if (!file.exists()) return emptyList()
+        if (!file.exists()) return emptyMap()
         val manager = VectorIndexManager<IndexItem<Long, Long>, Long>(
             dimensions = dimension,
             maxElements = 1,
             indexFile = file
         )
         return try {
-            manager.findNearest(embedding.vector, k).map { it.value }.distinct()
+            val similarities = LinkedHashMap<Long, Double>()
+            manager.findNearestWithDistance(embedding.vector, k).forEach { (item, distance) ->
+                // FLOAT_COSINE_DISTANCE: similarity = 1 - distance. Keep the best score per episode.
+                val similarity = 1.0 - distance.toDouble()
+                val previous = similarities[item.value]
+                if (previous == null || similarity > previous) similarities[item.value] = similarity
+            }
+            similarities
         } finally {
             manager.close()
         }

@@ -36,7 +36,7 @@ object TaskPreflightFormatter {
     /** Maximum number of retrieved episodes rendered in one block. */
     private const val MAX_EPISODES_IN_BLOCK = 5
 
-    /** Maximum characters kept per rendered field (task / resolution / cause / prerequisite). */
+    /** Maximum characters kept per rendered field (task / mistake / cause / resolution / prerequisite / constraint). */
     private const val MAX_CHARS_PER_FIELD = 240
 
     /**
@@ -44,6 +44,9 @@ object TaskPreflightFormatter {
      * Keeps the block bounded when an episode carries many required prerequisites.
      */
     private const val MAX_PREREQUISITES_PER_EPISODE = 3
+
+    /** Maximum number of applicable-constraint items rendered per episode. */
+    private const val MAX_CONSTRAINTS_PER_EPISODE = 3
 
     /**
      * Hard cap on the total assembled block length in characters.
@@ -54,7 +57,7 @@ object TaskPreflightFormatter {
      * COMPLETE `<memory_episode>...</memory_episode>` elements, closing fence. The block is never
      * sliced mid-tag.
      */
-    private const val MAX_BLOCK_CHARS = 2000
+    private const val MAX_BLOCK_CHARS = 3000
 
     /** Fixed opening fence tag. The trust/source attributes are constants, not interpolated. */
     private const val FENCE_OPEN = "<retrieved_memory trust=\"untrusted\" source=\"task_episode_store\">"
@@ -227,9 +230,12 @@ object TaskPreflightFormatter {
             return wrapElement(attributes, childLines)
         }
 
-        val resolution = sanitizeDataField(episode.resolutionSummary)
-        if (resolution.isNotEmpty()) {
-            childLines.add("resolution: $resolution")
+        // The past mistake is the point of retrieving a similar task: render what went wrong
+        // first, then why, then what fixed it. failureSummary was stored but never rendered before
+        // (docs/TODO/episode-retrieval-threshold-20261030/README.md).
+        val mistake = sanitizeDataField(episode.failureSummary)
+        if (mistake.isNotEmpty()) {
+            childLines.add("past mistake: $mistake")
         }
 
         val cause = sanitizeDataField(episode.causeSummary)
@@ -237,6 +243,19 @@ object TaskPreflightFormatter {
             // Preserve the existing hypothesis/cause distinction as an explicit label.
             val causeLabel = if (episode.causeIsHypothesis) "hypothesis" else "cause"
             childLines.add("cause ($causeLabel): $cause")
+        }
+
+        val resolution = sanitizeDataField(episode.resolutionSummary)
+        if (resolution.isNotEmpty()) {
+            childLines.add("resolution: $resolution")
+        }
+
+        val constraints = episode.applicableConstraints
+            .map { sanitizeDataField(it) }
+            .filter { it.isNotEmpty() }
+            .take(MAX_CONSTRAINTS_PER_EPISODE)
+        if (constraints.isNotEmpty()) {
+            childLines.add("constraints: " + constraints.joinToString("; "))
         }
 
         val applicablePrereqs = episode.requiredPrerequisites.filter { prereq ->

@@ -118,7 +118,8 @@ class TaskEpisodeRepository(
      * Two candidate generators feed one merge rule ([TaskEpisodeRetrieval.mergeCandidates]):
      *  - lexical: the most recent [MAX_CANDIDATES_EXAMINED] episodes by createdAt descending,
      *    scored by [TaskEpisodeRetrieval.scoreEpisodes];
-     *  - vector: up to [MAX_CANDIDATES_EXAMINED] episode ids from the episode vector index.
+     *  - vector: up to [MAX_CANDIDATES_EXAMINED] nearest episodes with their cosine similarity.
+     * Each generator has its own qualification threshold (see [TaskEpisodeRetrieval]).
      * The lexical path is a defined member of the union, not a fallback. When the user has not
      * configured an embedding provider the vector generator returns no ids by its documented
      * disabled-state rule and the merge contains exactly the lexical candidates.
@@ -126,17 +127,17 @@ class TaskEpisodeRepository(
     suspend fun retrieveRelevant(query: String, topK: Int = TaskEpisodeRetrieval.DEFAULT_TOP_K): List<TaskEpisode> {
         val lexicalCandidates = recentCandidates()
         val lexical = TaskEpisodeRetrieval.scoreEpisodes(query, lexicalCandidates)
-        val vectorIds = vectorIndex.searchEpisodeIds(query, MAX_CANDIDATES_EXAMINED).toSet()
+        val vectorSimilarities = vectorIndex.searchEpisodeSimilarities(query, MAX_CANDIDATES_EXAMINED)
         val vectorCandidates =
-            if (vectorIds.isEmpty()) {
+            if (vectorSimilarities.isEmpty()) {
                 emptyList()
             } else {
-                episodeBox.get(vectorIds.toList()).filterNotNull().map { it.toEpisode() }
+                episodeBox.get(vectorSimilarities.keys.toList()).filterNotNull().map { it.toEpisode() }
             }
         return TaskEpisodeRetrieval.mergeCandidates(
             query = query,
             lexical = lexical,
-            vectorIds = vectorIds,
+            vectorSimilarities = vectorSimilarities,
             vectorCandidates = vectorCandidates,
             topK = topK
         )

@@ -60,6 +60,14 @@ class VectorIndexManager<T : Item<Id, FloatArray>, Id : Any>(
         return index?.findNearest(query, k)?.map { it.item() } ?: emptyList()
     }
 
+    /**
+     * Nearest K neighbours with their index distance. The index uses
+     * FLOAT_COSINE_DISTANCE, so cosine similarity = 1 - distance.
+     */
+    fun findNearestWithDistance(query: FloatArray, k: Int): List<Pair<T, Float>> {
+        return index?.findNearest(query, k)?.map { it.item() to it.distance() } ?: emptyList()
+    }
+
     fun size(): Int = index?.size() ?: 0
 
     fun maxItemCount(): Int = index?.maxItemCount ?: maxElements

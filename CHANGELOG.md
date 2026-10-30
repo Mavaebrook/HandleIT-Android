@@ -2,6 +2,10 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-30 — Episode retrieval threshold and past-mistake rendering
+
+Similar-task retrieval no longer treats any overlap as a match. A lexical match now needs at least two distinct shared content words and a quarter of the request's content words; a vector hit needs cosine similarity of at least 0.50 (calibrated for Qwen3-Embedding-0.6B and model-specific) instead of qualifying automatically through a fixed bonus. Unrelated requests therefore get no retrieved-memory block instead of the nearest three episodes. The preflight block now shows each episode's `past mistake:` (from `failureSummary`) before its cause and resolution, plus up to three constraints, with the block budget raised from 2000 to 3000 characters. The replay fixture that matched on an incidental word is no longer retrieved lexically. No schema change. Hosted validation and device acceptance are pending; see [details and calibration](docs/TODO/episode-retrieval-threshold-20261030/README.md).
+
 ## 2026-10-28 — In-app prompt preprocessing v1
 
 Top-level chat turns now prepare a bounded execution brief with an isolated instance of the current chat provider, preserving its resolved model, generation parameters and thinking setting. The original user request remains intact; the brief and source episode evidence are supplied as lower-authority context. Tool continuations, subtasks and non-chat functions do not run another preparation call. Invalid output, timeout or provider failure fails open: the turn continues without preparation and a warning is logged. No schema, credential or signing change. Hosted validation and device acceptance are pending; see [plan and limits](docs/TODO/prompt-preprocessing-v1/README.md).

@@ -193,11 +193,11 @@ class ReplayHarnessTest {
         // KNOWN LIMITATION: the entire "match" is one incidental word.
         assertEquals(setOf("package"), shared)
 
-        // KNOWN LIMITATION: the score is exactly that single-token overlap (1 of 4 meaningful query
-        // tokens), i.e. the episode is retrieved for a coincidental word, not for structure.
+        // Since the lexical threshold (MIN_LEXICAL_SHARED_TOKENS = 2), one coincidental shared word
+        // no longer retrieves the episode. KNOWN LIMITATION that remains: the structural match is not
+        // found lexically either; only the vector generator can find it.
         val scored = TaskEpisodeRetrieval.scoreEpisodes(fixture.query, fixture.episodes)
-        assertEquals(1, scored.size)
-        assertEquals(0.25, scored.single().second, 1e-9)
+        assertTrue("an incidental single-word overlap must not be a lexical match", scored.isEmpty())
 
         // Control: the same episode IS retrieved strongly when the vocabulary matches, which shows
         // the weakness is vocabulary dependence, not an unusable episode.
@@ -205,9 +205,10 @@ class ReplayHarnessTest {
             "install the apk on the emulator",
             fixture.episodes
         )
-        assertTrue(
-            "same-vocabulary query must score higher than the analogous one",
-            sameVocabulary.single().second > scored.single().second
+        assertEquals(
+            "same-vocabulary query must still retrieve the episode",
+            listOf(701L),
+            sameVocabulary.map { it.first.id }
         )
     }
 
