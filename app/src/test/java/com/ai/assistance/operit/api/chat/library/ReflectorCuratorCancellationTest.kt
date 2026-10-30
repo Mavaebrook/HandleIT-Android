@@ -105,8 +105,9 @@ class ReflectorCuratorCancellationTest(private val reflector: Boolean) {
         )
 
         if (reflector) {
-            assertEquals("lesson", (result as TaskEpisode).taskSummary)
-            assertEquals(TaskEpisode.OUTCOME_SUCCESS, result.outcome)
+            val episode = (result as ReflectorCurator.Reflection.Lesson).episode
+            assertEquals("lesson", episode.taskSummary)
+            assertEquals(TaskEpisode.OUTCOME_SUCCESS, episode.outcome)
         } else {
             assertEquals("skill-id", (result as SkillRevision).skillId)
             assertEquals(SkillRevision.STATUS_DRAFT, result.status)

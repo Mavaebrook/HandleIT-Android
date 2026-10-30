@@ -1370,7 +1370,10 @@ The input is a JSON object:
 Name the mistake in failure_summary from this evidence: what the previous reply or a failed tool got wrong. Leave it empty when nothing went wrong.
 Base cause_summary only on the evidence; set cause_is_hypothesis true unless the evidence shows the cause.
 Put into required_prerequisites the step, check or information the user had to supply, or that would have avoided the failure.
-Return STRICT JSON only, no prose:
+applicable_constraints are rules the user stated for future work of this kind. Never copy the user's request or one-off instructions for this turn into them.
+If the evidence shows nothing to learn (no mistake, no user correction, no failed or invalidated tool, and no step the user had to supply), do not invent a lesson. Return exactly:
+{"no_lesson": true, "reason": "one short sentence"}
+Otherwise return the lesson as STRICT JSON only, no prose:
 {
   "task_summary": "short task description",
   "context_summary": "short context",
@@ -1400,7 +1403,10 @@ Rules: one incident repeated in summaries is ONE evidence key. Do not invent evi
 根据这些证据在 failure_summary 中指出错误：上一条回复或失败的工具错在哪里。没有出错时留空。
 cause_summary 只能依据证据；除非证据表明了原因，否则将 cause_is_hypothesis 设为 true。
 将用户不得不补充的步骤、检查或信息，或本可避免失败的步骤，写入 required_prerequisites。
-只返回严格 JSON，不要任何解释：
+applicable_constraints 是用户为今后同类工作提出的规则。不要把用户本轮的请求或一次性指令抄进去。
+如果证据显示没有可学的内容（没有错误、没有用户纠正、没有失败或被作废的工具、也没有用户不得不补充的步骤），不要编造经验，只返回：
+{"no_lesson": true, "reason": "一句简短说明"}
+否则只返回严格 JSON 格式的经验，不要任何解释：
 {
   "task_summary": "简短任务描述",
   "context_summary": "简短上下文",
