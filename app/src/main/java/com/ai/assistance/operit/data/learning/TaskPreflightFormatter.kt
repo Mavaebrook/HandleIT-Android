@@ -424,18 +424,18 @@ object TaskPreflightFormatter {
     /**
      * Runs of whitespace, collapsed to a single space after control characters are neutralized.
      *
-     * D06: `UNICODE_CHARACTER_CLASS` makes `\s` cover Unicode whitespace (e.g. `\u00A0`, `\u2028`,
-     * `\u2029`) instead of ASCII only, so a Unicode line separator cannot survive as a real line
-     * break inside a `task:` field.
+     * `\s` covers ASCII whitespace and `\p{Z}` covers every Unicode space, line and paragraph
+     * separator (e.g. `\u00A0`, `\u2028`, `\u2029`, `\u3000`), so a Unicode line separator cannot
+     * survive as a real line break inside a `task:` field (D06).
      *
-     * Built via `java.util.regex.Pattern.compile(pattern, flags).toRegex()` rather than a Kotlin
-     * `Regex(...)` constructor: `kotlin.text.Regex` exposes no `(String, Int)` overload, and its
-     * `(java.util.regex.Pattern)` constructor is `@PublishedApi`/internal, so neither
-     * `Regex(pattern, Pattern.UNICODE_CHARACTER_CLASS)` nor `Regex(pattern, RegexOption.X)` can
-     * express this flag. `Pattern.compile(String, int)` and the `Pattern.toRegex()` extension are
-     * both public. `UNICODE_CHARACTER_CLASS` requires API 24; this module's minSdk is 26.
+     * ANDROID: this used to be `Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS)`. Android
+     * does not support that flag and `Pattern.compile` throws `IllegalArgumentException` for it.
+     * Because the regex is initialized with this object, the first use of
+     * [TaskPreflightFormatter] on a device threw `ExceptionInInitializerError` (an `Error`, not an
+     * `Exception`), which bypassed every `catch (e: Exception)` on the chat path and ended each
+     * turn with an empty reply and no log line. JVM tests could not catch it because the desktop
+     * JVM supports the flag. The explicit character class behaves the same on both runtimes;
+     * `AndroidRegexCompatibilityTest` keeps the unsupported flags out of main sources.
      */
-    private val WHITESPACE_RUN: Regex =
-        java.util.regex.Pattern.compile("\\s+", java.util.regex.Pattern.UNICODE_CHARACTER_CLASS)
-            .toRegex()
+    private val WHITESPACE_RUN: Regex = Regex("[\\s\\p{Z}]+")
 }
