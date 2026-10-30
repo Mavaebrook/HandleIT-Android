@@ -145,13 +145,18 @@ object TaskPreflightFormatter {
         val renderedEpisodes = mutableListOf<String>()
         var renderedCount = 0
         for (episode in bounded) {
-            val element = renderEpisodeElement(episode, currentTaskContext, useEnglish) ?: continue
-            // Budget check: only add the element when the COMPLETE block (framing + fence + all
+            val rendered = renderEpisodeLines(episode, currentTaskContext, useEnglish) ?: continue
+            // Budget check: an element is added only when the COMPLETE block (framing + fence + all
             // elements so far + this element + closing fence) still fits. Never slice mid-tag.
-            val candidateLength =
-                fixedPrefix.length + fixedSuffix.length +
-                    renderedEpisodes.sumOf { it.length + 1 } + element.length + 1
-            if (candidateLength > MAX_BLOCK_CHARS) break
+            val available =
+                MAX_BLOCK_CHARS - fixedPrefix.length - fixedSuffix.length -
+                    renderedEpisodes.sumOf { it.length + 1 } - 1
+            // A detailed lesson may not fit whole (escaping expands text after the per-field cap).
+            // It sheds its lowest-priority lines first instead of disappearing; the task and the past
+            // mistake are never dropped. A lesson that cannot fit even reduced is skipped, and later,
+            // shorter lessons are still considered (`continue`, not `break`), so one long lesson can
+            // no longer empty the whole block.
+            val element = fitElement(rendered, available) ?: continue
             renderedEpisodes.add(element)
             renderedCount++
             if (renderedCount >= MAX_EPISODES_IN_BLOCK) break
@@ -181,8 +186,9 @@ object TaskPreflightFormatter {
     }
 
     /**
-     * Render one `<memory_episode ...>` element, or null when the episode has no usable task
-     * summary (such an episode contributes nothing and is skipped, as before).
+     * Render the lines of one `<memory_episode ...>` element (wrapped later by [fitElement]), or
+     * null when the episode has no usable task summary (such an episode contributes nothing and is
+     * skipped, as before).
      *
      * Provenance attributes carry only values that exist on [TaskEpisode]:
      *  - `id` is the stable episode id;
@@ -199,11 +205,11 @@ object TaskPreflightFormatter {
      * attribute. `id`/`ts` are numeric or the fixed `unknown` literal, so routing them through the
      * same sanitizer is a no-op for output but keeps the surface uniform.
      */
-    private fun renderEpisodeElement(
+    private fun renderEpisodeLines(
         episode: TaskEpisode,
         currentTaskContext: String,
         useEnglish: Boolean
-    ): String? {
+    ): RenderedEpisode? {
         val task = sanitizeDataField(episode.taskSummary)
         if (task.isEmpty()) return null
         val outcome = sanitizeAttributeValue(episode.outcome).ifEmpty { PROVENANCE_UNKNOWN }
@@ -217,8 +223,8 @@ object TaskPreflightFormatter {
             append("confidence=\"").append(sanitizeAttributeValue(PROVENANCE_UNKNOWN)).append("\"")
         }
 
-        val childLines = mutableListOf<String>()
-        childLines.add("task: $task")
+        val childLines = mutableListOf<RenderedLine>()
+        childLines.add(RenderedLine("task: $task", KEEP))
 
         val applicability = TaskEpisodeRetrieval.episodeApplicability(episode)
         if (applicability == EpisodeApplicability.INELIGIBLE_UNRESOLVED_INTEGRITY) {
@@ -226,8 +232,8 @@ object TaskPreflightFormatter {
             // must NOT be presented as applicable advice. Emit only the neutral task line and the
             // fixed, bounded caution. Resolution/action and cause content are deliberately NOT
             // rendered. No raw stored value, field name or reason is shown.
-            childLines.add(if (useEnglish) UNRESOLVED_RECORD_NOTE_EN else UNRESOLVED_RECORD_NOTE_ZH)
-            return wrapElement(attributes, childLines)
+            childLines.add(RenderedLine(if (useEnglish) UNRESOLVED_RECORD_NOTE_EN else UNRESOLVED_RECORD_NOTE_ZH, KEEP))
+            return RenderedEpisode(attributes, childLines)
         }
 
         // The past mistake is the point of retrieving a similar task: render what went wrong
@@ -235,19 +241,19 @@ object TaskPreflightFormatter {
         // (docs/TODO/episode-retrieval-threshold-20261030/README.md).
         val mistake = sanitizeDataField(episode.failureSummary)
         if (mistake.isNotEmpty()) {
-            childLines.add("past mistake: $mistake")
+            childLines.add(RenderedLine("past mistake: $mistake", KEEP))
         }
 
         val cause = sanitizeDataField(episode.causeSummary)
         if (cause.isNotEmpty()) {
             // Preserve the existing hypothesis/cause distinction as an explicit label.
             val causeLabel = if (episode.causeIsHypothesis) "hypothesis" else "cause"
-            childLines.add("cause ($causeLabel): $cause")
+            childLines.add(RenderedLine("cause ($causeLabel): $cause", DROP_CAUSE))
         }
 
         val resolution = sanitizeDataField(episode.resolutionSummary)
         if (resolution.isNotEmpty()) {
-            childLines.add("resolution: $resolution")
+            childLines.add(RenderedLine("resolution: $resolution", DROP_RESOLUTION))
         }
 
         val constraints = episode.applicableConstraints
@@ -255,7 +261,7 @@ object TaskPreflightFormatter {
             .filter { it.isNotEmpty() }
             .take(MAX_CONSTRAINTS_PER_EPISODE)
         if (constraints.isNotEmpty()) {
-            childLines.add("constraints: " + constraints.joinToString("; "))
+            childLines.add(RenderedLine("constraints: " + constraints.joinToString("; "), DROP_CONSTRAINTS))
         }
 
         val applicablePrereqs = episode.requiredPrerequisites.filter { prereq ->
@@ -273,17 +279,46 @@ object TaskPreflightFormatter {
                 "依赖前请先核实: "
             }
             val joined = missingPrereqs.joinToString("; ") { sanitizeDataField(it) }
-            childLines.add(label + joined)
+            childLines.add(RenderedLine(label + joined, DROP_PREREQUISITES))
         }
 
-        return wrapElement(attributes, childLines)
+        return RenderedEpisode(attributes, childLines)
+    }
+
+    /** One rendered child line and when it may be dropped to fit the budget ([KEEP] = never). */
+    private data class RenderedLine(val text: String, val dropRank: Int)
+
+    /** A rendered episode before it is wrapped: its attribute string and its child lines. */
+    private data class RenderedEpisode(val attributes: String, val lines: List<RenderedLine>)
+
+    /** Never dropped: the task line, the past mistake, and the fixed unresolved-record caution. */
+    private const val KEEP = 0
+    private const val DROP_RESOLUTION = 1
+    private const val DROP_CAUSE = 2
+    private const val DROP_PREREQUISITES = 3
+
+    /** Dropped first: constraints are the least specific to what went wrong. */
+    private const val DROP_CONSTRAINTS = 4
+
+    /**
+     * Wrap [rendered] into a complete element no longer than [available] characters, dropping lines
+     * by descending drop rank until it fits. Returns null when even the [KEEP] lines do not fit.
+     * Lines keep their original order.
+     */
+    private fun fitElement(rendered: RenderedEpisode, available: Int): String? {
+        val highestRank = rendered.lines.maxOfOrNull { it.dropRank } ?: KEEP
+        for (maxRank in highestRank downTo KEEP) {
+            val element = wrapElement(rendered.attributes, rendered.lines.filter { it.dropRank <= maxRank })
+            if (element.length <= available) return element
+        }
+        return null
     }
 
     /** Wrap already-sanitized child lines in a `<memory_episode>` element. */
-    private fun wrapElement(attributes: String, childLines: List<String>): String = buildString {
+    private fun wrapElement(attributes: String, childLines: List<RenderedLine>): String = buildString {
         append("<memory_episode ").append(attributes).append(">")
         childLines.forEach { line ->
-            append("\n").append(line)
+            append("\n").append(line.text)
         }
         append("\n</memory_episode>")
     }

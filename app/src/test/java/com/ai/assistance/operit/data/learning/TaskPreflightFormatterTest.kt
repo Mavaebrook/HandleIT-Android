@@ -709,6 +709,41 @@ class TaskPreflightFormatterTest {
     }
 
     @Test
+    fun buildPreflightBlock_oversizedLesson_shedsLowPriorityLinesInsteadOfEmptyingTheBlock() {
+        // "&" is escaped to "&amp;" AFTER the 240-char field cap, so each "&"-only field renders as
+        // 1200 chars; three such constraints alone exceed the 3000-char block budget. The lesson
+        // must shed its constraints (lowest priority) and still render its task and past mistake,
+        // and a shorter lesson ranked after it must still be considered.
+        val oversized = episode(
+            id = 1L,
+            taskSummary = "first lesson",
+            failureSummary = "used the wrong key",
+            causeSummary = "&".repeat(240),
+            resolutionSummary = "re-signed",
+            applicableConstraints = List(3) { "&".repeat(240) }
+        )
+        val short = episode(id = 2L, taskSummary = "second lesson", failureSummary = "forgot the alias")
+
+        val block = TaskPreflightFormatter.buildPreflightBlock(
+            episodes = listOf(oversized, short),
+            currentTaskContext = "sign the release apk",
+            useEnglish = true
+        )
+
+        assertTrue(block.length <= 3000)
+        assertTrue(block.contains("task: first lesson"))
+        assertTrue(block.contains("past mistake: used the wrong key"))
+        assertTrue(block.contains("resolution: re-signed"))
+        assertTrue(block.contains("cause (cause): &amp;"))
+        assertFalse(block.contains("constraints:"))
+        assertTrue(block.contains("task: second lesson"))
+        assertTrue(block.contains("past mistake: forgot the alias"))
+        assertEquals(2, countOccurrences(block, "<memory_episode "))
+        assertEquals(2, countOccurrences(block, "</memory_episode>"))
+        assertTrue(block.endsWith("</retrieved_memory>"))
+    }
+
+    @Test
     fun buildPreflightBlock_unresolvedIntegrity_doesNotRenderMistakeOrConstraints() {
         val episode = episode(
             id = 1L,
