@@ -28,14 +28,29 @@ object ReflectorCurator {
     private const val TAG = "ReflectorCurator"
 
     /**
-     * Reflector: propose one evidence-backed lesson from a completed task episode.
-     * Returns null on provider or parsing failure. Coroutine cancellation propagates to the caller.
+     * Outcome of one Reflector review.
+     *
+     * [NoLesson] is a defined outcome, not a failure: a review can be triggered by a turn in which
+     * nothing went wrong (a complex but successful turn, or a lexical correction marker that was not
+     * a correction). Saving a lesson from such a turn turned the user's own request into stored
+     * "constraints" and filled the store with noise
+     * (docs/TODO/reflector-no-lesson-20261030/README.md).
+     */
+    sealed class Reflection {
+        data class Lesson(val episode: TaskEpisode) : Reflection()
+        data class NoLesson(val reason: String) : Reflection()
+    }
+
+    /**
+     * Reflector: review one completed turn and return a lesson, or [Reflection.NoLesson] when the
+     * evidence shows nothing to learn. Returns null on provider or parsing failure. Coroutine
+     * cancellation propagates to the caller.
      */
     suspend fun reflect(
         context: Context,
         taskDescription: String,
         useEnglish: Boolean
-    ): TaskEpisode? = reflect(
+    ): Reflection? = reflect(
         taskDescription = taskDescription,
         useEnglish = useEnglish,
         callModel = { type, prompt -> callFunctionModel(context, type, prompt) },
@@ -48,11 +63,11 @@ object ReflectorCurator {
         useEnglish: Boolean,
         callModel: suspend (FunctionType, String) -> String,
         onFailure: (Throwable) -> Unit
-    ): TaskEpisode? {
+    ): Reflection? {
         // taskDescription is the labeled ReflectorInput JSON built by ReviewScheduler.
         val prompt = FunctionalPrompts.reflectorPrompt(useEnglish) + "\n\nTurn evidence (JSON):\n" + taskDescription
         val raw = callModelOrNull(FunctionType.MEMORY, prompt, callModel, onFailure) ?: return null
-        return parseEpisode(ChatUtils.removeThinkingContent(raw).trim())
+        return parseReflection(ChatUtils.removeThinkingContent(raw).trim())
     }
 
     /**
@@ -112,6 +127,19 @@ object ReflectorCurator {
         if (it is CancellationException) throw it
         onFailure(it)
     }.getOrNull()
+
+    /**
+     * Parse Reflector output into a [Reflection]. `{"no_lesson": true, "reason": "..."}` is the
+     * explicit "nothing to learn" answer; anything else is parsed as a lesson by [parseEpisode].
+     * Returns null when the output is not a JSON object.
+     */
+    internal fun parseReflection(raw: String): Reflection? {
+        val json = extractJsonObject(raw) ?: return null
+        if (json.optBoolean("no_lesson", false)) {
+            return Reflection.NoLesson(json.optString("reason", "").trim())
+        }
+        return parseEpisode(raw)?.let { Reflection.Lesson(it) }
+    }
 
     internal fun parseEpisode(raw: String): TaskEpisode? {
         val json = extractJsonObject(raw) ?: return null

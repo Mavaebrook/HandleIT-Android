@@ -131,4 +131,34 @@ class ReflectorCuratorParseTest {
         assertTrue(revision!!.userConstraints.contains(constraint))
         assertEquals(constraint, revision.userConstraints.first())
     }
+
+    @Test
+    fun parseReflection_noLessonAnswer_isNoLessonWithReason() {
+        val result = ReflectorCurator.parseReflection(
+            """{"no_lesson": true, "reason": "nothing went wrong"}"""
+        )
+        assertEquals(ReflectorCurator.Reflection.NoLesson("nothing went wrong"), result)
+    }
+
+    @Test
+    fun parseReflection_lessonJson_isLesson() {
+        val result = ReflectorCurator.parseReflection(
+            """{"task_summary": "deploy", "outcome": "failure", "failure_summary": "used git push"}"""
+        )
+        val episode = (result as ReflectorCurator.Reflection.Lesson).episode
+        assertEquals("used git push", episode.failureSummary)
+    }
+
+    @Test
+    fun parseReflection_noLessonFalse_isParsedAsLesson() {
+        val result = ReflectorCurator.parseReflection(
+            """{"no_lesson": false, "task_summary": "deploy", "outcome": "success"}"""
+        )
+        assertTrue(result is ReflectorCurator.Reflection.Lesson)
+    }
+
+    @Test
+    fun parseReflection_malformed_returnsNull() {
+        assertNull(ReflectorCurator.parseReflection("not json"))
+    }
 }

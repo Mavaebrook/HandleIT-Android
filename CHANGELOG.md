@@ -6,6 +6,10 @@ All notable changes to HandleIT-Android are recorded here. Entries are grouped b
 
 Settings › Context & Summary now has a **Prompt Preparation** section: a switch to turn preparation on or off, a switch for thinking during preparation (default **off**, independent of the chat's thinking mode), and a 5–60 s timeout slider (default 15 s). Device logs showed 7–14 s per brief with thinking on and occasional timeouts. Log lines record the thinking and timeout values used. See [settings](docs/TODO/prompt-preparation-settings-20261030/README.md).
 
+## 2026-10-30 — Reflector can answer "no lesson"
+
+Reviews triggered by turns where nothing went wrong no longer produce lessons. The Reflector may now return `{"no_lesson": true, "reason": ...}` when the evidence shows no mistake, correction, failed tool or missing step; the review is closed without saving anything and the reason is logged. The prompts also forbid copying the user's request or one-off instructions into `applicable_constraints`, which is how a test turn had become a stored "rule". See [details](docs/TODO/reflector-no-lesson-20261030/README.md).
+
 ## 2026-10-30 — Fix empty chat replies on device (Android-unsupported regex flag)
 
 Every chat turn on device ended with an empty reply and no error. `TaskPreflightFormatter` compiled a regex with `Pattern.UNICODE_CHARACTER_CLASS`, which Android does not support; the object initializer threw `ExceptionInInitializerError`, an `Error` that bypassed the `catch (e: Exception)` handlers in preflight and `sendMessage`, so the turn ended before any provider request. The regex is now an explicit `[\s\p{Z}]+` class with the same behavior on Android and the JVM, and a JVM test keeps Android-unsupported regex flags out of main sources. See [root cause](docs/TODO/preflight-regex-android-20261030/README.md).
