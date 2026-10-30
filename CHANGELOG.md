@@ -2,6 +2,10 @@
 
 All notable changes to HandleIT-Android are recorded here. Entries are grouped by date and reference the relevant TODO checklist where applicable.
 
+## 2026-10-30 — Prompt preparation settings
+
+Settings › Context & Summary now has a **Prompt Preparation** section: a switch to turn preparation on or off, a switch for thinking during preparation (default **off**, independent of the chat's thinking mode), and a 5–60 s timeout slider (default 15 s). Device logs showed 7–14 s per brief with thinking on and occasional timeouts. Log lines record the thinking and timeout values used. See [settings](docs/TODO/prompt-preparation-settings-20261030/README.md).
+
 ## 2026-10-30 — Fix empty chat replies on device (Android-unsupported regex flag)
 
 Every chat turn on device ended with an empty reply and no error. `TaskPreflightFormatter` compiled a regex with `Pattern.UNICODE_CHARACTER_CLASS`, which Android does not support; the object initializer threw `ExceptionInInitializerError`, an `Error` that bypassed the `catch (e: Exception)` handlers in preflight and `sendMessage`, so the turn ended before any provider request. The regex is now an explicit `[\s\p{Z}]+` class with the same behavior on Android and the JVM, and a JVM test keeps Android-unsupported regex flags out of main sources. See [root cause](docs/TODO/preflight-regex-android-20261030/README.md).

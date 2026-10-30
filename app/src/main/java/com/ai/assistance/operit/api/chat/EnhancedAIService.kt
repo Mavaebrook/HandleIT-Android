@@ -505,10 +505,13 @@ class EnhancedAIService private constructor(private val context: Context) {
         execution: MessageExecutionContext,
         snapshot: ModelExecutionSnapshot,
         history: List<PromptTurn>,
-        tools: List<ToolPrompt>?,
-        enableThinking: Boolean
+        tools: List<ToolPrompt>?
     ): List<PromptTurn> {
         val compiler = com.ai.assistance.operit.api.chat.enhance.PromptPreprocessor
+        // User settings (Settings > Context & Summary > Prompt preparation). Thinking is separate
+        // from the chat's thinking setting: the preparation call only writes a short JSON brief.
+        val prepThinking = apiPreferences.promptPreparationThinkingFlow.first()
+        val prepTimeoutSeconds = apiPreferences.promptPreparationTimeoutSecondsFlow.first()
         val service = multiServiceManager.createPreparationService(snapshot.config)
         execution.preparationService = service
         val startedAt = messageTimingNow()
@@ -518,12 +521,12 @@ class EnhancedAIService private constructor(private val context: Context) {
             val compiled = compiler.compile(history, tools.orEmpty().map { it.name }, checkActive = {
                 if (!isExecutionContextActive(execution)) throw CancellationException("Preparation cancelled")
             }) { turns ->
-              kotlinx.coroutines.withTimeout(15_000L) {
+              kotlinx.coroutines.withTimeout(prepTimeoutSeconds * 1000L) {
                 service.sendMessage(
                     context = context,
                     chatHistory = turns,
                     modelParameters = snapshot.modelParameters,
-                    enableThinking = enableThinking,
+                    enableThinking = prepThinking,
                     stream = true,
                     availableTools = emptyList(),
                     enableRetry = false,
@@ -541,12 +544,14 @@ class EnhancedAIService private constructor(private val context: Context) {
             accumulatedCachedInputTokenCount += service.cachedInputTokenCount
             accumulatedOutputTokenCount += service.outputTokenCount
             AppLogger.d(TAG, "PromptPreprocessor v1 execution=${execution.executionId} " +
+                "thinking=$prepThinking timeoutS=$prepTimeoutSeconds " +
                 "elapsedMs=${messageTimingNow() - startedAt} input=${service.inputTokenCount} " +
                 "output=${service.outputTokenCount} briefChars=${output.length}")
             return compiled
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
             AppLogger.w(TAG, "PromptPreprocessor timed out; continuing without preparation " +
-                "execution=${execution.executionId} elapsedMs=${messageTimingNow() - startedAt}")
+                "execution=${execution.executionId} thinking=$prepThinking timeoutS=$prepTimeoutSeconds " +
+                "elapsedMs=${messageTimingNow() - startedAt}")
             return history
         } catch (e: CancellationException) {
             throw e
@@ -1186,9 +1191,11 @@ class EnhancedAIService private constructor(private val context: Context) {
                         }
                     // One preparation per top-level user turn. Tool continuations enter the
                     // separate continuation path and reuse this history without another call.
-                    if (functionType == FunctionType.CHAT && !isSubTask) {
+                    if (functionType == FunctionType.CHAT && !isSubTask &&
+                        apiPreferences.promptPreparationEnabledFlow.first()
+                    ) {
                         requestHistory = preprocessRequest(
-                            execContext, modelSnapshot, requestHistory, availableTools, enableThinking
+                            execContext, modelSnapshot, requestHistory, availableTools
                         )
                     }
                     execContext.conversationHistory.clear()

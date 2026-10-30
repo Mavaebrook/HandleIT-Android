@@ -8515,4 +8515,13 @@
     <string name="market_version_too_low_message">Current client version %1$s is lower than the minimum required version %2$s for this resource. Please update the client before downloading.</string>
     <string name="market_version_too_high_message">Current client version %1$s is higher than the maximum supported version %2$s for this resource. Please use a supported client version.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
+    <!-- Prompt preparation (PromptPreprocessor) settings -->
+    <string name="prompt_preparation_title">Prompt Preparation</string>
+    <string name="prompt_preparation_enable">Enable prompt preparation</string>
+    <string name="prompt_preparation_enable_desc">Before each turn, the current chat model writes a short execution brief</string>
+    <string name="prompt_preparation_thinking">Thinking during preparation</string>
+    <string name="prompt_preparation_thinking_desc">Off is faster and uses fewer tokens; separate from the chat\'s own thinking setting</string>
+    <string name="prompt_preparation_timeout">Preparation timeout</string>
+    <string name="prompt_preparation_timeout_value">%1$d s</string>
+    <string name="prompt_preparation_timeout_desc">When it runs out, the turn continues without a brief</string>
 </resources>
