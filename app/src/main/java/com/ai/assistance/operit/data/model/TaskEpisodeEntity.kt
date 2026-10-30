@@ -37,7 +37,9 @@ data class TaskEpisodeEntity(
     var applicableConstraintsJoined: String = "",
     var evidenceKeysJoined: String = "",
     var relatedSkillVersion: String = "",
-    var createdAt: Date = Date()
+    var createdAt: Date = Date(),
+    /** [TaskEpisode.reflectorInputJson]. Added as a new property; no existing property id changes. */
+    var reflectorInputJson: String = ""
 ) {
     /**
      * Read path. Decodes the three list columns with [StringListCodec].
@@ -76,6 +78,7 @@ data class TaskEpisodeEntity(
             evidenceKeys = evidenceKeys.first,
             relatedSkillVersion = relatedSkillVersion,
             createdAtMs = createdAt.time,
+            reflectorInputJson = reflectorInputJson,
             listIntegrity = RowListIntegrity(
                 mapOf(
                     FIELD_REQUIRED_PREREQUISITES to requiredPrerequisites.second,
@@ -210,7 +213,8 @@ data class TaskEpisodeEntity(
                 episode.listIntegrity
             ),
             relatedSkillVersion = episode.relatedSkillVersion,
-            createdAt = Date(if (episode.createdAtMs > 0L) episode.createdAtMs else System.currentTimeMillis())
+            createdAt = Date(if (episode.createdAtMs > 0L) episode.createdAtMs else System.currentTimeMillis()),
+            reflectorInputJson = episode.reflectorInputJson
         )
 
         /**

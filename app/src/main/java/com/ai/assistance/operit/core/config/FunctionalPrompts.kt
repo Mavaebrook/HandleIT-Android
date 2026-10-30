@@ -1357,7 +1357,19 @@ Rules:
     // --- Stage D: Reflector / Curator prompts (docs/TODO/reliable-learning-architect-20261016) ---
 
     const val REFLECTOR_PROMPT_EN = """
-You are the Reflector. Given a completed task episode, propose ONE evidence-backed lesson.
+You are the Reflector. Given evidence from one completed chat turn, propose ONE evidence-backed lesson.
+The input is a JSON object:
+- trigger_reason: why this turn was reviewed; observed_outcome: outcome recorded at the end of the turn.
+- evidence_status: "captured", or "queued_before_evidence_capture" when only user_request and final_reply were recorded; then empty evidence fields mean "not recorded", not "did not happen".
+- evidence.user_request: the user's latest message (on a correction, the correction itself).
+- evidence.previous_assistant_reply: the reply that message answered (on a correction, the mistaken reply).
+- evidence.final_reply: the reply that ended the turn.
+- evidence.matched_correction_marker / explicit_correction_action: signs the user corrected the assistant.
+- evidence.failed_tool_results (tool_name, error, result), invalidated_tool_names, and counts.
+- evidence.truncated_fields: fields that were shortened; do not treat them as complete.
+Name the mistake in failure_summary from this evidence: what the previous reply or a failed tool got wrong. Leave it empty when nothing went wrong.
+Base cause_summary only on the evidence; set cause_is_hypothesis true unless the evidence shows the cause.
+Put into required_prerequisites the step, check or information the user had to supply, or that would have avoided the failure.
 Return STRICT JSON only, no prose:
 {
   "task_summary": "short task description",
@@ -1375,7 +1387,19 @@ Rules: one incident repeated in summaries is ONE evidence key. Do not invent evi
 """
 
     const val REFLECTOR_PROMPT_CN = """
-你是 Reflector（反思者）。根据一个已完成的任务片段，提出一条有证据支撑的经验教训。
+你是 Reflector（反思者）。根据一轮已完成对话的证据，提出一条有证据支撑的经验教训。
+输入是一个 JSON 对象：
+- trigger_reason：触发复盘的原因；observed_outcome：本轮结束时记录的结果。
+- evidence_status："captured"，或 "queued_before_evidence_capture"（仅记录了 user_request 和 final_reply；此时证据字段为空表示"未记录"，而不是"未发生"）。
+- evidence.user_request：用户最新的消息（若是纠正，则为纠正内容本身）。
+- evidence.previous_assistant_reply：该消息所回应的回复（若是纠正，则为出错的回复）。
+- evidence.final_reply：结束本轮的回复。
+- evidence.matched_correction_marker / explicit_correction_action：用户纠正助手的迹象。
+- evidence.failed_tool_results（tool_name、error、result）、invalidated_tool_names 及各项计数。
+- evidence.truncated_fields：被截断的字段；不要把它们当作完整内容。
+根据这些证据在 failure_summary 中指出错误：上一条回复或失败的工具错在哪里。没有出错时留空。
+cause_summary 只能依据证据；除非证据表明了原因，否则将 cause_is_hypothesis 设为 true。
+将用户不得不补充的步骤、检查或信息，或本可避免失败的步骤，写入 required_prerequisites。
 只返回严格 JSON，不要任何解释：
 {
   "task_summary": "简短任务描述",

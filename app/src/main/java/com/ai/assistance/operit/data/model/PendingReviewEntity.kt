@@ -21,7 +21,14 @@ data class PendingReviewEntity(
     var updatedAt: Date = Date(),
     var status: String = STATUS_PENDING,
     var attemptCount: Int = 0,
-    var lastError: String = ""
+    var lastError: String = "",
+    /**
+     * [com.ai.assistance.operit.data.learning.ReviewEvidence] captured at enqueue time, JSON
+     * encoded. Blank only on rows queued by a build without evidence capture
+     * (docs/TODO/review-evidence-capture-20261030/README.md). Added as a new property; no existing
+     * property id changes.
+     */
+    var evidenceJson: String = ""
 ) {
     companion object {
         const val STATUS_PENDING = "pending"
